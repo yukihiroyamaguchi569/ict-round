@@ -89,7 +89,7 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
     e.preventDefault();
     if (!photoDataUrl || !location.trim()) return;
     onAdd({
-      id: crypto.randomUUID(),
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
       location: location.trim(),
       photoDataUrl,
       comment: comment.trim(),
