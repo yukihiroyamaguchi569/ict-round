@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import type { RoundData } from '../types';
 
 interface Props {
@@ -81,19 +83,52 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     };
   };
 
+  const generatePdfBlob = async (): Promise<Blob | null> => {
+    if (!reportRef.current) return null;
+
+    const canvas = await html2canvas(reportRef.current, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    });
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    let heightLeft = pdfHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position -= pageHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+    }
+
+    return pdf.output('blob');
+  };
+
   const handleShare = async () => {
     setIsSharing(true);
     try {
-      const html = buildReportHtml(roundData);
       const dateStr = new Date().toISOString().slice(0, 10);
-      const file = new File([html], `感染対策ラウンド_${dateStr}.html`, {
-        type: 'text/html',
-      });
+      const fileName = `感染対策ラウンド_${dateStr}.pdf`;
 
-      if (navigator.canShare?.({ files: [file] })) {
+      const pdfBlob = await generatePdfBlob();
+      if (!pdfBlob) return;
+
+      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+      if (navigator.canShare?.({ files: [pdfFile] })) {
         await navigator.share({
           title: `感染対策ラウンド報告書 ${dateStr}`,
-          files: [file],
+          files: [pdfFile],
         });
       } else if (navigator.share) {
         await navigator.share({
@@ -105,7 +140,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       }
     } catch (e) {
       if (e instanceof Error && e.name !== 'AbortError') {
-        alert('共有に失敗しました。');
+        alert('共有に失敗しました。PDF出力をお試しください。');
       }
     } finally {
       setIsSharing(false);
