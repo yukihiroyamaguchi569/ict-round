@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTheme } from '../ThemeContext';
 import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import type { RoundData } from '../types';
@@ -9,12 +10,12 @@ interface Props {
 }
 
 export default function ReportPreview({ roundData, onBack }: Props) {
+  const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
 
   const handleExportDocx = async () => {
     const children: Paragraph[] = [];
 
-    // Title
     children.push(new Paragraph({
       heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
@@ -22,7 +23,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       children: [new TextRun({ text: '感染対策ラウンド報告書', bold: true, size: 32 })],
     }));
 
-    // Meta
     children.push(new Paragraph({
       spacing: { after: 100 },
       children: [
@@ -41,14 +41,12 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       ],
     }));
 
-    // Separator
     children.push(new Paragraph({
-      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '2D6B5A' } },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '0C6B8A' } },
       spacing: { after: 300 },
       children: [],
     }));
 
-    // Checkpoints
     for (let i = 0; i < roundData.checkpoints.length; i++) {
       const cp = roundData.checkpoints[i];
 
@@ -61,7 +59,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         ],
       }));
 
-      // Photo
       try {
         const base64 = cp.photoDataUrl.split(',')[1];
         const binaryStr = atob(base64);
@@ -81,7 +78,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         // skip image if conversion fails
       }
 
-      // Comment
       if (cp.comment) {
         children.push(new Paragraph({
           spacing: { after: 200 },
@@ -90,7 +86,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       }
     }
 
-    // Footer
     children.push(new Paragraph({
       border: { top: { style: BorderStyle.SINGLE, size: 1, color: 'dddddd' } },
       spacing: { before: 400 },
@@ -105,70 +100,75 @@ export default function ReportPreview({ roundData, onBack }: Props) {
   };
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-base">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-cream/80 backdrop-blur-xl border-b border-border px-5 py-3 flex items-center justify-between">
-        <button onClick={onBack} className="text-ink-muted text-sm font-medium hover:text-ink transition-colors duration-200 flex items-center gap-1">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+      <div className="sticky top-0 z-10 bg-surface/90 backdrop-blur-lg border-b border-line px-5 py-3.5 flex items-center justify-between">
+        <button onClick={onBack} className="text-text-muted text-sm font-bold hover:text-text transition-colors duration-200 flex items-center gap-1">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          戻る
+          {theme.backLabel}
         </button>
         <button
           onClick={handleExportDocx}
-          className="bg-sage text-white rounded-xl px-5 py-2 text-sm font-medium hover:bg-sage-dark transition-all duration-200 active:scale-[0.98] flex items-center gap-2"
+          className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-1.5"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
           </svg>
           Word出力
         </button>
       </div>
 
-      {/* Report Content */}
-      <div className="animate-page px-5 py-6">
-        <div ref={reportRef} className="bg-surface rounded-2xl border border-border p-6 max-w-2xl mx-auto">
-          {/* Report Header */}
-          <div className="pb-5 mb-6 border-b border-border">
-            <h1 className="text-lg font-semibold text-ink text-center tracking-tight">感染対策ラウンド報告書</h1>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="bg-cream rounded-xl px-3 py-2.5">
-                <p className="text-[10px] text-ink-faint uppercase tracking-widest mb-0.5">担当者</p>
-                <p className="text-sm font-medium text-ink">{roundData.inspectorName}</p>
-              </div>
-              <div className="bg-cream rounded-xl px-3 py-2.5">
-                <p className="text-[10px] text-ink-faint uppercase tracking-widest mb-0.5">実施日時</p>
-                <p className="text-sm font-medium text-ink">{roundData.startTime}</p>
-              </div>
+      {/* Report */}
+      <div className="animate-page px-5 py-5">
+        <div ref={reportRef} className="card p-5 max-w-2xl mx-auto">
+          {/* Title */}
+          <div className="text-center pb-4 mb-5">
+            <h1 className="text-lg font-extrabold text-text">感染対策ラウンド報告書</h1>
+            <div className="w-12 h-1 bg-primary rounded-full mx-auto mt-3" />
+          </div>
+
+          {/* Meta */}
+          <div className="grid grid-cols-2 gap-2.5 mb-6">
+            <div className="bg-base rounded-t px-4 py-3">
+              <p className="text-[10px] text-text-faint font-bold uppercase tracking-wider">担当者</p>
+              <p className="text-sm font-bold text-text mt-0.5">{roundData.inspectorName}</p>
             </div>
-            <div className="mt-2 flex items-center justify-center gap-1.5 text-xs text-ink-muted">
-              <span className="w-5 h-5 rounded-lg bg-sage text-white text-[10px] font-semibold flex items-center justify-center">{roundData.checkpoints.length}</span>
-              <span>箇所を確認</span>
+            <div className="bg-base rounded-t px-4 py-3">
+              <p className="text-[10px] text-text-faint font-bold uppercase tracking-wider">実施日時</p>
+              <p className="text-sm font-bold text-text mt-0.5">{roundData.startTime}</p>
             </div>
           </div>
 
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="flex-1 h-px bg-line" />
+            <span className="text-xs font-bold text-primary bg-primary-light px-3 py-1 rounded-full">{roundData.checkpoints.length} 箇所を確認</span>
+            <div className="flex-1 h-px bg-line" />
+          </div>
+
           {/* Checkpoints */}
-          <div className="space-y-5 stagger-children">
+          <div className="space-y-4 stagger">
             {roundData.checkpoints.map((cp, index) => (
-              <div key={cp.id} className="rounded-xl border border-border overflow-hidden">
-                {/* Checkpoint header */}
-                <div className="px-4 py-2.5 flex items-center gap-2.5 bg-cream">
-                  <span className="w-6 h-6 rounded-lg bg-sage text-white text-xs font-semibold flex items-center justify-center flex-shrink-0">
+              <div key={cp.id} className="rounded-t bg-base overflow-hidden">
+                {/* Header */}
+                <div className="px-4 py-2.5 flex items-center gap-2.5">
+                  <span className="w-7 h-7 rounded-lg bg-primary text-white text-xs font-extrabold flex items-center justify-center flex-shrink-0" style={{ boxShadow: 'var(--t-btn-glow)' }}>
                     {index + 1}
                   </span>
-                  <span className="font-medium text-sm text-ink truncate">{cp.location}</span>
-                  <span className="text-[11px] text-ink-faint ml-auto flex-shrink-0">{cp.timestamp}</span>
+                  <span className="font-bold text-sm text-text truncate">{cp.location}</span>
+                  <span className="text-[11px] text-text-faint ml-auto flex-shrink-0">{cp.timestamp}</span>
                 </div>
-                {/* Photo & comment */}
-                <div className="p-3">
+                {/* Content */}
+                <div className="px-4 pb-4">
                   <img
                     src={cp.photoDataUrl}
                     alt={cp.location}
-                    className="w-full max-h-72 object-contain rounded-xl bg-cream"
+                    className="w-full max-h-64 object-contain rounded-t bg-surface"
                   />
                   {cp.comment && (
-                    <div className="mt-3 bg-cream rounded-xl px-3.5 py-2.5">
-                      <p className="text-sm text-ink-muted whitespace-pre-wrap leading-relaxed">{cp.comment}</p>
+                    <div className="mt-2.5 bg-surface rounded-t px-4 py-3">
+                      <p className="text-sm text-text-muted whitespace-pre-wrap leading-relaxed">{cp.comment}</p>
                     </div>
                   )}
                 </div>
@@ -177,8 +177,8 @@ export default function ReportPreview({ roundData, onBack }: Props) {
           </div>
 
           {/* Footer */}
-          <div className="mt-8 pt-4 border-t border-border text-center">
-            <p className="text-[11px] text-ink-faint font-light">本報告書は感染対策ラウンドアプリにより自動生成されました</p>
+          <div className="mt-8 pt-4 border-t border-line text-center">
+            <p className="text-[11px] text-text-faint">本報告書は感染対策ラウンドアプリにより自動生成されました</p>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useTheme } from '../ThemeContext';
 import type { Checkpoint } from '../types';
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
 }
 
 export default function CheckpointForm({ onAdd, onCancel }: Props) {
+  const { theme } = useTheme();
   const [location, setLocation] = useState('');
   const [photoDataUrl, setPhotoDataUrl] = useState('');
   const [comment, setComment] = useState('');
@@ -97,28 +99,30 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
     });
   };
 
+  const isValid = photoDataUrl && location.trim();
+
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-base">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-cream/80 backdrop-blur-xl border-b border-border px-5 py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-10 bg-surface/90 backdrop-blur-lg border-b border-line px-5 py-3.5 flex items-center justify-between">
         <button
           type="button"
           onClick={onCancel}
-          className="text-ink-muted text-sm font-medium hover:text-ink transition-colors duration-200 flex items-center gap-1"
+          className="text-text-muted text-sm font-bold hover:text-text transition-colors duration-200 flex items-center gap-1"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          戻る
+          {theme.backLabel}
         </button>
-        <h2 className="text-sm font-semibold text-ink">チェックポイント追加</h2>
-        <div className="w-12" />
+        <h2 className="text-sm font-bold text-text">チェックポイント追加</h2>
+        <div className="w-14" />
       </div>
 
-      <form onSubmit={handleSubmit} className="animate-page px-5 py-6 space-y-6">
+      <form onSubmit={handleSubmit} className="animate-page px-5 py-5 space-y-4">
         {/* Location */}
-        <div>
-          <label htmlFor="location-input" className="block text-xs font-medium text-ink-muted uppercase tracking-widest mb-2">場所名</label>
+        <div className="card p-4">
+          <label htmlFor="location-input" className="block text-sm font-bold text-text-muted mb-2">場所名</label>
           <input
             id="location-input"
             type="text"
@@ -126,39 +130,45 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
             onChange={(e) => setLocation(e.target.value)}
             placeholder="例: 3F ナースステーション"
             maxLength={100}
-            className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-base text-ink placeholder:text-ink-faint transition-all duration-200"
+            className="w-full bg-base border-2 border-line rounded-t px-4 py-3 text-base text-text placeholder:text-text-faint transition-all duration-200"
           />
         </div>
 
         {/* Photo */}
-        <div>
-          <label className="block text-xs font-medium text-ink-muted uppercase tracking-widest mb-2">写真</label>
+        <div className="card p-4">
+          <label className="block text-sm font-bold text-text-muted mb-2">写真</label>
           {photoDataUrl ? (
-            <div className="relative animate-scale">
-              <img src={photoDataUrl} alt="撮影済み" className="w-full rounded-2xl max-h-64 object-cover" />
+            <div className="relative animate-pop">
+              <img src={photoDataUrl} alt="撮影済み" className="w-full rounded-t max-h-60 object-cover" />
               <button
                 type="button"
                 onClick={() => { setPhotoDataUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                className="absolute top-3 right-3 bg-ink/60 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-ink/80 transition-colors duration-200"
+                className="absolute top-2.5 right-2.5 bg-text/50 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-text/70 transition-colors duration-200"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+              <div className="absolute bottom-2.5 left-2.5 bg-ok text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {theme.photoOkLabel}
+              </div>
             </div>
           ) : (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full bg-surface border-2 border-dashed border-border rounded-2xl py-10 text-ink-muted hover:border-sage hover:text-sage transition-all duration-200 group"
+              className="w-full bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-10 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200 group"
             >
-              <div className="w-12 h-12 rounded-2xl bg-cream-dark group-hover:bg-sage-light flex items-center justify-center mx-auto mb-3 transition-colors duration-200">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+              <div className="w-14 h-14 rounded-t bg-surface flex items-center justify-center mx-auto mb-3 transition-shadow duration-200" style={{ boxShadow: 'var(--t-card-shadow)' }}>
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
-              <span className="text-sm font-medium">写真を撮影 / 選択</span>
+              <span className="text-sm font-bold">タップして撮影 / 選択</span>
             </button>
           )}
           <input
@@ -171,27 +181,28 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
           />
         </div>
 
-        {/* Comment with voice */}
-        <div>
-          <label htmlFor="comment-input" className="block text-xs font-medium text-ink-muted uppercase tracking-widest mb-2">コメント</label>
+        {/* Comment */}
+        <div className="card p-4">
+          <label htmlFor="comment-input" className="block text-sm font-bold text-text-muted mb-2">コメント</label>
           <div className="relative">
             <textarea
               id="comment-input"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="音声入力またはテキスト入力..."
+              placeholder={theme.commentPlaceholder}
               rows={4}
-              className="w-full bg-surface border border-border rounded-xl px-4 py-3 pr-14 text-base text-ink placeholder:text-ink-faint transition-all duration-200 resize-none"
+              className="w-full bg-base border-2 border-line rounded-t px-4 py-3 pr-14 text-base text-text placeholder:text-text-faint transition-all duration-200 resize-none"
             />
             <button
               type="button"
               onClick={toggleListening}
               aria-label={isListening ? '音声認識を停止' : '音声認識を開始'}
-              className={`absolute right-3 bottom-3 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+              className={`absolute right-2.5 bottom-2.5 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
                 isListening
-                  ? 'bg-danger text-white animate-pulse-ring'
-                  : 'bg-cream-dark text-ink-muted hover:bg-sage-light hover:text-sage'
+                  ? 'bg-danger text-white animate-breathe'
+                  : 'bg-base-deep text-text-muted hover:bg-primary-light hover:text-primary'
               }`}
+              style={isListening ? { boxShadow: '0 0 0 4px var(--t-danger-light)' } : {}}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -199,23 +210,21 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
             </button>
           </div>
           {isListening && (
-            <div className="flex items-center gap-2 mt-2 animate-fade">
+            <div className="flex items-center gap-2 mt-2.5 animate-fade">
               <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
-              <p className="text-xs text-danger font-medium">音声認識中...</p>
+              <p className="text-xs text-danger font-bold">{theme.listeningLabel}</p>
             </div>
           )}
         </div>
 
         {/* Submit */}
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={!photoDataUrl || !location.trim()}
-            className="w-full bg-sage text-white rounded-xl py-3.5 font-medium text-sm tracking-wide hover:bg-sage-dark disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 active:scale-[0.98]"
-          >
-            追加する
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!isValid}
+          className="btn-primary w-full py-4 text-base font-bold"
+        >
+          追加する
+        </button>
       </form>
     </div>
   );
