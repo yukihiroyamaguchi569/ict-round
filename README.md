@@ -11,7 +11,8 @@
 - チェックポイント一覧の確認と削除
 - レポートプレビュー表示
 - 印刷画面経由の PDF 出力
-- Web Share API を使った共有
+- Word (docx) ファイルのエクスポート
+- Web Share API を使った共有（非対応環境ではPDFダウンロード）
 
 ## 技術スタック
 
@@ -21,6 +22,7 @@
 - Tailwind CSS 4
 - `html2canvas`
 - `jspdf`
+- `docx` + `file-saver`
 
 ## セットアップ
 
@@ -48,8 +50,8 @@ npm run dev
 このアプリは GitHub Pages 向けに設定されています。
 
 - 公開想定 URL: `https://yukihiroyamaguchi569.github.io/ict-round/`
-- Vite の `base` は [vite.config.ts](/Users/Yukis_MacBook/claude-code/harness-engeneering/vite.config.ts) で `/ict-round/` に設定済み
-- GitHub Actions のデプロイ設定は [.github/workflows/deploy.yml](/Users/Yukis_MacBook/claude-code/harness-engeneering/.github/workflows/deploy.yml) にあります
+- Vite の `base` は `vite.config.ts` で `/ict-round/` に設定済み
+- GitHub Actions のデプロイ設定は `.github/workflows/deploy.yml` にあります
 - `main` ブランチへ push すると GitHub Pages へ自動デプロイされます
 
 ### 反映方法
@@ -64,7 +66,7 @@ npm run dev
 
 - GitHub リポジトリの `Settings > Pages` で `GitHub Actions` を使用する設定にする
 - 公開先リポジトリ名が `ict-round` であることを確認する
-- リポジトリ名を変更した場合は [vite.config.ts](/Users/Yukis_MacBook/claude-code/harness-engeneering/vite.config.ts) の `base` も合わせて変更する
+- リポジトリ名を変更した場合は `vite.config.ts` の `base` も合わせて変更する
 
 ## 利用手順
 
@@ -73,7 +75,7 @@ npm run dev
 3. 場所名を入力し、写真を撮影または選択します。
 4. 必要に応じて音声入力または手入力でコメントを追加します。
 5. 一覧画面で登録内容を確認し、不要な項目は削除します。
-6. 「レポート作成」から報告書を確認し、共有または PDF 出力します。
+6. 「レポート作成」から報告書を確認し、共有・Word出力・PDF出力します。
 
 ## 利用可能なスクリプト
 
@@ -86,8 +88,9 @@ npm run dev
 
 - データはアプリ内の state のみで管理しており、ページ再読み込み後の永続化はありません。
 - 音声入力は `SpeechRecognition` / `webkitSpeechRecognition` に依存するため、ブラウザによっては利用できません。
-- 共有機能は `navigator.share` / `navigator.canShare` に依存します。未対応端末では PDF 出力を利用してください。
+- 共有ボタンは Web Share API でファイル共有を試み、非対応環境では PDF を直接ダウンロードします。
 - PDF ボタンは印刷用ウィンドウを開いてブラウザの印刷機能を使います。ポップアップブロックが有効な場合は許可が必要です。
+- Word ボタンは写真・コメント付きの `.docx` ファイルを生成してダウンロードします。
 - 画像は 10MB 以下のみ登録できます。
 - GitHub Pages 配信ではサブパス `/ict-round/` 配下で動作する前提です。
 
