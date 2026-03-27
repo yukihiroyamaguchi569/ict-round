@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
+import { saveAs } from 'file-saver';
 import type { RoundData } from '../types';
 
 interface Props {
@@ -114,6 +116,99 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     return pdf.output('blob');
   };
 
+  const handleExportDocx = async () => {
+    const children: Paragraph[] = [];
+
+    // Title
+    children.push(new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+      children: [new TextRun({ text: '感染対策ラウンド報告書', bold: true, size: 32 })],
+    }));
+
+    // Meta
+    children.push(new Paragraph({
+      spacing: { after: 100 },
+      children: [
+        new TextRun({ text: '担当者: ', bold: true }),
+        new TextRun(roundData.inspectorName),
+        new TextRun('    '),
+        new TextRun({ text: '実施日時: ', bold: true }),
+        new TextRun(roundData.startTime),
+      ],
+    }));
+    children.push(new Paragraph({
+      spacing: { after: 200 },
+      children: [
+        new TextRun({ text: '確認箇所数: ', bold: true }),
+        new TextRun(`${roundData.checkpoints.length}件`),
+      ],
+    }));
+
+    // Separator
+    children.push(new Paragraph({
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '2563eb' } },
+      spacing: { after: 300 },
+      children: [],
+    }));
+
+    // Checkpoints
+    for (let i = 0; i < roundData.checkpoints.length; i++) {
+      const cp = roundData.checkpoints[i];
+
+      children.push(new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 },
+        children: [
+          new TextRun({ text: `${i + 1}. ${cp.location}`, bold: true, size: 24 }),
+          new TextRun({ text: `  ${cp.timestamp}`, size: 18, color: '999999' }),
+        ],
+      }));
+
+      // Photo
+      try {
+        const base64 = cp.photoDataUrl.split(',')[1];
+        const binaryStr = atob(base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let j = 0; j < binaryStr.length; j++) {
+          bytes[j] = binaryStr.charCodeAt(j);
+        }
+        children.push(new Paragraph({
+          spacing: { after: 100 },
+          children: [new ImageRun({
+            data: bytes,
+            transformation: { width: 500, height: 375 },
+            type: 'jpg',
+          })],
+        }));
+      } catch {
+        // skip image if conversion fails
+      }
+
+      // Comment
+      if (cp.comment) {
+        children.push(new Paragraph({
+          spacing: { after: 200 },
+          children: [new TextRun({ text: cp.comment, size: 22 })],
+        }));
+      }
+    }
+
+    // Footer
+    children.push(new Paragraph({
+      border: { top: { style: BorderStyle.SINGLE, size: 1, color: 'dddddd' } },
+      spacing: { before: 400 },
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text: '本報告書は感染対策ラウンドアプリにより自動生成されました', size: 16, color: 'aaaaaa' })],
+    }));
+
+    const doc = new Document({ sections: [{ children }] });
+    const blob = await Packer.toBlob(doc);
+    const dateStr = new Date().toISOString().slice(0, 10);
+    saveAs(blob, `感染対策ラウンド_${dateStr}.docx`);
+  };
+
   const downloadPdf = (blob: Blob, fileName: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -178,6 +273,15 @@ export default function ReportPreview({ roundData, onBack }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
             {isSharing ? '共有中...' : '共有'}
+          </button>
+          <button
+            onClick={handleExportDocx}
+            className="bg-indigo-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-indigo-700 transition-colors flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Word
           </button>
           <button
             onClick={handleExportPdf}
