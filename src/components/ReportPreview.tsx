@@ -114,6 +114,15 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     return pdf.output('blob');
   };
 
+  const downloadPdf = (blob: Blob, fileName: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleShare = async () => {
     setIsSharing(true);
     try {
@@ -130,17 +139,19 @@ export default function ReportPreview({ roundData, onBack }: Props) {
           title: `感染対策ラウンド報告書 ${dateStr}`,
           files: [pdfFile],
         });
-      } else if (navigator.share) {
-        await navigator.share({
-          title: `感染対策ラウンド報告書 ${dateStr}`,
-          text: `感染対策ラウンド報告書\n担当者: ${roundData.inspectorName}\n実施日時: ${roundData.startTime}\n確認箇所数: ${roundData.checkpoints.length}件`,
-        });
       } else {
-        alert('この端末では共有機能に対応していません。PDF出力をご利用ください。');
+        downloadPdf(pdfBlob, fileName);
       }
     } catch (e) {
       if (e instanceof Error && e.name !== 'AbortError') {
-        alert('共有に失敗しました。PDF出力をお試しください。');
+        const dateStr = new Date().toISOString().slice(0, 10);
+        const fileName = `感染対策ラウンド_${dateStr}.pdf`;
+        const pdfBlob = await generatePdfBlob();
+        if (pdfBlob) {
+          downloadPdf(pdfBlob, fileName);
+        } else {
+          alert('共有に失敗しました。PDF出力をお試しください。');
+        }
       }
     } finally {
       setIsSharing(false);
