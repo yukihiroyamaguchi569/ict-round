@@ -52,15 +52,11 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cream">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-gray-800">感染対策ラウンド</h1>
-            <p className="text-sm text-gray-500">{roundData.inspectorName} | {roundData.startTime}</p>
-          </div>
-        </div>
+      <div className="bg-cream/80 backdrop-blur-xl border-b border-border px-5 py-4 sticky top-0 z-10">
+        <h1 className="text-base font-semibold text-ink tracking-tight">感染対策ラウンド</h1>
+        <p className="text-xs text-ink-muted mt-0.5">{roundData.inspectorName} — {roundData.startTime}</p>
       </div>
 
       <CheckpointList
