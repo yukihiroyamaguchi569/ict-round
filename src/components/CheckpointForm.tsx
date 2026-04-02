@@ -26,23 +26,43 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
     return recognition;
   }
 
-  const handlePhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = Math.round(height * (maxWidth / width));
+          width = maxWidth;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) { reject(new Error('Canvas not supported')); return; }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像の読み込みに失敗')); };
+      img.src = url;
+    });
+  }
+
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       alert('ファイルサイズは10MB以下にしてください');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string' && reader.result.startsWith('data:image/')) {
-        setPhotoDataUrl(reader.result);
-      }
-    };
-    reader.onerror = () => {
+    try {
+      const dataUrl = await compressImage(file);
+      setPhotoDataUrl(dataUrl);
+    } catch {
       alert('ファイルの読み込みに失敗しました');
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   const toggleListening = () => {
