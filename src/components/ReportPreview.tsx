@@ -42,29 +42,6 @@ function base64ToUint8Array(dataUrl: string): Uint8Array {
   return bytes;
 }
 
-function imageParasFromPhoto(photo: Photo): Paragraph[] {
-  const paras: Paragraph[] = [];
-  try {
-    paras.push(new Paragraph({
-      spacing: { after: 80 },
-      children: [new ImageRun({
-        data: base64ToUint8Array(photo.dataUrl),
-        transformation: { width: 460, height: 345 },
-        type: 'jpg',
-      })],
-    }));
-  } catch {
-    // skip
-  }
-  if (photo.comment) {
-    paras.push(new Paragraph({
-      spacing: { after: 160 },
-      children: [new TextRun({ text: photo.comment, size: 20 })],
-    }));
-  }
-  return paras;
-}
-
 export default function ReportPreview({ roundData, onBack }: Props) {
   const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
