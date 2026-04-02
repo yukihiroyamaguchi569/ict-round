@@ -115,52 +115,62 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       children: [new TextRun({ text: '1. チェックリスト', bold: true, size: 26 })],
     }));
 
-    for (const cat of CHECKLIST_CATEGORIES) {
-      // Category heading row
-      const catRows: TableRow[] = [
+    {
+      const checklistRows: TableRow[] = [
+        // Header row
         new TableRow({
           children: [
             new TableCell({
-              columnSpan: 2,
-              shading: { type: ShadingType.SOLID, color: 'EDF1F7', fill: 'EDF1F7' },
-              children: [new Paragraph({
-                children: [new TextRun({ text: cat.category, bold: true, size: 22 })],
-              })],
+              width: { size: 14, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.SOLID, color: 'D5E4F0', fill: 'D5E4F0' },
+              children: [new Paragraph({ children: [new TextRun({ text: 'ジャンル', bold: true, size: 18 })] })],
+            }),
+            new TableCell({
+              width: { size: 79, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.SOLID, color: 'D5E4F0', fill: 'D5E4F0' },
+              children: [new Paragraph({ children: [new TextRun({ text: 'チェック項目', bold: true, size: 18 })] })],
+            }),
+            new TableCell({
+              width: { size: 7, type: WidthType.PERCENTAGE },
+              shading: { type: ShadingType.SOLID, color: 'D5E4F0', fill: 'D5E4F0' },
+              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '評価', bold: true, size: 18 })] })],
             }),
           ],
         }),
       ];
 
-      for (const item of cat.items) {
-        const result = roundData.checklistResults.find((r) => r.itemId === item.id);
-        const rating = result?.rating ?? '—';
-        const ratingColor = rating !== '—' ? RATING_HEX[rating] : 'AAAAAA';
-        const ratingBg = rating !== '—' ? RATING_BG[rating] : 'F9F9F9';
+      for (const cat of CHECKLIST_CATEGORIES) {
+        for (const item of cat.items) {
+          const result = roundData.checklistResults.find((r) => r.itemId === item.id);
+          const rating = result?.rating ?? '—';
+          const ratingColor = rating !== '—' ? RATING_HEX[rating] : 'AAAAAA';
+          const ratingBg = rating !== '—' ? RATING_BG[rating] : 'F9F9F9';
 
-        catRows.push(new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 88, type: WidthType.PERCENTAGE },
-              children: [new Paragraph({
-                children: [new TextRun({ text: item.description, size: 20 })],
-              })],
-            }),
-            new TableCell({
-              width: { size: 12, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.SOLID, color: ratingBg, fill: ratingBg },
-              children: [new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [new TextRun({ text: rating, bold: true, size: 24, color: ratingColor })],
-              })],
-            }),
-          ],
-        }));
+          checklistRows.push(new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 14, type: WidthType.PERCENTAGE },
+                shading: { type: ShadingType.SOLID, color: 'F0F4F8', fill: 'F0F4F8' },
+                children: [new Paragraph({ children: [new TextRun({ text: cat.category, size: 18 })] })],
+              }),
+              new TableCell({
+                width: { size: 79, type: WidthType.PERCENTAGE },
+                children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18 })] })],
+              }),
+              new TableCell({
+                width: { size: 7, type: WidthType.PERCENTAGE },
+                shading: { type: ShadingType.SOLID, color: ratingBg, fill: ratingBg },
+                children: [new Paragraph({
+                  alignment: AlignmentType.CENTER,
+                  children: [new TextRun({ text: rating, bold: true, size: 22, color: ratingColor })],
+                })],
+              }),
+            ],
+          }));
+        }
       }
 
-      children.push(new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        rows: catRows,
-      }));
+      children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: checklistRows }));
       children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
 
@@ -180,28 +190,56 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         children: [new TextRun({ text: '2. 写真記録', bold: true, size: 26 })],
       }));
 
-      // Item-linked photos
+      // Collect all photos with labels
+      const allDocxPhotos: { photo: Photo; label: string }[] = [];
       for (const result of roundData.checklistResults) {
         if (result.photos.length === 0) continue;
         const item = getItemById(result.itemId);
-        children.push(new Paragraph({
-          spacing: { before: 160, after: 80 },
-          children: [new TextRun({ text: `▶ ${item?.category ?? ''}: ${item?.description ?? ''}`, bold: true, size: 20, color: '444444' })],
-        }));
         for (const photo of result.photos) {
-          children.push(...imageParasFromPhoto(photo));
+          allDocxPhotos.push({ photo, label: `${item?.category ?? ''}: ${item?.description?.slice(0, 20) ?? ''}` });
         }
       }
+      for (const photo of roundData.generalPhotos) {
+        allDocxPhotos.push({ photo, label: '汎用写真' });
+      }
 
-      // General photos
-      if (generalPhotosExist) {
-        children.push(new Paragraph({
-          spacing: { before: 160, after: 80 },
-          children: [new TextRun({ text: '▶ 汎用写真', bold: true, size: 20, color: '444444' })],
+      // 3 photos per row using table
+      for (let i = 0; i < allDocxPhotos.length; i += 3) {
+        const rowEntries = allDocxPhotos.slice(i, i + 3);
+        while (rowEntries.length < 3) rowEntries.push({ photo: null as unknown as Photo, label: '' });
+
+        children.push(new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            new TableRow({
+              children: rowEntries.map((entry) => {
+                if (!entry.photo) {
+                  return new TableCell({
+                    width: { size: 33, type: WidthType.PERCENTAGE },
+                    children: [new Paragraph({ children: [] })],
+                  });
+                }
+                const cellChildren: Paragraph[] = [
+                  new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: entry.label, size: 16, bold: true, color: '444444' })] }),
+                ];
+                try {
+                  cellChildren.push(new Paragraph({
+                    spacing: { after: 40 },
+                    children: [new ImageRun({ data: base64ToUint8Array(entry.photo.dataUrl), transformation: { width: 148, height: 111 }, type: 'jpg' })],
+                  }));
+                } catch { /* skip */ }
+                if (entry.photo.comment) {
+                  cellChildren.push(new Paragraph({ children: [new TextRun({ text: entry.photo.comment, size: 16 })] }));
+                }
+                return new TableCell({
+                  width: { size: 33, type: WidthType.PERCENTAGE },
+                  children: cellChildren,
+                });
+              }),
+            }),
+          ],
         }));
-        for (const photo of roundData.generalPhotos) {
-          children.push(...imageParasFromPhoto(photo));
-        }
+        children.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
       }
     }
 
@@ -320,21 +358,26 @@ export default function ReportPreview({ roundData, onBack }: Props) {
               <span className="w-6 h-6 rounded-lg bg-primary text-white text-xs font-extrabold flex items-center justify-center" style={{ boxShadow: 'var(--t-btn-glow)' }}>1</span>
               チェックリスト
             </h2>
-            <div className="space-y-2">
-              {CHECKLIST_CATEGORIES.map((cat) => (
-                <div key={cat.category} className="rounded-t overflow-hidden bg-base">
-                  <div className="px-3 py-1.5 bg-base-deep">
-                    <span className="text-xs font-bold text-text-muted">{cat.category}</span>
-                  </div>
-                  <div className="divide-y divide-line">
-                    {cat.items.map((item) => {
-                      const result = roundData.checklistResults.find((r) => r.itemId === item.id);
-                      const rating = result?.rating;
-                      return (
-                        <div key={item.id} className="flex items-center gap-2 px-3 py-2">
-                          <p className="flex-1 text-xs text-text leading-relaxed">{item.description}</p>
+            <table className="w-full text-xs border-collapse rounded-t overflow-hidden">
+              <thead>
+                <tr className="bg-base-deep">
+                  <th className="text-left px-2 py-1.5 font-bold text-text-muted border border-line w-[14%]">ジャンル</th>
+                  <th className="text-left px-2 py-1.5 font-bold text-text-muted border border-line">チェック項目</th>
+                  <th className="text-center px-2 py-1.5 font-bold text-text-muted border border-line w-[7%]">評価</th>
+                </tr>
+              </thead>
+              <tbody>
+                {CHECKLIST_CATEGORIES.flatMap((cat) =>
+                  cat.items.map((item) => {
+                    const result = roundData.checklistResults.find((r) => r.itemId === item.id);
+                    const rating = result?.rating;
+                    return (
+                      <tr key={item.id} className="border-t border-line">
+                        <td className="px-2 py-1.5 border border-line bg-base-deep/60 text-text-muted align-top leading-relaxed">{cat.category}</td>
+                        <td className="px-2 py-1.5 border border-line text-text leading-relaxed">{item.description}</td>
+                        <td className="px-2 py-1.5 border border-line text-center align-middle">
                           <span
-                            className="flex-shrink-0 w-8 h-8 rounded-t font-extrabold text-sm flex items-center justify-center"
+                            className="inline-flex items-center justify-center w-7 h-7 rounded font-extrabold"
                             style={
                               rating
                                 ? { backgroundColor: RATING_HEX[rating] + '22', color: RATING_HEX[rating], border: `1.5px solid ${RATING_HEX[rating]}` }
@@ -343,13 +386,13 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                           >
                             {rating ?? '—'}
                           </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           </div>
 
           {/* Section 2: Photos */}
@@ -360,26 +403,22 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                 写真記録
                 <span className="text-xs font-normal text-text-muted">（{totalPhotos}枚）</span>
               </h2>
-              <div className="space-y-3">
-                {roundData.checklistResults.filter((r) => r.photos.length > 0).map((result) => {
+              <div className="grid grid-cols-3 gap-2">
+                {roundData.checklistResults.filter((r) => r.photos.length > 0).flatMap((result) => {
                   const item = getItemById(result.itemId);
                   return result.photos.map((photo) => (
-                    <div key={photo.id} className="rounded-t overflow-hidden bg-base">
-                      <div className="px-3 py-1.5 bg-base-deep">
-                        <span className="text-[10px] font-bold text-primary">{item?.category}：{item?.description.slice(0, 40)}{item && item.description.length > 40 ? '…' : ''}</span>
-                      </div>
-                      <img src={photo.dataUrl} alt="" className="w-full max-h-48 object-contain bg-surface" />
-                      {photo.comment && <p className="px-3 py-2 text-sm text-text-muted">{photo.comment}</p>}
+                    <div key={photo.id} className="rounded overflow-hidden bg-base border border-line">
+                      <p className="px-1.5 py-1 text-[9px] font-bold text-primary truncate bg-base-deep">{item?.category}：{item?.description.slice(0, 20)}{item && item.description.length > 20 ? '…' : ''}</p>
+                      <img src={photo.dataUrl} alt="" className="w-full aspect-square object-cover" />
+                      {photo.comment && <p className="px-1.5 py-1 text-[9px] text-text-muted line-clamp-2">{photo.comment}</p>}
                     </div>
                   ));
                 })}
                 {roundData.generalPhotos.map((photo) => (
-                  <div key={photo.id} className="rounded-t overflow-hidden bg-base">
-                    <div className="px-3 py-1.5 bg-base-deep">
-                      <span className="text-[10px] font-bold text-text-muted">汎用写真</span>
-                    </div>
-                    <img src={photo.dataUrl} alt="" className="w-full max-h-48 object-contain bg-surface" />
-                    {photo.comment && <p className="px-3 py-2 text-sm text-text-muted">{photo.comment}</p>}
+                  <div key={photo.id} className="rounded overflow-hidden bg-base border border-line">
+                    <p className="px-1.5 py-1 text-[9px] font-bold text-text-muted bg-base-deep">汎用写真</p>
+                    <img src={photo.dataUrl} alt="" className="w-full aspect-square object-cover" />
+                    {photo.comment && <p className="px-1.5 py-1 text-[9px] text-text-muted line-clamp-2">{photo.comment}</p>}
                   </div>
                 ))}
               </div>
