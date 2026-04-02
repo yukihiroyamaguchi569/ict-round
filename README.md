@@ -129,3 +129,5 @@ npm run dev
 - `docs/plan.md` : 初期計画メモ
 - `docs/review.md` : レビュー記録
 - `docs/handoff-implementer.md` : 実装引き継ぎメモ
+- `docs/reference/round-checklist.xlsx` : チェックリスト原本
+- `docs/assets/distribution-qr.png` : 配布用QRコード

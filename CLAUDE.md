@@ -84,7 +84,7 @@
   - `.venv/`
   - lockfiles
   - generated build output
-- Do not inspect `round-checklist.xlsx` unless the task is about the original checklist source.
+- Do not inspect `docs/reference/round-checklist.xlsx` unless the task is about the original checklist source.
 - Do not inspect `public/` assets unless the task is about static assets or sharing UX.
 
 ## Working Style For This Repo
