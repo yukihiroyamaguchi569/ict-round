@@ -1,8 +1,10 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useTheme } from '../ThemeContext';
 import { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import type { RoundData } from '../types';
+
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 interface Props {
   roundData: RoundData;
@@ -12,6 +14,14 @@ interface Props {
 export default function ReportPreview({ roundData, onBack }: Props) {
   const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    if (navigator.share && navigator.canShare) {
+      const testFile = new File([''], 'test.docx', { type: DOCX_MIME });
+      setCanShare(navigator.canShare({ files: [testFile] }));
+    }
+  }, []);
 
   const handleExportDocx = async () => {
     const children: Paragraph[] = [];
@@ -96,7 +106,23 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     const dateStr = new Date().toISOString().slice(0, 10);
-    saveAs(blob, `感染対策ラウンド_${dateStr}.docx`);
+    const filename = `感染対策ラウンド_${dateStr}.docx`;
+
+    if (canShare) {
+      const file = new File([blob], filename, { type: DOCX_MIME });
+      try {
+        await navigator.share({
+          title: '感染対策ラウンド報告書',
+          text: `${roundData.inspectorName} - ${dateStr}`,
+          files: [file],
+        });
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        saveAs(blob, filename);
+      }
+    } else {
+      saveAs(blob, filename);
+    }
   };
 
   return (
@@ -113,10 +139,16 @@ export default function ReportPreview({ roundData, onBack }: Props) {
           onClick={handleExportDocx}
           className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-1.5"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-          Word出力
+          {canShare ? (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+          )}
+          {canShare ? '共有' : 'Word出力'}
         </button>
       </div>
 
