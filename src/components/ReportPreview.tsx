@@ -119,17 +119,17 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         new TableRow({
           children: [
             new TableCell({
-              width: { size: 14, type: WidthType.PERCENTAGE },
+              width: { size: 1300, type: WidthType.DXA },
               shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
               children: [new Paragraph({ children: [new TextRun({ text: 'ジャンル', bold: true, size: 18, color: clr.primary })] })],
             }),
             new TableCell({
-              width: { size: 79, type: WidthType.PERCENTAGE },
+              width: { size: 7126, type: WidthType.DXA },
               shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
               children: [new Paragraph({ children: [new TextRun({ text: 'チェック項目', bold: true, size: 18, color: clr.primary })] })],
             }),
             new TableCell({
-              width: { size: 7, type: WidthType.PERCENTAGE },
+              width: { size: 600, type: WidthType.DXA },
               shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
               children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '評価', bold: true, size: 18, color: clr.primary })] })],
             }),
@@ -147,17 +147,17 @@ export default function ReportPreview({ roundData, onBack }: Props) {
           checklistRows.push(new TableRow({
             children: [
               new TableCell({
-                width: { size: 14, type: WidthType.PERCENTAGE },
+                width: { size: 1300, type: WidthType.DXA },
                 shading: { type: ShadingType.SOLID, color: clr.baseDeep, fill: clr.baseDeep },
                 children: [new Paragraph({ children: [new TextRun({ text: cat.category, size: 18, color: clr.textMuted })] })],
               }),
               new TableCell({
-                width: { size: 79, type: WidthType.PERCENTAGE },
+                width: { size: 7126, type: WidthType.DXA },
                 shading: { type: ShadingType.SOLID, color: clr.surface, fill: clr.surface },
                 children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18, color: clr.text })] })],
               }),
               new TableCell({
-                width: { size: 7, type: WidthType.PERCENTAGE },
+                width: { size: 600, type: WidthType.DXA },
                 shading: { type: ShadingType.SOLID, color: ratingBg, fill: ratingBg },
                 children: [new Paragraph({
                   alignment: AlignmentType.CENTER,
@@ -169,7 +169,8 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         }
       }
 
-      children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: checklistRows }));
+      // A4 content width ≈ 9026 DXA. Genre:1300 / Item:7126 / Rating:600
+      children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [1300, 7126, 600], rows: checklistRows }));
       children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
 
