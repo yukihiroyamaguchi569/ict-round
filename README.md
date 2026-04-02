@@ -46,6 +46,7 @@ npm run dev
 このアプリは GitHub Pages 向けに設定されています。
 
 - 公開想定 URL: `https://yukihiroyamaguchi569.github.io/ict-round/`
+- デプロイ先 URL: `https://ict-round.conect.llc/`
 - Vite の `base` は `vite.config.ts` で `./` に設定済み
 - GitHub Actions のデプロイ設定は `.github/workflows/deploy.yml` にあります
 - `main` ブランチへ push すると GitHub Pages へ自動デプロイされます
