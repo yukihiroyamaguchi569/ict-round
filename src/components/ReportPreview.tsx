@@ -83,20 +83,20 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
       spacing: { after: 160 },
-      children: [new TextRun({ text: '感染対策ラウンド報告書', bold: true, size: 32 })],
+      children: [new TextRun({ text: '感染対策ラウンド報告書', bold: true, size: 32, color: clr.text })],
     }));
 
     children.push(new Paragraph({
       spacing: { after: 80 },
       children: [
-        new TextRun({ text: '担当者: ', bold: true }),
-        new TextRun(roundData.inspectorName),
+        new TextRun({ text: '担当者: ', bold: true, color: clr.textMuted }),
+        new TextRun({ text: roundData.inspectorName, color: clr.text }),
         new TextRun('　'),
-        new TextRun({ text: '病棟: ', bold: true }),
-        new TextRun(roundData.wardName || '—'),
+        new TextRun({ text: '病棟: ', bold: true, color: clr.textMuted }),
+        new TextRun({ text: roundData.wardName || '—', color: clr.text }),
         new TextRun('　'),
-        new TextRun({ text: '実施日時: ', bold: true }),
-        new TextRun(roundData.startTime),
+        new TextRun({ text: '実施日時: ', bold: true, color: clr.textMuted }),
+        new TextRun({ text: roundData.startTime, color: clr.text }),
       ],
     }));
 
@@ -110,7 +110,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     children.push(new Paragraph({
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 160 },
-      children: [new TextRun({ text: '1. チェックリスト', bold: true, size: 26 })],
+      children: [new TextRun({ text: '1', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  チェックリスト', bold: true, size: 26, color: clr.text })],
     }));
 
     {
@@ -187,7 +187,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       children.push(new Paragraph({
         heading: HeadingLevel.HEADING_2,
         spacing: { before: 200, after: 160 },
-        children: [new TextRun({ text: '2. 写真記録', bold: true, size: 26 })],
+        children: [new TextRun({ text: '2', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  写真記録', bold: true, size: 26, color: clr.text })],
       }));
 
       // Collect all photos with labels
@@ -252,7 +252,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     children.push(new Paragraph({
       heading: HeadingLevel.HEADING_2,
       spacing: { before: 200, after: 160 },
-      children: [new TextRun({ text: '3. 総評', bold: true, size: 26 })],
+      children: [new TextRun({ text: '3', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  総評', bold: true, size: 26, color: clr.text })],
     }));
 
     if (roundData.overallEvaluation.trim()) {
@@ -260,7 +260,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       for (const line of lines) {
         children.push(new Paragraph({
           spacing: { after: 80 },
-          children: [new TextRun({ text: line, size: 22 })],
+          children: [new TextRun({ text: line, size: 22, color: clr.text })],
         }));
       }
     } else {
