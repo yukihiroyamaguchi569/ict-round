@@ -32,6 +32,13 @@ interface Props {
   onBack: () => void;
 }
 
+function getCssHex(varName: string): string {
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(varName)
+    .trim()
+    .replace('#', '');
+}
+
 function base64ToUint8Array(dataUrl: string): Uint8Array {
   const base64 = dataUrl.split(',')[1];
   const binaryStr = atob(base64);
@@ -55,6 +62,18 @@ export default function ReportPreview({ roundData, onBack }: Props) {
   }, []);
 
   const handleExportDocx = async () => {
+    const clr = {
+      primary:    getCssHex('--t-primary'),
+      primaryLt:  getCssHex('--t-primary-light'),
+      baseDeep:   getCssHex('--t-base-deep'),
+      base:       getCssHex('--t-base'),
+      surface:    getCssHex('--t-surface'),
+      text:       getCssHex('--t-text'),
+      textMuted:  getCssHex('--t-text-muted'),
+      textFaint:  getCssHex('--t-text-faint'),
+      line:       getCssHex('--t-line'),
+    };
+
     const children: (Paragraph | Table)[] = [];
 
     // ===== Title =====
@@ -80,7 +99,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     }));
 
     children.push(new Paragraph({
-      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '0C6B8A' } },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: clr.primary } },
       spacing: { after: 300 },
       children: [],
     }));
@@ -99,18 +118,18 @@ export default function ReportPreview({ roundData, onBack }: Props) {
           children: [
             new TableCell({
               width: { size: 14, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.SOLID, color: 'D5E4F0', fill: 'D5E4F0' },
-              children: [new Paragraph({ children: [new TextRun({ text: 'ジャンル', bold: true, size: 18 })] })],
+              shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
+              children: [new Paragraph({ children: [new TextRun({ text: 'ジャンル', bold: true, size: 18, color: clr.primary })] })],
             }),
             new TableCell({
               width: { size: 79, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.SOLID, color: 'D5E4F0', fill: 'D5E4F0' },
-              children: [new Paragraph({ children: [new TextRun({ text: 'チェック項目', bold: true, size: 18 })] })],
+              shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
+              children: [new Paragraph({ children: [new TextRun({ text: 'チェック項目', bold: true, size: 18, color: clr.primary })] })],
             }),
             new TableCell({
               width: { size: 7, type: WidthType.PERCENTAGE },
-              shading: { type: ShadingType.SOLID, color: 'D5E4F0', fill: 'D5E4F0' },
-              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '評価', bold: true, size: 18 })] })],
+              shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
+              children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '評価', bold: true, size: 18, color: clr.primary })] })],
             }),
           ],
         }),
@@ -120,19 +139,20 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         for (const item of cat.items) {
           const result = roundData.checklistResults.find((r) => r.itemId === item.id);
           const rating = result?.rating ?? '—';
-          const ratingColor = rating !== '—' ? RATING_HEX[rating] : 'AAAAAA';
-          const ratingBg = rating !== '—' ? RATING_BG[rating] : 'F9F9F9';
+          const ratingColor = rating !== '—' ? RATING_HEX[rating] : clr.textFaint;
+          const ratingBg = rating !== '—' ? RATING_BG[rating] : clr.baseDeep;
 
           checklistRows.push(new TableRow({
             children: [
               new TableCell({
                 width: { size: 14, type: WidthType.PERCENTAGE },
-                shading: { type: ShadingType.SOLID, color: 'F0F4F8', fill: 'F0F4F8' },
-                children: [new Paragraph({ children: [new TextRun({ text: cat.category, size: 18 })] })],
+                shading: { type: ShadingType.SOLID, color: clr.baseDeep, fill: clr.baseDeep },
+                children: [new Paragraph({ children: [new TextRun({ text: cat.category, size: 18, color: clr.textMuted })] })],
               }),
               new TableCell({
                 width: { size: 79, type: WidthType.PERCENTAGE },
-                children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18 })] })],
+                shading: { type: ShadingType.SOLID, color: clr.surface, fill: clr.surface },
+                children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18, color: clr.text })] })],
               }),
               new TableCell({
                 width: { size: 7, type: WidthType.PERCENTAGE },
@@ -157,7 +177,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
 
     if (itemPhotosExist || generalPhotosExist) {
       children.push(new Paragraph({
-        border: { top: { style: BorderStyle.SINGLE, size: 2, color: 'dddddd' } },
+        border: { top: { style: BorderStyle.SINGLE, size: 2, color: clr.line } },
         spacing: { before: 300 },
         children: [],
       }));
@@ -197,7 +217,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                   });
                 }
                 const cellChildren: Paragraph[] = [
-                  new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: entry.label, size: 16, bold: true, color: '444444' })] }),
+                  new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: entry.label, size: 16, bold: true, color: clr.primary })] }),
                 ];
                 try {
                   cellChildren.push(new Paragraph({
@@ -222,7 +242,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
 
     // ===== Section 3: Evaluation =====
     children.push(new Paragraph({
-      border: { top: { style: BorderStyle.SINGLE, size: 2, color: 'dddddd' } },
+      border: { top: { style: BorderStyle.SINGLE, size: 2, color: clr.line } },
       spacing: { before: 300 },
       children: [],
     }));
@@ -242,16 +262,16 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       }
     } else {
       children.push(new Paragraph({
-        children: [new TextRun({ text: '（記載なし）', size: 22, color: 'AAAAAA' })],
+        children: [new TextRun({ text: '（記載なし）', size: 22, color: clr.textFaint })],
       }));
     }
 
     // Footer
     children.push(new Paragraph({
-      border: { top: { style: BorderStyle.SINGLE, size: 1, color: 'dddddd' } },
+      border: { top: { style: BorderStyle.SINGLE, size: 1, color: clr.line } },
       spacing: { before: 400 },
       alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: '本報告書は感染対策ラウンドアプリにより自動生成されました', size: 16, color: 'aaaaaa' })],
+      children: [new TextRun({ text: '本報告書は感染対策ラウンドアプリにより自動生成されました', size: 16, color: clr.textFaint })],
     }));
 
     const doc = new Document({ sections: [{ children }] });
