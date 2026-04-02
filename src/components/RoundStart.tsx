@@ -3,21 +3,21 @@ import { useTheme } from '../ThemeContext';
 import ThemeSelector from './ThemeSelector';
 
 interface Props {
-  onStart: (name: string) => void;
+  onStart: (name: string, wardName: string) => void;
 }
 
 export default function RoundStart({ onStart }: Props) {
   const [name, setName] = useState('');
+  const [wardName, setWardName] = useState('');
   const { theme } = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) onStart(name.trim());
+    if (name.trim()) onStart(name.trim(), wardName.trim());
   };
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-6">
-      {/* Theme selector - top right */}
       <div className="fixed top-4 right-4 z-10">
         <ThemeSelector />
       </div>
@@ -39,21 +39,37 @@ export default function RoundStart({ onStart }: Props) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="card p-6">
-          <label className="block text-sm font-bold text-text-muted mb-2">担当者名</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="例: 山田 花子"
-            className="w-full bg-base border-2 border-line rounded-t px-4 py-3.5 text-base text-text placeholder:text-text-faint transition-all duration-200"
-            autoFocus
-          />
+        <form onSubmit={handleSubmit} className="card p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-text-muted mb-2">担当者名</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="例: 山田 花子"
+              className="w-full bg-base border-2 border-line rounded-t px-4 py-3.5 text-base text-text placeholder:text-text-faint transition-all duration-200"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-text-muted mb-2">
+              病棟名
+              <span className="text-text-faint font-normal ml-1">（任意）</span>
+            </label>
+            <input
+              type="text"
+              value={wardName}
+              onChange={(e) => setWardName(e.target.value)}
+              placeholder="例: 3階東病棟"
+              className="w-full bg-base border-2 border-line rounded-t px-4 py-3.5 text-base text-text placeholder:text-text-faint transition-all duration-200"
+            />
+          </div>
 
           <button
             type="submit"
             disabled={!name.trim()}
-            className="btn-primary w-full mt-5 py-4 text-base font-bold"
+            className="btn-primary w-full py-4 text-base font-bold"
           >
             ラウンド開始
           </button>

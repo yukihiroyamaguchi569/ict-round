@@ -187,3 +187,16 @@ input:focus, textarea:focus {
   border-color: var(--t-primary) !important;
   box-shadow: 0 0 0 4px var(--t-primary-light);
 }
+
+/* Safe area for bottom tab bar */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

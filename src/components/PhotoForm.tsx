@@ -1,20 +1,23 @@
 import { useState, useRef } from 'react';
 import { useTheme } from '../ThemeContext';
-import type { Checkpoint } from '../types';
+import type { Photo } from '../types';
+import { getItemById } from '../checklistData';
 
 interface Props {
-  onAdd: (cp: Checkpoint) => void;
+  linkedItemId?: string;
+  onAdd: (photo: Photo) => void;
   onCancel: () => void;
 }
 
-export default function CheckpointForm({ onAdd, onCancel }: Props) {
+export default function PhotoForm({ linkedItemId, onAdd, onCancel }: Props) {
   const { theme } = useTheme();
-  const [location, setLocation] = useState('');
   const [photoDataUrl, setPhotoDataUrl] = useState('');
   const [comment, setComment] = useState('');
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<ReturnType<typeof createRecognition> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const linkedItem = linkedItemId ? getItemById(linkedItemId) : undefined;
 
   function createRecognition(): SpeechRecognition | null {
     const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -94,10 +97,7 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
       setComment(finalTranscript + interim);
     };
 
-    recognition.onerror = () => {
-      setIsListening(false);
-    };
-
+    recognition.onerror = () => setIsListening(false);
     recognition.onend = () => {
       setIsListening(false);
       setComment(finalTranscript);
@@ -109,17 +109,14 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!photoDataUrl || !location.trim()) return;
+    if (!photoDataUrl) return;
     onAdd({
       id: Math.random().toString(36).slice(2) + Date.now().toString(36),
-      location: location.trim(),
-      photoDataUrl,
+      dataUrl: photoDataUrl,
       comment: comment.trim(),
       timestamp: new Date().toLocaleString('ja-JP'),
     });
   };
-
-  const isValid = photoDataUrl && location.trim();
 
   return (
     <div className="min-h-screen bg-base">
@@ -135,24 +132,25 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
           </svg>
           {theme.backLabel}
         </button>
-        <h2 className="text-sm font-bold text-text">チェックポイント追加</h2>
+        <h2 className="text-sm font-bold text-text">写真を追加</h2>
         <div className="w-14" />
       </div>
 
       <form onSubmit={handleSubmit} className="animate-page px-5 py-5 space-y-4">
-        {/* Location */}
-        <div className="card p-4">
-          <label htmlFor="location-input" className="block text-sm font-bold text-text-muted mb-2">場所名</label>
-          <input
-            id="location-input"
-            type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="例: 3F ナースステーション"
-            maxLength={100}
-            className="w-full bg-base border-2 border-line rounded-t px-4 py-3 text-base text-text placeholder:text-text-faint transition-all duration-200"
-          />
-        </div>
+        {/* Linked item indicator */}
+        {linkedItem && (
+          <div className="card px-4 py-3 flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-primary-light flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-text-faint font-bold uppercase tracking-wider">紐付き項目</p>
+              <p className="text-xs text-text font-medium leading-tight mt-0.5 line-clamp-2">{linkedItem.description}</p>
+            </div>
+          </div>
+        )}
 
         {/* Photo */}
         <div className="card p-4">
@@ -163,7 +161,7 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
               <button
                 type="button"
                 onClick={() => { setPhotoDataUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                className="absolute top-2.5 right-2.5 bg-text/50 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-text/70 transition-colors duration-200"
+                className="absolute top-2.5 right-2.5 bg-text/50 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -180,9 +178,9 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-10 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200 group"
+              className="w-full bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-10 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200"
             >
-              <div className="w-14 h-14 rounded-t bg-surface flex items-center justify-center mx-auto mb-3 transition-shadow duration-200" style={{ boxShadow: 'var(--t-card-shadow)' }}>
+              <div className="w-14 h-14 rounded-t bg-surface flex items-center justify-center mx-auto mb-3" style={{ boxShadow: 'var(--t-card-shadow)' }}>
                 <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -203,14 +201,14 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
 
         {/* Comment */}
         <div className="card p-4">
-          <label htmlFor="comment-input" className="block text-sm font-bold text-text-muted mb-2">コメント</label>
+          <label htmlFor="photo-comment" className="block text-sm font-bold text-text-muted mb-2">コメント</label>
           <div className="relative">
             <textarea
-              id="comment-input"
+              id="photo-comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder={theme.commentPlaceholder}
-              rows={4}
+              rows={3}
               className="w-full bg-base border-2 border-line rounded-t px-4 py-3 pr-14 text-base text-text placeholder:text-text-faint transition-all duration-200 resize-none"
             />
             <button
@@ -237,10 +235,9 @@ export default function CheckpointForm({ onAdd, onCancel }: Props) {
           )}
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
-          disabled={!isValid}
+          disabled={!photoDataUrl}
           className="btn-primary w-full py-4 text-base font-bold"
         >
           追加する
