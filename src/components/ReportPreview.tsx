@@ -33,10 +33,12 @@ interface Props {
 }
 
 function getCssHex(varName: string): string {
-  return getComputedStyle(document.documentElement)
+  const raw = getComputedStyle(document.documentElement)
     .getPropertyValue(varName)
-    .trim()
-    .replace('#', '');
+    .trim();
+  // Handle both "#RRGGBB" and "RRGGBB" formats; fallback for empty
+  const hex = raw.replace('#', '');
+  return /^[0-9a-fA-F]{6}$/.test(hex) ? hex : 'CCCCCC';
 }
 
 function base64ToUint8Array(dataUrl: string): Uint8Array {
@@ -61,7 +63,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     }
   }, []);
 
-  const handleExportDocx = async () => {
+  const handleExportDocx = async () => { try {
     const clr = {
       primary:    getCssHex('--t-primary'),
       primaryLt:  getCssHex('--t-primary-light'),
@@ -290,7 +292,10 @@ export default function ReportPreview({ roundData, onBack }: Props) {
     } else {
       saveAs(blob, filename);
     }
-  };
+  } catch (err) {
+    console.error('DOCX生成エラー:', err);
+    alert('レポートの生成に失敗しました。\n' + String(err));
+  } };
 
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalItems = roundData.checklistResults.length;
