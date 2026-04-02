@@ -17,9 +17,9 @@ export default function ReportPreview({ roundData, onBack }: Props) {
   const [canShare, setCanShare] = useState(false);
 
   useEffect(() => {
-    if (navigator.share && navigator.canShare) {
+    if ('share' in navigator) {
       const testFile = new File([''], 'test.docx', { type: DOCX_MIME });
-      setCanShare(navigator.canShare({ files: [testFile] }));
+      setCanShare(navigator.canShare?.({ files: [testFile] }) ?? false);
     }
   }, []);
 
