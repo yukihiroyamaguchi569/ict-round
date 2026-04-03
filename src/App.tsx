@@ -117,7 +117,6 @@ function AppContent() {
       onDeleteGeneralPhoto={handleDeleteGeneralPhoto}
       onEvaluationChange={handleEvaluationChange}
       onReport={() => setScreen('report')}
-      onPhotoAddForItem={(itemId) => handleOpenPhotoAdd(itemId)}
     />
   );
 }

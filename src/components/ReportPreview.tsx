@@ -161,7 +161,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                 shading: { type: ShadingType.SOLID, color: ratingBg, fill: ratingBg },
                 children: [new Paragraph({
                   alignment: AlignmentType.CENTER,
-                  children: [new TextRun({ text: rating, bold: true, size: 18, color: ratingColor })],
+                  children: [new TextRun({ text: rating, bold: true, size: 22, color: ratingColor })],
                 })],
               }),
             ],

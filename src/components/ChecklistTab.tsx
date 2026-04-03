@@ -5,10 +5,9 @@ import CategoryAccordion from './CategoryAccordion';
 interface Props {
   checklistResults: ChecklistItemResult[];
   onRatingChange: (itemId: string, rating: Rating) => void;
-  onAddPhoto: (itemId: string) => void;
 }
 
-export default function ChecklistTab({ checklistResults, onRatingChange, onAddPhoto }: Props) {
+export default function ChecklistTab({ checklistResults, onRatingChange }: Props) {
   const ratedCount = checklistResults.filter((r) => r.rating !== null).length;
   const progress = Math.round((ratedCount / TOTAL_ITEMS) * 100);
 
@@ -38,7 +37,6 @@ export default function ChecklistTab({ checklistResults, onRatingChange, onAddPh
           category={cat}
           results={checklistResults}
           onRatingChange={onRatingChange}
-          onAddPhoto={onAddPhoto}
           defaultOpen={idx === 0}
         />
       ))}

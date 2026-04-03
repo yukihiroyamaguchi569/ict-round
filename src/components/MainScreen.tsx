@@ -17,7 +17,6 @@ interface Props {
   onDeleteGeneralPhoto: (photoId: string) => void;
   onEvaluationChange: (text: string) => void;
   onReport: () => void;
-  onPhotoAddForItem: (itemId: string) => void;
 }
 
 export default function MainScreen({
@@ -28,7 +27,6 @@ export default function MainScreen({
   onDeleteGeneralPhoto,
   onEvaluationChange,
   onReport,
-  onPhotoAddForItem,
 }: Props) {
   const [activeTab, setActiveTab] = useState<MainTab>('checklist');
 
@@ -36,10 +34,6 @@ export default function MainScreen({
   const totalPhotoCount =
     roundData.checklistResults.reduce((sum, r) => sum + r.photos.length, 0) +
     roundData.generalPhotos.length;
-
-  const handleAddPhotoFromChecklist = (itemId: string) => {
-    onPhotoAddForItem(itemId);
-  };
 
   return (
     <div className="min-h-screen bg-base">
@@ -80,7 +74,6 @@ export default function MainScreen({
           <ChecklistTab
             checklistResults={roundData.checklistResults}
             onRatingChange={onRatingChange}
-            onAddPhoto={handleAddPhotoFromChecklist}
           />
         )}
         {activeTab === 'photos' && (
