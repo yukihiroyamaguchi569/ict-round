@@ -71,7 +71,7 @@ export default function RoundStart({ onStart }: Props) {
           </button>
         </form>
 
-        <p className="text-center text-text-faint text-xs mt-10">ICN 感染対策ラウンドシステム</p>
+        <p className="text-center text-text-faint text-xs mt-10">ICTラウンドアプリ「らんちゃん」</p>
       </div>
     </div>
   );
