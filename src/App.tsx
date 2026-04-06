@@ -8,9 +8,11 @@ import type { Rating, Photo, RoundData } from './types';
 import { CHECKLIST_CATEGORIES } from './checklistData';
 
 type Screen = 'start' | 'main' | 'photo-add' | 'report';
+type MainTab = 'checklist' | 'photos' | 'evaluation';
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>('start');
+  const [activeMainTab, setActiveMainTab] = useState<MainTab>('checklist');
   const [photoContext, setPhotoContext] = useState<{ itemId?: string } | null>(null);
   const [roundData, setRoundData] = useState<RoundData>({
     inspectorName: '',
@@ -32,6 +34,7 @@ function AppContent() {
       generalPhotos: [],
       overallEvaluation: '',
     });
+    setActiveMainTab('checklist');
     setScreen('main');
   };
 
@@ -60,6 +63,7 @@ function AppContent() {
       }));
     }
     setPhotoContext(null);
+    setActiveMainTab('photos');
     setScreen('main');
   };
 
@@ -111,6 +115,8 @@ function AppContent() {
   return (
     <MainScreen
       roundData={roundData}
+      activeTab={activeMainTab}
+      onTabChange={setActiveMainTab}
       onRatingChange={handleRatingChange}
       onAddPhoto={handleOpenPhotoAdd}
       onDeleteItemPhoto={handleDeleteItemPhoto}

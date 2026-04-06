@@ -79,7 +79,7 @@ export default function PhotoTab({
             </svg>
           </div>
           <p className="text-sm font-bold text-text-muted">写真はまだありません</p>
-          <p className="text-xs text-text-faint mt-1">チェック項目横の📷アイコンか上のボタンから追加できます</p>
+          <p className="text-xs text-text-faint mt-1">上のボタンから追加できます</p>
         </div>
       ) : (
         <>

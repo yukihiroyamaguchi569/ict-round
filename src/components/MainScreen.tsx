@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { Rating, RoundData } from '../types';
 import { TOTAL_ITEMS } from '../checklistData';
 import ThemeSelector from './ThemeSelector';
@@ -11,6 +10,8 @@ type MainTab = 'checklist' | 'photos' | 'evaluation';
 
 interface Props {
   roundData: RoundData;
+  activeTab: MainTab;
+  onTabChange: (tab: MainTab) => void;
   onRatingChange: (itemId: string, rating: Rating) => void;
   onAddPhoto: (itemId?: string) => void;
   onDeleteItemPhoto: (itemId: string, photoId: string) => void;
@@ -21,6 +22,8 @@ interface Props {
 
 export default function MainScreen({
   roundData,
+  activeTab,
+  onTabChange,
   onRatingChange,
   onAddPhoto,
   onDeleteItemPhoto,
@@ -28,7 +31,6 @@ export default function MainScreen({
   onEvaluationChange,
   onReport,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<MainTab>('checklist');
 
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalPhotoCount =
@@ -92,7 +94,7 @@ export default function MainScreen({
       {/* Bottom tab bar */}
       <BottomTabBar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={onTabChange}
         onReport={onReport}
         photoCount={totalPhotoCount}
         hasEvaluation={roundData.overallEvaluation.trim().length > 0}

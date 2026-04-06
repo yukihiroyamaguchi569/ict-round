@@ -13,18 +13,14 @@ const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingm
 
 const RATING_HEX: Record<string, string> = {
   A: '059669',
-  B: '2D9F70',
-  C: 'D4A017',
-  D: 'E07A5F',
-  E: 'DC2626',
+  B: 'D4A017',
+  C: 'DC2626',
 };
 
 const RATING_BG: Record<string, string> = {
   A: 'D1FAE5',
-  B: 'D1FAE5',
-  C: 'FEF9C3',
-  D: 'FEE2E2',
-  E: 'FEE2E2',
+  B: 'FEF9C3',
+  C: 'FEE2E2',
 };
 
 interface Props {
@@ -148,7 +144,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
             children: [
               new TableCell({
                 width: { size: 1300, type: WidthType.DXA },
-                shading: { type: ShadingType.SOLID, color: clr.baseDeep, fill: clr.baseDeep },
+                shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
                 children: [new Paragraph({ children: [new TextRun({ text: cat.category, size: 18, color: clr.textMuted })] })],
               }),
               new TableCell({
@@ -200,7 +196,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         }
       }
       for (const photo of roundData.generalPhotos) {
-        allDocxPhotos.push({ photo, label: '汎用写真' });
+        allDocxPhotos.push({ photo, label: '' });
       }
 
       // 3 photos per row using table
@@ -363,7 +359,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
             </h2>
             <table className="w-full text-xs border-collapse rounded-t overflow-hidden">
               <thead>
-                <tr className="bg-base-deep">
+                <tr className="bg-white">
                   <th className="text-left px-2 py-1.5 font-bold text-text-muted border border-line w-[14%]">ジャンル</th>
                   <th className="text-left px-2 py-1.5 font-bold text-text-muted border border-line">チェック項目</th>
                   <th className="text-center px-2 py-1.5 font-bold text-text-muted border border-line w-[7%]">評価</th>
@@ -376,7 +372,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                     const rating = result?.rating;
                     return (
                       <tr key={item.id} className="border-t border-line">
-                        <td className="px-2 py-1.5 border border-line bg-base-deep/60 text-text-muted align-top leading-relaxed">{cat.category}</td>
+                        <td className="px-2 py-1.5 border border-line bg-white text-text-muted align-top leading-relaxed">{cat.category}</td>
                         <td className="px-2 py-1.5 border border-line text-text leading-relaxed">{item.description}</td>
                         <td className="px-2 py-1.5 border border-line text-center align-middle">
                           <span
@@ -384,7 +380,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                             style={
                               rating
                                 ? { backgroundColor: RATING_HEX[rating] + '22', color: RATING_HEX[rating], border: `1.5px solid ${RATING_HEX[rating]}` }
-                                : { backgroundColor: 'var(--t-base-deep)', color: 'var(--t-text-faint)' }
+                                : { backgroundColor: 'transparent', color: 'var(--t-text-faint)' }
                             }
                           >
                             {rating ?? '—'}
@@ -419,7 +415,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                 })}
                 {roundData.generalPhotos.map((photo) => (
                   <div key={photo.id} className="rounded overflow-hidden bg-base border border-line">
-                    <p className="px-1.5 py-1 text-[9px] font-bold text-text-muted bg-base-deep">汎用写真</p>
                     <img src={photo.dataUrl} alt="" className="w-full aspect-square object-cover" />
                     {photo.comment && <p className="px-1.5 py-1 text-[9px] text-text-muted line-clamp-2">{photo.comment}</p>}
                   </div>

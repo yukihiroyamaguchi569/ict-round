@@ -1,13 +1,11 @@
 import type { Rating } from '../types';
 
-const RATINGS: Rating[] = ['A', 'B', 'C', 'D', 'E'];
+const RATINGS: Rating[] = ['A', 'B', 'C'];
 
 const RATING_COLORS: Record<NonNullable<Rating>, { bg: string; border: string; text: string }> = {
   A: { bg: '#059669', border: '#059669', text: '#fff' },
-  B: { bg: '#2D9F70', border: '#2D9F70', text: '#fff' },
-  C: { bg: '#D4A017', border: '#D4A017', text: '#fff' },
-  D: { bg: '#E07A5F', border: '#E07A5F', text: '#fff' },
-  E: { bg: '#DC2626', border: '#DC2626', text: '#fff' },
+  B: { bg: '#D4A017', border: '#D4A017', text: '#fff' },
+  C: { bg: '#DC2626', border: '#DC2626', text: '#fff' },
 };
 
 interface Props {

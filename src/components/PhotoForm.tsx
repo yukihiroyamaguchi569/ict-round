@@ -13,21 +13,9 @@ export default function PhotoForm({ linkedItemId, onAdd, onCancel }: Props) {
   const { theme } = useTheme();
   const [photoDataUrl, setPhotoDataUrl] = useState('');
   const [comment, setComment] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<ReturnType<typeof createRecognition> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const linkedItem = linkedItemId ? getItemById(linkedItemId) : undefined;
-
-  function createRecognition(): SpeechRecognition | null {
-    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionCtor) return null;
-    const recognition = new SpeechRecognitionCtor();
-    recognition.lang = 'ja-JP';
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    return recognition;
-  }
 
   function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -66,45 +54,6 @@ export default function PhotoForm({ linkedItemId, onAdd, onCancel }: Props) {
     } catch {
       alert('ファイルの読み込みに失敗しました');
     }
-  };
-
-  const toggleListening = () => {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-      return;
-    }
-
-    const recognition = createRecognition();
-    if (!recognition) {
-      alert('この端末は音声入力に対応していません');
-      return;
-    }
-
-    recognitionRef.current = recognition;
-    let finalTranscript = comment;
-
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interim = transcript;
-        }
-      }
-      setComment(finalTranscript + interim);
-    };
-
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => {
-      setIsListening(false);
-      setComment(finalTranscript);
-    };
-
-    recognition.start();
-    setIsListening(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -193,7 +142,6 @@ export default function PhotoForm({ linkedItemId, onAdd, onCancel }: Props) {
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handlePhoto}
             className="hidden"
           />
@@ -202,37 +150,14 @@ export default function PhotoForm({ linkedItemId, onAdd, onCancel }: Props) {
         {/* Comment */}
         <div className="card p-4">
           <label htmlFor="photo-comment" className="block text-sm font-bold text-text-muted mb-2">コメント</label>
-          <div className="relative">
-            <textarea
-              id="photo-comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder={theme.commentPlaceholder}
-              rows={3}
-              className="w-full bg-base border-2 border-line rounded-t px-4 py-3 pr-14 text-base text-text placeholder:text-text-faint transition-all duration-200 resize-none"
-            />
-            <button
-              type="button"
-              onClick={toggleListening}
-              aria-label={isListening ? '音声認識を停止' : '音声認識を開始'}
-              className={`absolute right-2.5 bottom-2.5 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
-                isListening
-                  ? 'bg-danger text-white animate-breathe'
-                  : 'bg-base-deep text-text-muted hover:bg-primary-light hover:text-primary'
-              }`}
-              style={isListening ? { boxShadow: '0 0 0 4px var(--t-danger-light)' } : {}}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-              </svg>
-            </button>
-          </div>
-          {isListening && (
-            <div className="flex items-center gap-2 mt-2.5 animate-fade">
-              <span className="w-2 h-2 rounded-full bg-danger animate-pulse" />
-              <p className="text-xs text-danger font-bold">{theme.listeningLabel}</p>
-            </div>
-          )}
+          <textarea
+            id="photo-comment"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder={theme.commentPlaceholder}
+            rows={3}
+            className="w-full bg-base border-2 border-line rounded-t px-4 py-3 text-base text-text placeholder:text-text-faint transition-all duration-200 resize-none"
+          />
         </div>
 
         <button

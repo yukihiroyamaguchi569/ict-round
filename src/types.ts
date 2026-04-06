@@ -1,4 +1,4 @@
-export type Rating = 'A' | 'B' | 'C' | 'D' | 'E' | null;
+export type Rating = 'A' | 'B' | 'C' | null;
 
 export interface ChecklistItemDef {
   id: string;
