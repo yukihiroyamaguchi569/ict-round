@@ -25,7 +25,7 @@ export default function RoundStart({ onStart }: Props) {
       <div className="animate-page w-full max-w-sm">
         {/* Icon */}
         <div className="flex items-center justify-center mb-8">
-          <img src={`${import.meta.env.BASE_URL}ran-icon.png`} alt="らんちゃん" className="w-28 h-28 object-contain drop-shadow-md" />
+          <img src={`${import.meta.env.BASE_URL}ran-icon.png`} alt="らんちゃん" className="w-40 h-40 object-contain drop-shadow-md" />
         </div>
 
         {/* Title */}
