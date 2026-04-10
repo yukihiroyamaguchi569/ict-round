@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    uses: yukihiroyamaguchi569/github_actions/.github/workflows/node-vite-ci.yml@main
+    with:
+      node-version: "22"
+      install-command: "npm ci"
+      lint-command: "npm run lint --if-present"
+      test-command: "npm test --if-present"
+      build-command: "npm run build"
