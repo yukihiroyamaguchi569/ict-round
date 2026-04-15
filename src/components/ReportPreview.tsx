@@ -265,13 +265,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
       }));
     }
 
-    // Footer
-    children.push(new Paragraph({
-      border: { top: { style: BorderStyle.SINGLE, size: 1, color: clr.line } },
-      spacing: { before: 400 },
-      alignment: AlignmentType.CENTER,
-      children: [new TextRun({ text: '本報告書は感染対策ラウンドアプリにより自動生成されました', size: 16, color: clr.textFaint })],
-    }));
 
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
@@ -438,10 +431,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="pt-4 border-t border-line text-center">
-            <p className="text-[11px] text-text-faint">本報告書は感染対策ラウンドアプリにより自動生成されました</p>
-          </div>
         </div>
       </div>
     </div>
