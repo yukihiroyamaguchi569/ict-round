@@ -1,0 +1,18 @@
+{
+  "name": "ICN感染対策ラウンド",
+  "short_name": "ICNラウンド",
+  "description": "病院感染対策ラウンド支援アプリ",
+  "theme_color": "#0C6B8A",
+  "background_color": "#F7F9FC",
+  "display": "standalone",
+  "scope": "./",
+  "start_url": "./",
+  "icons": [
+    {
+      "src": "ran-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
