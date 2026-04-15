@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { useTheme } from '../ThemeContext';
 import {
   Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel,
@@ -50,14 +50,11 @@ function base64ToUint8Array(dataUrl: string): Uint8Array {
 export default function ReportPreview({ roundData, onBack }: Props) {
   const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
-  const [canShare, setCanShare] = useState(false);
-
-  useEffect(() => {
-    if ('share' in navigator) {
-      const testFile = new File([''], 'test.docx', { type: DOCX_MIME });
-      setCanShare(navigator.canShare?.({ files: [testFile] }) ?? false);
-    }
-  }, []);
+  const canShare = (() => {
+    if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
+    const testFile = new File([''], 'test.docx', { type: DOCX_MIME });
+    return navigator.canShare?.({ files: [testFile] }) ?? false;
+  })();
 
   const handleExportDocx = async () => { try {
     const clr = {
