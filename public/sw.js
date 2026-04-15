@@ -36,6 +36,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
+  const isSameOriginGet =
+    request.method === 'GET' && url.origin === self.location.origin;
+  const isNavigationRequest =
+    request.mode === 'navigate' || url.pathname.endsWith('/index.html');
 
   // Google Fonts → Cache First
   if (
@@ -56,13 +60,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 同一オリジンのGET → Cache First, fallback to network
-  if (request.method === 'GET' && url.origin === self.location.origin) {
+  // ナビゲーションと index.html → Network First
+  if (isSameOriginGet && isNavigationRequest) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            caches.open(SHELL_CACHE).then((cache) => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // /assets/ → Cache First（Viteのcontent-hashed assets）
+  if (isSameOriginGet && url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
         return fetch(request).then((response) => {
-          // JS/CSS/画像等はシェルキャッシュに追加
           if (response.ok) {
             caches.open(SHELL_CACHE).then((cache) => cache.put(request, response.clone()));
           }
@@ -71,6 +89,20 @@ self.addEventListener('fetch', (event) => {
       })
     );
     return;
+  }
+
+  // その他の同一オリジンGET → Network First
+  if (isSameOriginGet) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            caches.open(SHELL_CACHE).then((cache) => cache.put(request, response.clone()));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
   }
 
   // その他 → Network Only（IndexedDB操作等はSW経由しない）
