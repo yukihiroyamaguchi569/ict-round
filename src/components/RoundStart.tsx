@@ -71,7 +71,7 @@ export default function RoundStart({ onStart }: Props) {
           </button>
         </form>
 
-        <p className="text-center text-text-faint text-xs mt-10">ICTラウンドアプリ「らんちゃん」</p>
+        <p className="text-center text-text-faint text-xs mt-10">ICTラウンドアプリ「らんちゃん」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
     </div>
   );
