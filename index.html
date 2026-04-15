@@ -21,7 +21,34 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js');
+          let isReloading = false;
+          const reloadPage = () => {
+            if (isReloading) return;
+            isReloading = true;
+            window.location.reload();
+          };
+
+          navigator.serviceWorker
+            .register('./sw.js')
+            .then((registration) => {
+              registration.onupdatefound = () => {
+                const newWorker = registration.installing;
+                if (!newWorker) return;
+
+                newWorker.addEventListener('statechange', () => {
+                  if (
+                    newWorker.state === 'installed' &&
+                    navigator.serviceWorker.controller
+                  ) {
+                    reloadPage();
+                  }
+                });
+              };
+            });
+
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            reloadPage();
+          });
         });
       }
     </script>
