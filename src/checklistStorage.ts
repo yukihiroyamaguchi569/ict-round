@@ -1,4 +1,4 @@
-import type { SavedChecklist } from './types';
+import type { SavedChecklist, SavedRound } from './types';
 import { CHECKLIST_CATEGORIES } from './checklistData';
 
 const LIBRARY_KEY = 'icn-round:checklist-library';
@@ -34,6 +34,37 @@ export function getActiveId(): string | null {
 
 export function setActiveId(id: string): void {
   localStorage.setItem(ACTIVE_ID_KEY, id);
+}
+
+const ROUNDS_KEY = 'icn-round:saved-rounds';
+
+export function loadSavedRounds(): SavedRound[] {
+  try {
+    const raw = localStorage.getItem(ROUNDS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as SavedRound[];
+  } catch {
+    return [];
+  }
+}
+
+function writeSavedRounds(rounds: SavedRound[]): void {
+  localStorage.setItem(ROUNDS_KEY, JSON.stringify(rounds));
+}
+
+export function upsertSavedRound(round: SavedRound): void {
+  const rounds = loadSavedRounds();
+  const idx = rounds.findIndex((r) => r.id === round.id);
+  if (idx >= 0) {
+    rounds[idx] = round;
+  } else {
+    rounds.push(round);
+  }
+  writeSavedRounds(rounds);
+}
+
+export function deleteSavedRound(id: string): void {
+  writeSavedRounds(loadSavedRounds().filter((r) => r.id !== id));
 }
 
 export function seedDefaultIfFirstRun(): SavedChecklist[] {
