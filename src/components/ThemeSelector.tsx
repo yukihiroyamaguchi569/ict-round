@@ -2,8 +2,12 @@ import { useState } from 'react';
 import { useTheme } from '../ThemeContext';
 import { themes } from '../themes';
 import type { ThemeName } from '../themes';
+import { useIcon } from '../IconContext';
+import { icons } from '../icons';
+import type { IconName } from '../icons';
 
 const themeOrder: ThemeName[] = ['warm', 'minimal', 'medical'];
+const iconOrder: IconName[] = ['ran', 'meguru'];
 
 const themeColors: Record<ThemeName, { bg: string; accent: string }> = {
   warm: { bg: '#FDF8F5', accent: '#E07A5F' },
@@ -13,6 +17,7 @@ const themeColors: Record<ThemeName, { bg: string; accent: string }> = {
 
 export default function ThemeSelector() {
   const { themeName, setTheme } = useTheme();
+  const { iconName, setIcon } = useIcon();
   const [open, setOpen] = useState(false);
 
   return (
@@ -21,7 +26,7 @@ export default function ThemeSelector() {
       <button
         onClick={() => setOpen(true)}
         className="w-8 h-8 rounded-xl bg-base-deep flex items-center justify-center text-text-muted hover:text-text transition-colors duration-200"
-        aria-label="テーマ設定"
+        aria-label="外観設定"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
@@ -42,8 +47,9 @@ export default function ThemeSelector() {
             {/* Handle */}
             <div className="w-10 h-1 rounded-full bg-line mx-auto mb-5" />
 
-            <h3 className="text-base font-bold text-text mb-4">テーマを選択</h3>
+            <h3 className="text-base font-bold text-text mb-4">外観を設定</h3>
 
+            <p className="text-xs font-bold text-text-muted mb-2">テーマ</p>
             <div className="space-y-2.5">
               {themeOrder.map((name) => {
                 const t = themes[name];
@@ -78,6 +84,37 @@ export default function ThemeSelector() {
 
                     {active && (
                       <svg className="w-5 h-5 text-primary flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-xs font-bold text-text-muted mt-5 mb-2">アイコン</p>
+            <div className="flex gap-3">
+              {iconOrder.map((name) => {
+                const ic = icons[name];
+                const active = iconName === name;
+                return (
+                  <button
+                    key={name}
+                    onClick={() => { setIcon(name); setOpen(false); }}
+                    className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all duration-200 ${
+                      active
+                        ? 'border-primary bg-primary-light'
+                        : 'border-line bg-base hover:border-text-faint'
+                    }`}
+                  >
+                    <img
+                      src={`${import.meta.env.BASE_URL}${ic.file}`}
+                      alt={ic.alt}
+                      className="w-14 h-14 object-contain"
+                    />
+                    <p className="text-xs font-bold text-text">{ic.label}</p>
+                    {active && (
+                      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     )}

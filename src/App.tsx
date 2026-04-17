@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ThemeProvider } from './ThemeContext';
+import { IconProvider } from './IconContext';
 import RoundStart from './components/RoundStart';
 import MainScreen from './components/MainScreen';
 import PhotoForm from './components/PhotoForm';
@@ -186,7 +187,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <IconProvider>
+        <AppContent />
+      </IconProvider>
     </ThemeProvider>
   );
 }
