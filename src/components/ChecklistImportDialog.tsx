@@ -112,7 +112,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
             </summary>
             <div className="mt-2 bg-base rounded px-3 py-2.5 space-y-2 leading-relaxed">
               <p>2列だけのシンプルなCSV、またはExcel(.xlsx)ファイルを用意します。</p>
-              <p><span className="font-bold">1列目</span>：カテゴリ名　<span className="font-bold">2列目</span>：点検項目の内容</p>
+              <p><span className="font-bold">1列目</span>：カテゴリ名 ／ <span className="font-bold">2列目</span>：点検項目の内容</p>
 
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
