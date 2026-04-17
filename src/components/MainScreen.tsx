@@ -21,7 +21,7 @@ interface Props {
   onDeleteGeneralPhoto: (photoId: string) => void;
   onEvaluationChange: (text: string) => void;
   onReport: () => void;
-  onSave: () => void;
+  onSave: () => boolean;
 }
 
 export default function MainScreen({
@@ -72,7 +72,8 @@ export default function MainScreen({
             <button
               type="button"
               onClick={() => {
-                onSave();
+                const ok = onSave();
+                if (!ok) return;
                 setSavedFeedback(true);
                 setTimeout(() => setSavedFeedback(false), 2000);
               }}

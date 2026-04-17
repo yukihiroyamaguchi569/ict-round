@@ -13,7 +13,9 @@ export default function SavedRoundsList({ savedRounds, onLoad, onDelete, onBack 
     onDelete(id);
   };
 
-  const sorted = [...savedRounds].reverse();
+  const sorted = [...savedRounds].sort(
+    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
+  );
 
   return (
     <div className="min-h-screen bg-base">

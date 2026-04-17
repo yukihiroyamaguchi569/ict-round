@@ -86,7 +86,7 @@ function AppContent() {
     setScreen('main');
   };
 
-  const handleSaveRound = () => {
+  const handleSaveRound = (): boolean => {
     const id = savedRoundId ?? crypto.randomUUID();
     const title =
       roundData.inspectorName +
@@ -100,16 +100,23 @@ function AppContent() {
       checklistId: activeId,
       roundData,
     };
-    upsertSavedRound(round);
-    setSavedRoundId(id);
-    setSavedRounds(loadSavedRounds());
+    try {
+      upsertSavedRound(round);
+      setSavedRoundId(id);
+      setSavedRounds(loadSavedRounds());
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleLoadRound = (round: SavedRound) => {
     const checklistExists = library.find((c) => c.id === round.checklistId);
-    if (checklistExists) {
-      handleSelectChecklist(round.checklistId);
+    if (!checklistExists) {
+      alert('保存時に使用したチェックリストが見つかりません。');
+      return;
     }
+    handleSelectChecklist(round.checklistId);
     setRoundData(round.roundData);
     setSavedRoundId(round.id);
     setActiveMainTab('checklist');
