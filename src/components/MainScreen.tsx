@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useIcon } from '../IconContext';
 import type { Rating, RoundData, ChecklistCategory } from '../types';
 import { getTotalItems } from '../checklistData';
@@ -21,6 +21,7 @@ interface Props {
   onDeleteGeneralPhoto: (photoId: string) => void;
   onEvaluationChange: (text: string) => void;
   onReport: () => void;
+  onSave: () => void;
 }
 
 export default function MainScreen({
@@ -34,8 +35,10 @@ export default function MainScreen({
   onDeleteGeneralPhoto,
   onEvaluationChange,
   onReport,
+  onSave,
 }: Props) {
   const { icon } = useIcon();
+  const [savedFeedback, setSavedFeedback] = useState(false);
   const totalItems = useMemo(() => getTotalItems(categories), [categories]);
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalPhotoCount =
@@ -66,6 +69,32 @@ export default function MainScreen({
             >
               {ratedCount}/{totalItems}
             </span>
+            <button
+              type="button"
+              onClick={() => {
+                onSave();
+                setSavedFeedback(true);
+                setTimeout(() => setSavedFeedback(false), 2000);
+              }}
+              className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full transition-colors"
+              style={
+                savedFeedback
+                  ? { backgroundColor: '#059669', color: '#fff' }
+                  : { backgroundColor: 'var(--t-primary-light)', color: 'var(--t-primary)' }
+              }
+              aria-label="保存"
+            >
+              {savedFeedback ? (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+              )}
+              <span>{savedFeedback ? '保存済み' : '保存'}</span>
+            </button>
             <ThemeSelector />
           </div>
         </div>

@@ -5,16 +5,20 @@ import RoundStart from './components/RoundStart';
 import MainScreen from './components/MainScreen';
 import PhotoForm from './components/PhotoForm';
 import ReportPreview from './components/ReportPreview';
-import type { Rating, Photo, RoundData, SavedChecklist } from './types';
+import SavedRoundsList from './components/SavedRoundsList';
+import type { Rating, Photo, RoundData, SavedChecklist, SavedRound } from './types';
 import {
   seedDefaultIfFirstRun,
   getActiveId,
   setActiveId,
   addChecklist,
   deleteChecklist,
+  loadSavedRounds,
+  upsertSavedRound,
+  deleteSavedRound,
 } from './checklistStorage';
 
-type Screen = 'start' | 'main' | 'photo-add' | 'report';
+type Screen = 'start' | 'main' | 'photo-add' | 'report' | 'saved-rounds';
 type MainTab = 'checklist' | 'photos' | 'evaluation';
 
 function initLibraryAndActive(): { library: SavedChecklist[]; activeId: string } {
@@ -41,6 +45,9 @@ function AppContent() {
     generalPhotos: [],
     overallEvaluation: '',
   });
+
+  const [savedRounds, setSavedRounds] = useState<SavedRound[]>(() => loadSavedRounds());
+  const [savedRoundId, setSavedRoundId] = useState<string | null>(null);
 
   const handleSelectChecklist = (id: string) => {
     setActiveId(id);
@@ -74,8 +81,46 @@ function AppContent() {
       overallEvaluation: '',
       checklistName: activeChecklist.name,
     });
+    setSavedRoundId(null);
     setActiveMainTab('checklist');
     setScreen('main');
+  };
+
+  const handleSaveRound = () => {
+    const id = savedRoundId ?? crypto.randomUUID();
+    const title =
+      roundData.inspectorName +
+      (roundData.wardName ? ` / ${roundData.wardName}` : '') +
+      `（${roundData.startTime}）`;
+    const round: SavedRound = {
+      id,
+      title,
+      savedAt: new Date().toISOString(),
+      version: 1,
+      checklistId: activeId,
+      roundData,
+    };
+    upsertSavedRound(round);
+    setSavedRoundId(id);
+    setSavedRounds(loadSavedRounds());
+  };
+
+  const handleLoadRound = (round: SavedRound) => {
+    const checklistExists = library.find((c) => c.id === round.checklistId);
+    if (checklistExists) {
+      handleSelectChecklist(round.checklistId);
+    }
+    setRoundData(round.roundData);
+    setSavedRoundId(round.id);
+    setActiveMainTab('checklist');
+    setScreen('main');
+  };
+
+  const handleDeleteSavedRound = (id: string) => {
+    deleteSavedRound(id);
+    const updated = loadSavedRounds();
+    setSavedRounds(updated);
+    if (savedRoundId === id) setSavedRoundId(null);
   };
 
   const handleRatingChange = (itemId: string, rating: Rating) => {
@@ -139,10 +184,23 @@ function AppContent() {
       <RoundStart
         library={library}
         activeId={activeId}
+        savedRoundsCount={savedRounds.length}
         onStart={handleStartRound}
         onSelectChecklist={handleSelectChecklist}
         onAddChecklist={handleAddChecklist}
         onDeleteChecklist={handleDeleteChecklist}
+        onViewSaved={() => setScreen('saved-rounds')}
+      />
+    );
+  }
+
+  if (screen === 'saved-rounds') {
+    return (
+      <SavedRoundsList
+        savedRounds={savedRounds}
+        onLoad={handleLoadRound}
+        onDelete={handleDeleteSavedRound}
+        onBack={() => setScreen('start')}
       />
     );
   }
@@ -180,6 +238,7 @@ function AppContent() {
       onDeleteGeneralPhoto={handleDeleteGeneralPhoto}
       onEvaluationChange={handleEvaluationChange}
       onReport={() => setScreen('report')}
+      onSave={handleSaveRound}
     />
   );
 }

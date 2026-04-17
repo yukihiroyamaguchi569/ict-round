@@ -41,3 +41,12 @@ export interface RoundData {
   overallEvaluation: string;
   checklistName?: string;
 }
+
+export interface SavedRound {
+  id: string;
+  title: string;
+  savedAt: string;
+  version: 1;
+  checklistId: string;
+  roundData: RoundData;
+}

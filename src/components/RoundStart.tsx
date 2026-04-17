@@ -8,19 +8,23 @@ import type { SavedChecklist } from '../types';
 interface Props {
   library: SavedChecklist[];
   activeId: string;
+  savedRoundsCount: number;
   onStart: (name: string, wardName: string) => void;
   onSelectChecklist: (id: string) => void;
   onAddChecklist: (c: SavedChecklist) => void;
   onDeleteChecklist: (id: string) => void;
+  onViewSaved: () => void;
 }
 
 export default function RoundStart({
   library,
   activeId,
+  savedRoundsCount,
   onStart,
   onSelectChecklist,
   onAddChecklist,
   onDeleteChecklist,
+  onViewSaved,
 }: Props) {
   const [name, setName] = useState('');
   const [wardName, setWardName] = useState('');
@@ -158,6 +162,22 @@ export default function RoundStart({
             className="btn-primary w-full py-4 text-base font-bold"
           >
             ラウンド開始
+          </button>
+
+          <button
+            type="button"
+            onClick={onViewSaved}
+            className="w-full py-3 text-sm font-bold border-2 border-line rounded-t text-text-muted hover:text-text hover:border-primary transition-colors flex items-center justify-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            保存済みラウンドを開く
+            {savedRoundsCount > 0 && (
+              <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--t-primary-light)', color: 'var(--t-primary)' }}>
+                {savedRoundsCount}
+              </span>
+            )}
           </button>
         </form>
 
