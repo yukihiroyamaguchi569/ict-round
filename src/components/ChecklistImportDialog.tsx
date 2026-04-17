@@ -105,6 +105,22 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
             />
           </div>
 
+          {/* Format help */}
+          <details className="text-xs text-text-muted">
+            <summary className="cursor-pointer select-none font-bold hover:text-text">
+              ファイル形式について
+            </summary>
+            <div className="mt-2 bg-base rounded px-3 py-2.5 space-y-1 leading-relaxed">
+              <p>必要な列（順番通り）:</p>
+              <ul className="list-disc list-inside space-y-0.5 pl-1">
+                <li><code className="font-mono">category</code> — カテゴリ名</li>
+                <li><code className="font-mono">description</code> — 項目の説明</li>
+              </ul>
+              <p className="mt-1">1行目はヘッダ行（<code className="font-mono">category,description</code>）でも可。</p>
+              <pre className="mt-2 text-xs bg-surface border border-line rounded px-2 py-1.5 overflow-x-auto font-mono">{`category,description\n手指衛生,手指消毒剤が各ベッドサイドに配置されている\n手指衛生,アルコール手指消毒の5つのタイミングが掲示されている\n個人防護具,使い捨て手袋が適切に廃棄されている`}</pre>
+            </div>
+          </details>
+
           {/* Error */}
           {error && (
             <p className="text-xs text-red-600 font-bold bg-red-50 px-3 py-2 rounded">{error}</p>
