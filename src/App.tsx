@@ -4,16 +4,34 @@ import RoundStart from './components/RoundStart';
 import MainScreen from './components/MainScreen';
 import PhotoForm from './components/PhotoForm';
 import ReportPreview from './components/ReportPreview';
-import type { Rating, Photo, RoundData } from './types';
-import { CHECKLIST_CATEGORIES } from './checklistData';
+import type { Rating, Photo, RoundData, SavedChecklist } from './types';
+import {
+  seedDefaultIfFirstRun,
+  getActiveId,
+  setActiveId,
+  addChecklist,
+  deleteChecklist,
+} from './checklistStorage';
 
 type Screen = 'start' | 'main' | 'photo-add' | 'report';
 type MainTab = 'checklist' | 'photos' | 'evaluation';
+
+function initLibraryAndActive(): { library: SavedChecklist[]; activeId: string } {
+  const library = seedDefaultIfFirstRun();
+  const savedId = getActiveId();
+  const activeId = library.find((c) => c.id === savedId) ? savedId! : library[0].id;
+  return { library, activeId };
+}
 
 function AppContent() {
   const [screen, setScreen] = useState<Screen>('start');
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('checklist');
   const [photoContext, setPhotoContext] = useState<{ itemId?: string } | null>(null);
+
+  const [{ library, activeId }, setLibraryState] = useState(initLibraryAndActive);
+
+  const activeChecklist = library.find((c) => c.id === activeId) ?? library[0];
+
   const [roundData, setRoundData] = useState<RoundData>({
     inspectorName: '',
     wardName: '',
@@ -23,16 +41,37 @@ function AppContent() {
     overallEvaluation: '',
   });
 
+  const handleSelectChecklist = (id: string) => {
+    setActiveId(id);
+    setLibraryState((prev) => ({ ...prev, activeId: id }));
+  };
+
+  const handleAddChecklist = (c: SavedChecklist) => {
+    addChecklist(c);
+    setLibraryState((prev) => ({ library: [...prev.library, c], activeId: prev.activeId }));
+  };
+
+  const handleDeleteChecklist = (id: string) => {
+    deleteChecklist(id);
+    setLibraryState((prev) => {
+      const newLib = prev.library.filter((c) => c.id !== id);
+      const newActiveId = prev.activeId === id ? newLib[0]?.id ?? '' : prev.activeId;
+      if (newActiveId) setActiveId(newActiveId);
+      return { library: newLib, activeId: newActiveId };
+    });
+  };
+
   const handleStartRound = (name: string, wardName: string) => {
     setRoundData({
       inspectorName: name,
       wardName,
       startTime: new Date().toLocaleString('ja-JP'),
-      checklistResults: CHECKLIST_CATEGORIES.flatMap((cat) =>
+      checklistResults: activeChecklist.categories.flatMap((cat) =>
         cat.items.map((item) => ({ itemId: item.id, rating: null, photos: [] }))
       ),
       generalPhotos: [],
       overallEvaluation: '',
+      checklistName: activeChecklist.name,
     });
     setActiveMainTab('checklist');
     setScreen('main');
@@ -95,13 +134,23 @@ function AppContent() {
   };
 
   if (screen === 'start') {
-    return <RoundStart onStart={handleStartRound} />;
+    return (
+      <RoundStart
+        library={library}
+        activeId={activeId}
+        onStart={handleStartRound}
+        onSelectChecklist={handleSelectChecklist}
+        onAddChecklist={handleAddChecklist}
+        onDeleteChecklist={handleDeleteChecklist}
+      />
+    );
   }
 
   if (screen === 'photo-add') {
     return (
       <PhotoForm
         linkedItemId={photoContext?.itemId}
+        categories={activeChecklist.categories}
         onAdd={handleAddPhoto}
         onCancel={() => { setPhotoContext(null); setScreen('main'); }}
       />
@@ -109,12 +158,19 @@ function AppContent() {
   }
 
   if (screen === 'report') {
-    return <ReportPreview roundData={roundData} onBack={() => setScreen('main')} />;
+    return (
+      <ReportPreview
+        roundData={roundData}
+        categories={activeChecklist.categories}
+        onBack={() => setScreen('main')}
+      />
+    );
   }
 
   return (
     <MainScreen
       roundData={roundData}
+      categories={activeChecklist.categories}
       activeTab={activeMainTab}
       onTabChange={setActiveMainTab}
       onRatingChange={handleRatingChange}

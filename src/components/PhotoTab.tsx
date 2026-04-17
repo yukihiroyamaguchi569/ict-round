@@ -1,7 +1,8 @@
-import type { ChecklistItemResult, Photo } from '../types';
-import { getItemById } from '../checklistData';
+import type { ChecklistItemResult, Photo, ChecklistCategory } from '../types';
+import { findItemById } from '../checklistData';
 
 interface Props {
+  categories: ChecklistCategory[];
   checklistResults: ChecklistItemResult[];
   generalPhotos: Photo[];
   onAddPhoto: (itemId?: string) => void;
@@ -47,6 +48,7 @@ function PhotoCard({
 }
 
 export default function PhotoTab({
+  categories,
   checklistResults,
   generalPhotos,
   onAddPhoto,
@@ -89,7 +91,7 @@ export default function PhotoTab({
               <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2 px-1">項目紐付き写真</h3>
               <div className="space-y-3">
                 {itemPhotos.map((result) => {
-                  const item = getItemById(result.itemId);
+                  const item = findItemById(categories, result.itemId);
                   return result.photos.map((photo) => (
                     <PhotoCard
                       key={photo.id}

@@ -6,8 +6,8 @@ import {
   ShadingType,
 } from 'docx';
 import { saveAs } from 'file-saver';
-import type { RoundData, Photo } from '../types';
-import { CHECKLIST_CATEGORIES, getItemById } from '../checklistData';
+import type { RoundData, Photo, ChecklistCategory } from '../types';
+import { findItemById } from '../checklistData';
 
 const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
@@ -25,6 +25,7 @@ const RATING_BG: Record<string, string> = {
 
 interface Props {
   roundData: RoundData;
+  categories: ChecklistCategory[];
   onBack: () => void;
 }
 
@@ -32,7 +33,6 @@ function getCssHex(varName: string): string {
   const raw = getComputedStyle(document.documentElement)
     .getPropertyValue(varName)
     .trim();
-  // Handle both "#RRGGBB" and "RRGGBB" formats; fallback for empty
   const hex = raw.replace('#', '');
   return /^[0-9a-fA-F]{6}$/.test(hex) ? hex : 'CCCCCC';
 }
@@ -47,7 +47,7 @@ function base64ToUint8Array(dataUrl: string): Uint8Array {
   return bytes;
 }
 
-export default function ReportPreview({ roundData, onBack }: Props) {
+export default function ReportPreview({ roundData, categories, onBack }: Props) {
   const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
   const canShare = (() => {
@@ -108,7 +108,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
 
     {
       const checklistRows: TableRow[] = [
-        // Header row
         new TableRow({
           children: [
             new TableCell({
@@ -130,7 +129,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         }),
       ];
 
-      for (const cat of CHECKLIST_CATEGORIES) {
+      for (const cat of categories) {
         for (const item of cat.items) {
           const result = roundData.checklistResults.find((r) => r.itemId === item.id);
           const rating = result?.rating ?? '—';
@@ -162,7 +161,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         }
       }
 
-      // A4 content width ≈ 9026 DXA. Genre:1300 / Item:7126 / Rating:600
       children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [1300, 7126, 600], rows: checklistRows }));
       children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
     }
@@ -183,11 +181,10 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         children: [new TextRun({ text: '2', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  写真記録', bold: true, size: 26, color: clr.text })],
       }));
 
-      // Collect all photos with labels
       const allDocxPhotos: { photo: Photo; label: string }[] = [];
       for (const result of roundData.checklistResults) {
         if (result.photos.length === 0) continue;
-        const item = getItemById(result.itemId);
+        const item = findItemById(categories, result.itemId);
         for (const photo of result.photos) {
           allDocxPhotos.push({ photo, label: `${item?.category ?? ''}: ${item?.description?.slice(0, 20) ?? ''}` });
         }
@@ -196,7 +193,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         allDocxPhotos.push({ photo, label: '' });
       }
 
-      // 3 photos per row using table
       for (let i = 0; i < allDocxPhotos.length; i += 3) {
         const rowEntries = allDocxPhotos.slice(i, i + 3);
         while (rowEntries.length < 3) rowEntries.push({ photo: null as unknown as Photo, label: '' });
@@ -261,7 +257,6 @@ export default function ReportPreview({ roundData, onBack }: Props) {
         children: [new TextRun({ text: '（記載なし）', size: 22, color: clr.textFaint })],
       }));
     }
-
 
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
@@ -356,7 +351,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {CHECKLIST_CATEGORIES.flatMap((cat) =>
+                {categories.flatMap((cat) =>
                   cat.items.map((item) => {
                     const result = roundData.checklistResults.find((r) => r.itemId === item.id);
                     const rating = result?.rating;
@@ -394,7 +389,7 @@ export default function ReportPreview({ roundData, onBack }: Props) {
               </h2>
               <div className="grid grid-cols-3 gap-2">
                 {roundData.checklistResults.filter((r) => r.photos.length > 0).flatMap((result) => {
-                  const item = getItemById(result.itemId);
+                  const item = findItemById(categories, result.itemId);
                   return result.photos.map((photo) => (
                     <div key={photo.id} className="rounded overflow-hidden bg-base border border-line">
                       <p className="px-1.5 py-1 text-[9px] font-bold text-primary truncate bg-base-deep">{item?.category}：{item?.description.slice(0, 20)}{item && item.description.length > 20 ? '…' : ''}</p>

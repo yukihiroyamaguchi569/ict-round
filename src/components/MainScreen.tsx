@@ -1,5 +1,6 @@
-import type { Rating, RoundData } from '../types';
-import { TOTAL_ITEMS } from '../checklistData';
+import { useMemo } from 'react';
+import type { Rating, RoundData, ChecklistCategory } from '../types';
+import { getTotalItems } from '../checklistData';
 import ThemeSelector from './ThemeSelector';
 import ChecklistTab from './ChecklistTab';
 import PhotoTab from './PhotoTab';
@@ -10,6 +11,7 @@ type MainTab = 'checklist' | 'photos' | 'evaluation';
 
 interface Props {
   roundData: RoundData;
+  categories: ChecklistCategory[];
   activeTab: MainTab;
   onTabChange: (tab: MainTab) => void;
   onRatingChange: (itemId: string, rating: Rating) => void;
@@ -22,6 +24,7 @@ interface Props {
 
 export default function MainScreen({
   roundData,
+  categories,
   activeTab,
   onTabChange,
   onRatingChange,
@@ -31,7 +34,7 @@ export default function MainScreen({
   onEvaluationChange,
   onReport,
 }: Props) {
-
+  const totalItems = useMemo(() => getTotalItems(categories), [categories]);
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalPhotoCount =
     roundData.checklistResults.reduce((sum, r) => sum + r.photos.length, 0) +
@@ -54,12 +57,12 @@ export default function MainScreen({
             <span
               className="text-xs font-bold px-2.5 py-1 rounded-full"
               style={
-                ratedCount === TOTAL_ITEMS
+                ratedCount === totalItems
                   ? { backgroundColor: '#059669', color: '#fff' }
                   : { backgroundColor: 'var(--t-primary-light)', color: 'var(--t-primary)' }
               }
             >
-              {ratedCount}/{TOTAL_ITEMS}
+              {ratedCount}/{totalItems}
             </span>
             <ThemeSelector />
           </div>
@@ -70,12 +73,14 @@ export default function MainScreen({
       <div className="pb-20">
         {activeTab === 'checklist' && (
           <ChecklistTab
+            categories={categories}
             checklistResults={roundData.checklistResults}
             onRatingChange={onRatingChange}
           />
         )}
         {activeTab === 'photos' && (
           <PhotoTab
+            categories={categories}
             checklistResults={roundData.checklistResults}
             generalPhotos={roundData.generalPhotos}
             onAddPhoto={onAddPhoto}

@@ -6,6 +6,19 @@ export interface ChecklistItemDef {
   description: string;
 }
 
+export interface ChecklistCategory {
+  category: string;
+  items: ChecklistItemDef[];
+}
+
+export interface SavedChecklist {
+  id: string;
+  name: string;
+  createdAt: string;
+  isDefault?: boolean;
+  categories: ChecklistCategory[];
+}
+
 export interface Photo {
   id: string;
   dataUrl: string;
@@ -26,4 +39,5 @@ export interface RoundData {
   checklistResults: ChecklistItemResult[];
   generalPhotos: Photo[];
   overallEvaluation: string;
+  checklistName?: string;
 }
