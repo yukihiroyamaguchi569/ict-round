@@ -157,6 +157,11 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
   4. assumptions or unknowns
 - Avoid "read everything first" behavior.
 
+## Versioning Policy
+- When creating a PR that includes a new feature or bug fix, always bump the version in `package.json` and `package-lock.json` as part of the same PR.
+- Use semantic versioning: new feature → minor (e.g. 1.1.0 → 1.2.0), bug fix → patch (e.g. 1.2.0 → 1.2.1).
+- Do not create a separate PR just for a version bump.
+
 
 
 
