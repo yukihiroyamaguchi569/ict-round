@@ -34,6 +34,7 @@ jobs:
         github.event.label.name == 'claude'
       )
     runs-on: ubuntu-latest
+    environment: CLAUDE_CODE_OAUTH_TOKEN
     permissions:
       contents: write
       pull-requests: write
