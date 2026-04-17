@@ -1,9 +1,6 @@
-import type { ChecklistItemDef } from './types';
+import type { ChecklistItemDef, ChecklistCategory } from './types';
 
-export interface ChecklistCategory {
-  category: string;
-  items: ChecklistItemDef[];
-}
+export type { ChecklistCategory };
 
 export const CHECKLIST_CATEGORIES: ChecklistCategory[] = [
   {
@@ -163,10 +160,14 @@ export const CHECKLIST_CATEGORIES: ChecklistCategory[] = [
   },
 ];
 
-export const ALL_ITEMS: ChecklistItemDef[] = CHECKLIST_CATEGORIES.flatMap((cat) => cat.items);
+export function getAllItems(categories: ChecklistCategory[]): ChecklistItemDef[] {
+  return categories.flatMap((cat) => cat.items);
+}
 
-export const TOTAL_ITEMS = ALL_ITEMS.length;
+export function getTotalItems(categories: ChecklistCategory[]): number {
+  return getAllItems(categories).length;
+}
 
-export function getItemById(id: string): ChecklistItemDef | undefined {
-  return ALL_ITEMS.find((item) => item.id === id);
+export function findItemById(categories: ChecklistCategory[], id: string): ChecklistItemDef | undefined {
+  return getAllItems(categories).find((item) => item.id === id);
 }

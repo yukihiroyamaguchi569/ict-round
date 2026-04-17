@@ -1,21 +1,22 @@
 import { useState, useRef } from 'react';
 import { useTheme } from '../ThemeContext';
-import type { Photo } from '../types';
-import { getItemById } from '../checklistData';
+import type { Photo, ChecklistCategory } from '../types';
+import { findItemById } from '../checklistData';
 
 interface Props {
   linkedItemId?: string;
+  categories: ChecklistCategory[];
   onAdd: (photo: Photo) => void;
   onCancel: () => void;
 }
 
-export default function PhotoForm({ linkedItemId, onAdd, onCancel }: Props) {
+export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }: Props) {
   const { theme } = useTheme();
   const [photoDataUrl, setPhotoDataUrl] = useState('');
   const [comment, setComment] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const linkedItem = linkedItemId ? getItemById(linkedItemId) : undefined;
+  const linkedItem = linkedItemId ? findItemById(categories, linkedItemId) : undefined;
 
   function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<string> {
     return new Promise((resolve, reject) => {

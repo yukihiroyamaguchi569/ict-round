@@ -1,19 +1,45 @@
 import { useState } from 'react';
 import { useTheme } from '../ThemeContext';
 import ThemeSelector from './ThemeSelector';
+import ChecklistImportDialog from './ChecklistImportDialog';
+import type { SavedChecklist } from '../types';
 
 interface Props {
+  library: SavedChecklist[];
+  activeId: string;
   onStart: (name: string, wardName: string) => void;
+  onSelectChecklist: (id: string) => void;
+  onAddChecklist: (c: SavedChecklist) => void;
+  onDeleteChecklist: (id: string) => void;
 }
 
-export default function RoundStart({ onStart }: Props) {
+export default function RoundStart({
+  library,
+  activeId,
+  onStart,
+  onSelectChecklist,
+  onAddChecklist,
+  onDeleteChecklist,
+}: Props) {
   const [name, setName] = useState('');
   const [wardName, setWardName] = useState('');
+  const [showImport, setShowImport] = useState(false);
   const { theme } = useTheme();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim()) onStart(name.trim(), wardName.trim());
+  };
+
+  const handleSaveImport = (c: SavedChecklist) => {
+    onAddChecklist(c);
+    onSelectChecklist(c.id);
+    setShowImport(false);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm('このチェックリストを削除しますか？')) return;
+    onDeleteChecklist(id);
   };
 
   return (
@@ -32,6 +58,68 @@ export default function RoundStart({ onStart }: Props) {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-extrabold text-text">{theme.startTitle}</h1>
           <p className="text-text-muted text-sm mt-2 leading-relaxed whitespace-pre-line">{theme.startSubtitle}</p>
+        </div>
+
+        {/* Checklist selector */}
+        <div className="card p-4 mb-4 space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-bold text-text-muted">使用するチェックリスト</span>
+            <button
+              type="button"
+              onClick={() => setShowImport(true)}
+              className="text-xs font-bold text-primary flex items-center gap-1 hover:opacity-70 transition-opacity"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              取り込む
+            </button>
+          </div>
+
+          {library.map((c) => (
+            <div
+              key={c.id}
+              className="flex items-center gap-2.5 px-3 py-2.5 rounded-t cursor-pointer transition-colors"
+              style={
+                c.id === activeId
+                  ? { backgroundColor: 'var(--t-primary-light)', border: '1.5px solid var(--t-primary)' }
+                  : { backgroundColor: 'var(--t-base)', border: '1.5px solid var(--t-line)' }
+              }
+              onClick={() => onSelectChecklist(c.id)}
+            >
+              <div
+                className="w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
+                style={
+                  c.id === activeId
+                    ? { borderColor: 'var(--t-primary)', backgroundColor: 'var(--t-primary)' }
+                    : { borderColor: 'var(--t-line)', backgroundColor: 'transparent' }
+                }
+              >
+                {c.id === activeId && (
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-text truncate">{c.name}</p>
+                <p className="text-[10px] text-text-faint">
+                  {c.categories.length}カテゴリ・{c.categories.reduce((s, cat) => s + cat.items.length, 0)}項目
+                  {c.isDefault && <span className="ml-1 text-primary font-bold">（標準）</span>}
+                </p>
+              </div>
+              {library.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }}
+                  className="text-text-faint hover:text-red-500 transition-colors p-1"
+                  aria-label="削除"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          ))}
         </div>
 
         {/* Form */}
@@ -73,6 +161,13 @@ export default function RoundStart({ onStart }: Props) {
 
         <p className="text-center text-text-faint text-xs mt-10">ICTラウンドアプリ「らんちゃん」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
+
+      {showImport && (
+        <ChecklistImportDialog
+          onSave={handleSaveImport}
+          onCancel={() => setShowImport(false)}
+        />
+      )}
     </div>
   );
 }

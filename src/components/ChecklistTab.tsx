@@ -1,15 +1,18 @@
-import type { Rating, ChecklistItemResult } from '../types';
-import { CHECKLIST_CATEGORIES, TOTAL_ITEMS } from '../checklistData';
+import { useMemo } from 'react';
+import type { Rating, ChecklistItemResult, ChecklistCategory } from '../types';
+import { getTotalItems } from '../checklistData';
 import CategoryAccordion from './CategoryAccordion';
 
 interface Props {
+  categories: ChecklistCategory[];
   checklistResults: ChecklistItemResult[];
   onRatingChange: (itemId: string, rating: Rating) => void;
 }
 
-export default function ChecklistTab({ checklistResults, onRatingChange }: Props) {
+export default function ChecklistTab({ categories, checklistResults, onRatingChange }: Props) {
+  const totalItems = useMemo(() => getTotalItems(categories), [categories]);
   const ratedCount = checklistResults.filter((r) => r.rating !== null).length;
-  const progress = Math.round((ratedCount / TOTAL_ITEMS) * 100);
+  const progress = Math.round((ratedCount / totalItems) * 100);
 
   return (
     <div className="px-4 py-4 space-y-3 pb-6">
@@ -17,7 +20,7 @@ export default function ChecklistTab({ checklistResults, onRatingChange }: Props
       <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-bold text-text-muted">入力進捗</span>
-          <span className="text-xs font-bold text-primary">{ratedCount} / {TOTAL_ITEMS}</span>
+          <span className="text-xs font-bold text-primary">{ratedCount} / {totalItems}</span>
         </div>
         <div className="h-2 bg-base-deep rounded-full overflow-hidden">
           <div
@@ -31,7 +34,7 @@ export default function ChecklistTab({ checklistResults, onRatingChange }: Props
       </div>
 
       {/* Category accordions */}
-      {CHECKLIST_CATEGORIES.map((cat, idx) => (
+      {categories.map((cat, idx) => (
         <CategoryAccordion
           key={cat.category}
           category={cat}

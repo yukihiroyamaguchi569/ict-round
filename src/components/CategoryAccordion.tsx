@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import type { Rating, ChecklistItemResult } from '../types';
-import type { ChecklistCategory } from '../checklistData';
+import type { Rating, ChecklistItemResult, ChecklistCategory } from '../types';
 import RatingButtons from './RatingButtons';
 
 interface Props {
