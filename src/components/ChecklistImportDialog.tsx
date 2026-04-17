@@ -110,14 +110,39 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
             <summary className="cursor-pointer select-none font-bold hover:text-text">
               ファイル形式について
             </summary>
-            <div className="mt-2 bg-base rounded px-3 py-2.5 space-y-1 leading-relaxed">
-              <p>必要な列（順番通り）:</p>
+            <div className="mt-2 bg-base rounded px-3 py-2.5 space-y-2 leading-relaxed">
+              <p>2列だけのシンプルなCSV、またはExcel(.xlsx)ファイルを用意します。</p>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="bg-surface">
+                      <th className="border border-line px-2 py-1 font-bold">1列目：カテゴリ名</th>
+                      <th className="border border-line px-2 py-1 font-bold">2列目：点検項目</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="border border-line px-2 py-1">手指衛生</td>
+                      <td className="border border-line px-2 py-1">手指消毒剤が各ベッドサイドに配置されている</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-line px-2 py-1">手指衛生</td>
+                      <td className="border border-line px-2 py-1">アルコール手指消毒の5つのタイミングが掲示されている</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-line px-2 py-1">個人防護具</td>
+                      <td className="border border-line px-2 py-1">使い捨て手袋が適切に廃棄されている</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
               <ul className="list-disc list-inside space-y-0.5 pl-1">
-                <li><code className="font-mono">category</code> — カテゴリ名</li>
-                <li><code className="font-mono">description</code> — 項目の説明</li>
+                <li>同じカテゴリ名は自動でまとめられます</li>
+                <li>1行目の見出し行（<code className="font-mono">category,description</code>）はあってもなくてもOK</li>
+                <li><strong>Excelの場合はシートを1枚だけ</strong>にしてください（複数あると最初の1枚しか読み込まれません）</li>
               </ul>
-              <p className="mt-1">1行目はヘッダ行（<code className="font-mono">category,description</code>）でも可。</p>
-              <pre className="mt-2 text-xs bg-surface border border-line rounded px-2 py-1.5 overflow-x-auto font-mono">{`category,description\n手指衛生,手指消毒剤が各ベッドサイドに配置されている\n手指衛生,アルコール手指消毒の5つのタイミングが掲示されている\n個人防護具,使い捨て手袋が適切に廃棄されている`}</pre>
             </div>
           </details>
 
