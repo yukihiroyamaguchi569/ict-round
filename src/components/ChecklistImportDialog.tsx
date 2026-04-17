@@ -112,15 +112,10 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
             </summary>
             <div className="mt-2 bg-base rounded px-3 py-2.5 space-y-2 leading-relaxed">
               <p>2列だけのシンプルなCSV、またはExcel(.xlsx)ファイルを用意します。</p>
+              <p><span className="font-bold">1列目</span>：カテゴリ名　<span className="font-bold">2列目</span>：点検項目の内容</p>
 
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-left">
-                  <thead>
-                    <tr className="bg-surface">
-                      <th className="border border-line px-2 py-1 font-bold">1列目：カテゴリ名</th>
-                      <th className="border border-line px-2 py-1 font-bold">2列目：点検項目</th>
-                    </tr>
-                  </thead>
                   <tbody>
                     <tr>
                       <td className="border border-line px-2 py-1">手指衛生</td>
@@ -140,7 +135,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
 
               <ul className="list-disc list-inside space-y-0.5 pl-1">
                 <li>同じカテゴリ名は自動でまとめられます</li>
-                <li>1行目の見出し行（<code className="font-mono">category,description</code>）はあってもなくてもOK</li>
+                <li>1行目からデータを書いてください（見出し行は不要）</li>
                 <li><strong>Excelの場合はシートを1枚だけ</strong>にしてください（複数あると最初の1枚しか読み込まれません）</li>
               </ul>
             </div>
