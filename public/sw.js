@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
 const FONTS_CACHE = `google-fonts-${CACHE_VERSION}`;
 
@@ -6,7 +6,7 @@ const SHELL_URLS = [
   './',
   './index.html',
   './manifest.json',
-  './ran-icon.png',
+  './meguru.png',
   './favicon.svg',
 ];
 
