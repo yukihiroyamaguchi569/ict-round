@@ -105,6 +105,42 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
             />
           </div>
 
+          {/* Format help */}
+          <details className="text-xs text-text-muted">
+            <summary className="cursor-pointer select-none font-bold hover:text-text">
+              ファイル形式について
+            </summary>
+            <div className="mt-2 bg-base rounded px-3 py-2.5 space-y-2 leading-relaxed">
+              <p>2列だけのシンプルなCSV、またはExcel(.xls / .xlsx)ファイルを用意します。</p>
+              <p><span className="font-bold">1列目</span>：カテゴリ名 ／ <span className="font-bold">2列目</span>：点検項目の内容</p>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left">
+                  <tbody>
+                    <tr>
+                      <td className="border border-line px-2 py-1">手指衛生</td>
+                      <td className="border border-line px-2 py-1">手指消毒剤が各ベッドサイドに配置されている</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-line px-2 py-1">手指衛生</td>
+                      <td className="border border-line px-2 py-1">アルコール手指消毒の5つのタイミングが掲示されている</td>
+                    </tr>
+                    <tr>
+                      <td className="border border-line px-2 py-1">個人防護具</td>
+                      <td className="border border-line px-2 py-1">使い捨て手袋が適切に廃棄されている</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <ul className="list-disc list-inside space-y-0.5 pl-1">
+                <li>同じカテゴリ名は自動でまとめられます</li>
+                <li>1行目からデータを書いてください（見出し行は不要）</li>
+                <li><strong>Excelの場合はシートを1枚だけ</strong>にしてください（複数あると最初の1枚しか読み込まれません）</li>
+              </ul>
+            </div>
+          </details>
+
           {/* Error */}
           {error && (
             <p className="text-xs text-red-600 font-bold bg-red-50 px-3 py-2 rounded">{error}</p>
