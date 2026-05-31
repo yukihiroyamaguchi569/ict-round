@@ -1,6 +1,10 @@
 # ICN感染対策ラウンドアプリ
 
-**公開URL: https://ict-round.conect.llc/**
+# 「めぐる君」
+
+<p align="center"><img src="public/meguru.png" width="160" alt="めぐる君"></p>
+
+<p align="center"><strong>公開URL: <a href="https://ict-round.conect.llc/">https://ict-round.conect.llc/</a></strong></p>
 
 ![img](docs/assets/distribution-qr.png)
 
