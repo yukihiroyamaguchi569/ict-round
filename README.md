@@ -1,12 +1,10 @@
-# ICN感染対策ラウンドアプリ
-
-# 「めぐる君」
+# ICN感染対策ラウンドアプリ「めぐる君」
 
 <p align="center"><img src="public/meguru.png" width="160" alt="めぐる君"></p>
 
 <p align="center"><strong>公開URL: <a href="https://ict-round.conect.llc/">https://ict-round.conect.llc/</a></strong></p>
 
-![img](docs/assets/distribution-qr.png)
+<p align="center"><img src="docs/assets/distribution-qr.png" alt="QRコード"></p>
 
 病院の感染対策ラウンドを、スマートフォンやタブレットで記録し、Word 形式の報告書として出力する React + TypeScript 製の Web アプリです。チェックリスト評価、写真記録、総評入力、ラウンド保存、チェックリスト取り込みまでをブラウザ内で完結します。
 
