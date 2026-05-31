@@ -2,7 +2,7 @@
 
 **公開URL: https://ict-round.conect.llc/**
 
-![img](https://qr.quel.jp/tmp/86774cdb56eed411b742834f4da424a56d6dce45.png)
+![img](docs/assets/distribution-qr.png)
 
 病院の感染対策ラウンドを、スマートフォンやタブレットで記録し、Word 形式の報告書として出力する React + TypeScript 製の Web アプリです。チェックリスト評価、写真記録、総評入力、ラウンド保存、チェックリスト取り込みまでをブラウザ内で完結します。
 
