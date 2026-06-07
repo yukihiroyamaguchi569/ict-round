@@ -14,7 +14,8 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
   const { theme } = useTheme();
   const [photoDataUrl, setPhotoDataUrl] = useState('');
   const [comment, setComment] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const linkedItem = linkedItemId ? findItemById(categories, linkedItemId) : undefined;
 
@@ -110,7 +111,7 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
               <img src={photoDataUrl} alt="撮影済み" className="w-full rounded-t max-h-60 object-cover" />
               <button
                 type="button"
-                onClick={() => { setPhotoDataUrl(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                onClick={() => { setPhotoDataUrl(''); if (cameraInputRef.current) cameraInputRef.current.value = ''; if (galleryInputRef.current) galleryInputRef.current.value = ''; }}
                 className="absolute top-2.5 right-2.5 bg-text/50 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -125,22 +126,40 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
               </div>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-10 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200"
-            >
-              <div className="w-14 h-14 rounded-t bg-surface flex items-center justify-center mx-auto mb-3" style={{ boxShadow: 'var(--t-card-shadow)' }}>
-                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-8 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200 flex flex-col items-center gap-2"
+              >
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-              </div>
-              <span className="text-sm font-bold">タップして撮影 / 選択</span>
-            </button>
+                <span className="text-xs font-bold">撮影</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-8 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200 flex flex-col items-center gap-2"
+              >
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-xs font-bold">ギャラリーから選択</span>
+              </button>
+            </div>
           )}
           <input
-            ref={fileInputRef}
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhoto}
+            className="hidden"
+          />
+          <input
+            ref={galleryInputRef}
             type="file"
             accept="image/*"
             onChange={handlePhoto}
