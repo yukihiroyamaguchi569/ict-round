@@ -68,18 +68,8 @@ export default function RoundStart({
 
         {/* Checklist selector */}
         <div className="card p-4 mb-4 space-y-2">
-          <div className="flex items-center justify-between mb-1">
+          <div className="mb-1">
             <span className="text-xs font-bold text-text-muted">使用するチェックリスト</span>
-            <button
-              type="button"
-              onClick={() => setShowImport(true)}
-              className="text-xs font-bold text-primary flex items-center gap-1 hover:opacity-70 transition-opacity"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-              </svg>
-              取り込む
-            </button>
           </div>
 
           {library.map((c) => (
@@ -126,6 +116,18 @@ export default function RoundStart({
               )}
             </div>
           ))}
+
+          <button
+            type="button"
+            onClick={() => setShowImport(true)}
+            className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold border-2 rounded-t transition-colors"
+            style={{ borderColor: 'var(--t-primary)', color: 'var(--t-primary)' }}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            新しいチェックリストを追加する
+          </button>
         </div>
 
         {/* Form */}

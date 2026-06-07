@@ -53,12 +53,13 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
   };
 
   const totalItems = preview?.reduce((sum, cat) => sum + cat.items.length, 0) ?? 0;
+  const templateUrl = `${import.meta.env.BASE_URL}round-checklist-template.xlsx`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-text/40 backdrop-blur-sm">
-      <div className="bg-surface w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+      <div className="bg-surface w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-line flex-shrink-0">
           <h2 className="text-sm font-extrabold text-text">チェックリストを取り込む</h2>
           <button type="button" onClick={onCancel} className="text-text-muted hover:text-text">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -67,79 +68,95 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-4">
-          {/* Name */}
-          <div>
-            <label className="block text-xs font-bold text-text-muted mb-1.5">
-              名前<span className="text-text-faint font-normal ml-1">（空欄ならファイル名を使用）</span>
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例: 3階東病棟専用"
-              className="w-full bg-base border-2 border-line rounded-t px-3 py-2.5 text-sm text-text placeholder:text-text-faint"
-            />
-          </div>
-
-          {/* File picker */}
-          <div>
-            <label className="block text-xs font-bold text-text-muted mb-1.5">ファイル選択 (.csv / .xlsx)</label>
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              className="w-full border-2 border-dashed border-line rounded-t py-4 text-sm text-text-muted hover:border-primary hover:text-primary transition-colors"
-            >
-              {fileName ? (
-                <span className="font-bold text-text">{fileName}</span>
-              ) : (
-                'タップしてファイルを選択'
-              )}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={handleFile}
-              className="hidden"
-            />
-          </div>
-
-          {/* Format help */}
-          <details className="text-xs text-text-muted">
-            <summary className="cursor-pointer select-none font-bold hover:text-text">
-              ファイル形式について
-            </summary>
-            <div className="mt-2 bg-base rounded px-3 py-2.5 space-y-2 leading-relaxed">
-              <p>2列だけのシンプルなCSV、またはExcel(.xls / .xlsx)ファイルを用意します。</p>
-              <p><span className="font-bold">1列目</span>：カテゴリ名 ／ <span className="font-bold">2列目</span>：点検項目の内容</p>
-
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left">
-                  <tbody>
-                    <tr>
-                      <td className="border border-line px-2 py-1">手指衛生</td>
-                      <td className="border border-line px-2 py-1">手指消毒剤が各ベッドサイドに配置されている</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-line px-2 py-1">手指衛生</td>
-                      <td className="border border-line px-2 py-1">アルコール手指消毒の5つのタイミングが掲示されている</td>
-                    </tr>
-                    <tr>
-                      <td className="border border-line px-2 py-1">個人防護具</td>
-                      <td className="border border-line px-2 py-1">使い捨て手袋が適切に廃棄されている</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <ul className="list-disc list-inside space-y-0.5 pl-1">
-                <li>同じカテゴリ名は自動でまとめられます</li>
-                <li>1行目からデータを書いてください（見出し行は不要）</li>
-                <li><strong>Excelの場合はシートを1枚だけ</strong>にしてください（複数あると最初の1枚しか読み込まれません）</li>
-              </ul>
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-4">
+          {/* Method 1 */}
+          <div className="bg-base rounded-xl px-4 py-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-extrabold text-white flex-shrink-0" style={{ backgroundColor: 'var(--t-primary)' }}>1</span>
+              <p className="text-xs font-extrabold text-text">PCで作ったファイルを使う</p>
             </div>
-          </details>
+            <p className="text-xs text-text-muted leading-relaxed">
+              PCでExcel（.xlsx）またはCSVを作成し、メール・AirDrop・クラウドなどでこの端末に送ってください。
+            </p>
+            <div className="overflow-x-auto">
+              <p className="text-[10px] text-text-faint mb-1">ファイル形式：A列＝カテゴリ名、B列＝点検項目（見出し行は不要）</p>
+              <table className="w-full border-collapse text-left text-[10px]">
+                <tbody>
+                  <tr>
+                    <td className="border border-line px-2 py-1 text-text-muted">手指衛生</td>
+                    <td className="border border-line px-2 py-1 text-text-muted">手指消毒剤が各ベッドサイドに配置されている</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-line px-2 py-1 text-text-muted">手指衛生</td>
+                    <td className="border border-line px-2 py-1 text-text-muted">アルコール手指消毒の5つのタイミングが掲示されている</td>
+                  </tr>
+                  <tr>
+                    <td className="border border-line px-2 py-1 text-text-muted">個人防護具</td>
+                    <td className="border border-line px-2 py-1 text-text-muted">使い捨て手袋が適切に廃棄されている</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Method 2 */}
+          <div className="bg-base rounded-xl px-4 py-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-extrabold text-white flex-shrink-0" style={{ backgroundColor: 'var(--t-primary)' }}>2</span>
+              <p className="text-xs font-extrabold text-text">テンプレートを修正して使う</p>
+            </div>
+            <p className="text-xs text-text-muted leading-relaxed">
+              テンプレートをダウンロードし、この端末のExcel・Numbersなどで項目を編集してください。編集後、下のファイル選択から取り込めます。
+            </p>
+            <a
+              href={templateUrl}
+              download="round-checklist-template.xlsx"
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg border-2 border-line hover:border-primary hover:text-primary text-text-muted transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              テンプレートをダウンロード
+            </a>
+          </div>
+
+          {/* Common: name + file picker */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-text-muted mb-1.5">
+                名前<span className="text-text-faint font-normal ml-1">（空欄ならファイル名を使用）</span>
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="例: 3階東病棟専用"
+                className="w-full bg-base border-2 border-line rounded-t px-3 py-2.5 text-sm text-text placeholder:text-text-faint"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-text-muted mb-1.5">ファイルを選択</label>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="w-full border-2 border-dashed border-line rounded-t py-4 text-sm text-text-muted hover:border-primary hover:text-primary transition-colors"
+              >
+                {fileName ? (
+                  <span className="font-bold text-text">{fileName}</span>
+                ) : (
+                  'タップしてファイルを選択 (.csv / .xlsx)'
+                )}
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFile}
+                className="hidden"
+              />
+            </div>
+          </div>
 
           {/* Error */}
           {error && (
@@ -170,7 +187,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 pb-5 flex gap-3">
+        <div className="px-5 pb-5 pt-3 flex gap-3 flex-shrink-0 border-t border-line">
           <button
             type="button"
             onClick={onCancel}
