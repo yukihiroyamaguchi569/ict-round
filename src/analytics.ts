@@ -2,10 +2,12 @@ const MEASUREMENT_ID = import.meta.env.VITE_GA4_MEASUREMENT_ID as string | undef
 const INSTALL_TRACKED_KEY = 'pwa_install_tracked';
 
 declare global {
+  interface Navigator {
+    standalone?: boolean;
+  }
   interface Window {
     dataLayer: unknown[];
     gtag: (...args: unknown[]) => void;
-    navigator: Navigator & { standalone?: boolean };
   }
 }
 
