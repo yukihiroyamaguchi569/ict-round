@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>めぐる君 — ICTラウンドをデジタル化</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Noto Sans JP', sans-serif; }
+    .gradient-hero { background: linear-gradient(135deg, #0f4c81 0%, #1a73c8 50%, #0ea5e9 100%); }
+    .card-hover { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.12); }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <!-- Hero -->
+  <section class="gradient-hero text-white py-16 px-6">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="mb-4">
+        <span class="badge bg-white/20 text-white border border-white/30">無料・バックエンドなし・PWA対応</span>
+      </div>
+      <h1 class="text-5xl font-black mb-3 tracking-tight">めぐる君</h1>
+      <p class="text-xl font-medium text-blue-100 mb-2">ICN感染対策ラウンド支援アプリ</p>
+      <p class="text-base text-blue-200 mb-8 max-w-xl mx-auto">
+        チェックリストで記録・写真を添付・そのままWord報告書に出力。<br>
+        ブラウザだけで動くから、個人情報が外部に漏れません。
+      </p>
+
+      <!-- CTA + QR -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-8">
+        <a href="https://ict-round.conect.llc/"
+           target="_blank"
+           class="bg-white text-blue-700 font-bold px-8 py-4 rounded-xl text-lg shadow-lg hover:bg-blue-50 transition">
+          ▶ 今すぐ使ってみる
+        </a>
+        <div class="flex flex-col items-center gap-2">
+          <div class="bg-white rounded-xl p-3 shadow-lg">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://ict-round.conect.llc/&color=0f4c81"
+                 alt="QRコード" width="120" height="120" class="block">
+          </div>
+          <p class="text-blue-200 text-xs">スマホでスキャンして即利用</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 安心ポイント バナー -->
+  <div class="bg-emerald-600 text-white text-center py-3 px-4">
+    <p class="text-sm font-bold">🔒 データはすべてお使いの端末内に保存 — 外部サーバーへの送信ゼロ。病院のIT規程にも安心。</p>
+  </div>
+
+  <!-- 機能 -->
+  <section class="py-14 px-6 max-w-4xl mx-auto">
+    <h2 class="text-2xl font-black text-center text-gray-900 mb-2">主な機能</h2>
+    <p class="text-center text-gray-500 mb-10 text-sm">現場のラウンドをそのままデジタルに</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl mb-3">✅</div>
+        <h3 class="font-bold text-lg mb-1">A / B / C 評価チェックリスト</h3>
+        <p class="text-gray-500 text-sm">CSV・Excelからチェックリストを取り込み可能。施設ごとにカスタマイズして使えます。</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl mb-3">📸</div>
+        <h3 class="font-bold text-lg mb-1">写真の追加・管理</h3>
+        <p class="text-gray-500 text-sm">ラウンド中に気になった箇所をその場で撮影。指摘内容に紐づけて記録できます。</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl mb-3">🎤</div>
+        <h3 class="font-bold text-lg mb-1">音声入力対応の総評</h3>
+        <p class="text-gray-500 text-sm">歩きながらでも入力できる音声入力対応。忙しいラウンド中の記録負担を軽減します。</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl mb-3">📄</div>
+        <h3 class="font-bold text-lg mb-1">Word形式でレポート出力</h3>
+        <p class="text-gray-500 text-sm">ラウンド終了後、ワンクリックでWord報告書を生成。そのまま提出・共有できます。</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl mb-3">💾</div>
+        <h3 class="font-bold text-lg mb-1">ローカル保存と再開</h3>
+        <p class="text-gray-500 text-sm">入力途中でも保存してあとで再開できます。途中退席があっても安心。</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 card-hover">
+        <div class="text-3xl mb-3">📱</div>
+        <h3 class="font-bold text-lg mb-1">PWA対応・インストール不要</h3>
+        <p class="text-gray-500 text-sm">スマホ・タブレットのホーム画面に追加するだけ。App Storeの申請審査なしで即利用。</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 開発者 -->
+  <section class="bg-white border-t border-b border-gray-100 py-12 px-6">
+    <div class="max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-8">
+      <div class="flex-shrink-0 w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center text-4xl">👨‍⚕️</div>
+      <div>
+        <p class="text-xs text-blue-600 font-bold uppercase tracking-widest mb-1">Developer</p>
+        <h3 class="text-xl font-black mb-1">山口 征啓（やまぐち ゆきひろ）</h3>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <span class="badge bg-blue-50 text-blue-700 border border-blue-200">感染症専門医・指導医</span>
+          <span class="badge bg-blue-50 text-blue-700 border border-blue-200">ICD</span>
+          <span class="badge bg-blue-50 text-blue-700 border border-blue-200">コネクト合同会社 CEO</span>
+        </div>
+        <p class="text-gray-500 text-sm">
+          現場で感じた「ラウンドのデジタル化ニーズ」に応えるため、感染症専門医自ら開発。
+          実際の病院でのICTラウンド経験をもとに、使いやすさを追求しました。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 使い始め方 -->
+  <section class="py-14 px-6 max-w-3xl mx-auto">
+    <h2 class="text-2xl font-black text-center text-gray-900 mb-10">使い始め方</h2>
+    <div class="flex flex-col gap-4">
+      <div class="flex items-start gap-4 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex-shrink-0 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-sm">1</div>
+        <div>
+          <p class="font-bold">QRコードをスキャン or URLにアクセス</p>
+          <p class="text-gray-500 text-sm mt-0.5">スマホ・タブレット・PCどれでもOK。インストール不要。</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex-shrink-0 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-sm">2</div>
+        <div>
+          <p class="font-bold">チェックリストを設定</p>
+          <p class="text-gray-500 text-sm mt-0.5">既存のCSV/Excelから取り込むか、画面上で直接作成できます。</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex-shrink-0 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-sm">3</div>
+        <div>
+          <p class="font-bold">ラウンドしながら記録・写真撮影</p>
+          <p class="text-gray-500 text-sm mt-0.5">タップするだけのシンプル操作。歩きながら使えます。</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div class="flex-shrink-0 w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center font-black text-sm">4</div>
+        <div>
+          <p class="font-bold">Wordで報告書を出力・提出</p>
+          <p class="text-gray-500 text-sm mt-0.5">ラウンド終了後すぐにWord報告書を生成できます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 最終CTA -->
+  <section class="gradient-hero text-white py-14 px-6 text-center">
+    <h2 class="text-2xl font-black mb-2">まずは試してみてください</h2>
+    <p class="text-blue-200 mb-8 text-sm">登録不要・無料・データは端末内のみ</p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-6">
+      <a href="https://ict-round.conect.llc/"
+         target="_blank"
+         class="bg-white text-blue-700 font-bold px-10 py-4 rounded-xl text-lg shadow-lg hover:bg-blue-50 transition">
+        ▶ 今すぐ使う
+      </a>
+      <div class="flex flex-col items-center gap-2">
+        <div class="bg-white rounded-xl p-3">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://ict-round.conect.llc/&color=0f4c81"
+               alt="QRコード" width="100" height="100" class="block">
+        </div>
+        <p class="text-blue-200 text-xs">スマホでスキャン</p>
+      </div>
+    </div>
+    <p class="mt-10 text-blue-300 text-xs">
+      © 2026 コネクト合同会社 — 
+      <a href="https://github.com/yukihiroyamaguchi569/ict-round" class="underline hover:text-white" target="_blank">GitHub</a>
+    </p>
+  </section>
+
+</body>
+</html>
