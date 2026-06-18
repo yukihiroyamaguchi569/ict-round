@@ -73,7 +73,7 @@ function AppContent() {
     setRoundData({
       inspectorName: name,
       wardName,
-      startTime: new Date().toLocaleString('ja-JP'),
+      startTime: new Date().toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
       checklistResults: activeChecklist.categories.flatMap((cat) =>
         cat.items.map((item) => ({ itemId: item.id, rating: null, photos: [] }))
       ),
