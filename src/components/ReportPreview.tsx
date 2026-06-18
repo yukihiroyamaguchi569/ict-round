@@ -17,12 +17,6 @@ const RATING_HEX: Record<string, string> = {
   C: 'DC2626',
 };
 
-const RATING_BG: Record<string, string> = {
-  A: 'D1FAE5',
-  B: 'FEF9C3',
-  C: 'FEE2E2',
-};
-
 interface Props {
   roundData: RoundData;
   categories: ChecklistCategory[];
@@ -60,9 +54,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     const clr = {
       primary:    getCssHex('--t-primary'),
       primaryLt:  getCssHex('--t-primary-light'),
-      baseDeep:   getCssHex('--t-base-deep'),
       base:       getCssHex('--t-base'),
-      surface:    getCssHex('--t-surface'),
       text:       getCssHex('--t-text'),
       textMuted:  getCssHex('--t-text-muted'),
       textFaint:  getCssHex('--t-text-faint'),
@@ -134,7 +126,6 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
           const result = roundData.checklistResults.find((r) => r.itemId === item.id);
           const rating = result?.rating ?? '—';
           const ratingColor = rating !== '—' ? RATING_HEX[rating] : clr.textFaint;
-          const ratingBg = rating !== '—' ? RATING_BG[rating] : clr.baseDeep;
 
           checklistRows.push(new TableRow({
             children: [
@@ -145,12 +136,12 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
               }),
               new TableCell({
                 width: { size: 7126, type: WidthType.DXA },
-                shading: { type: ShadingType.SOLID, color: clr.surface, fill: clr.surface },
+                shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
                 children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18, color: clr.text })] })],
               }),
               new TableCell({
                 width: { size: 600, type: WidthType.DXA },
-                shading: { type: ShadingType.SOLID, color: ratingBg, fill: ratingBg },
+                shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
                 children: [new Paragraph({
                   alignment: AlignmentType.CENTER,
                   children: [new TextRun({ text: rating, bold: true, size: 22, color: ratingColor })],
