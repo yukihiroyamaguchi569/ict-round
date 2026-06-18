@@ -178,7 +178,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
       children.push(new Paragraph({
         heading: HeadingLevel.HEADING_2,
         spacing: { before: 200, after: 160 },
-        children: [new TextRun({ text: '2', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  写真記録', bold: true, size: 26, color: clr.text })],
+        children: [new TextRun({ text: '2', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  写真記録とICTコメント', bold: true, size: 26, color: clr.text })],
       }));
 
       const allDocxPhotos: { photo: Photo; label: string }[] = [];
@@ -384,7 +384,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
             <div>
               <h2 className="text-sm font-extrabold text-text mb-3 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-primary text-white text-xs font-extrabold flex items-center justify-center" style={{ boxShadow: 'var(--t-btn-glow)' }}>2</span>
-                写真記録
+                写真記録とICTコメント
                 <span className="text-xs font-normal text-text-muted">（{totalPhotos}枚）</span>
               </h2>
               <div className="grid grid-cols-3 gap-2">
