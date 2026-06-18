@@ -258,7 +258,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     const dateStr = new Date().toISOString().slice(0, 10);
-    const filename = `感染対策ラウンド_${roundData.wardName || '報告書'}_${dateStr}.docx`;
+    const filename = `ICTround_${dateStr}.docx`;
 
     if (canShare) {
       const file = new File([blob], filename, { type: DOCX_MIME });
