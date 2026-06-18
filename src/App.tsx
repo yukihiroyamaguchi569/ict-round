@@ -181,6 +181,10 @@ function AppContent() {
     setRoundData((prev) => ({ ...prev, overallEvaluation: text }));
   };
 
+  const handleInspectorChange = (name: string) => {
+    setRoundData((prev) => ({ ...prev, inspectorName: name }));
+  };
+
   const handleOpenPhotoAdd = (itemId?: string) => {
     setPhotoContext(itemId ? { itemId } : null);
     setScreen('photo-add');
@@ -244,6 +248,7 @@ function AppContent() {
       onDeleteItemPhoto={handleDeleteItemPhoto}
       onDeleteGeneralPhoto={handleDeleteGeneralPhoto}
       onEvaluationChange={handleEvaluationChange}
+      onInspectorChange={handleInspectorChange}
       onReport={() => setScreen('report')}
       onSave={handleSaveRound}
     />

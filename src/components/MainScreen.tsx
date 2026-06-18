@@ -20,6 +20,7 @@ interface Props {
   onDeleteItemPhoto: (itemId: string, photoId: string) => void;
   onDeleteGeneralPhoto: (photoId: string) => void;
   onEvaluationChange: (text: string) => void;
+  onInspectorChange: (name: string) => void;
   onReport: () => void;
   onSave: () => boolean;
 }
@@ -34,16 +35,29 @@ export default function MainScreen({
   onDeleteItemPhoto,
   onDeleteGeneralPhoto,
   onEvaluationChange,
+  onInspectorChange,
   onReport,
   onSave,
 }: Props) {
   const { icon } = useIcon();
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [editingInspector, setEditingInspector] = useState(false);
+  const [inspectorDraft, setInspectorDraft] = useState('');
   const totalItems = useMemo(() => getTotalItems(categories), [categories]);
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalPhotoCount =
     roundData.checklistResults.reduce((sum, r) => sum + r.photos.length, 0) +
     roundData.generalPhotos.length;
+
+  const startEditInspector = () => {
+    setInspectorDraft(roundData.inspectorName);
+    setEditingInspector(true);
+  };
+
+  const commitInspector = () => {
+    onInspectorChange(inspectorDraft.trim());
+    setEditingInspector(false);
+  };
 
   return (
     <div className="min-h-screen bg-base">
@@ -53,10 +67,35 @@ export default function MainScreen({
           <img src={`${import.meta.env.BASE_URL}${icon.file}`} alt={icon.alt} className="w-9 h-9 object-contain flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-text leading-tight">感染対策ラウンド</h1>
-            <p className="text-xs text-text-muted truncate">
-              {roundData.inspectorName}
-              {roundData.wardName ? `・${roundData.wardName}` : ''}
-            </p>
+            {editingInspector ? (
+              <input
+                type="text"
+                autoFocus
+                value={inspectorDraft}
+                onChange={(e) => setInspectorDraft(e.target.value)}
+                onBlur={commitInspector}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commitInspector();
+                  if (e.key === 'Escape') setEditingInspector(false);
+                }}
+                placeholder="参加者名"
+                className="w-full bg-base border-2 border-primary rounded px-2 py-0.5 text-xs text-text"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={startEditInspector}
+                className="flex items-center gap-1 text-xs text-text-muted truncate max-w-full"
+              >
+                <span className="truncate">
+                  参加者: {roundData.inspectorName || '（未入力）'}
+                  {roundData.wardName ? `・${roundData.wardName}` : ''}
+                </span>
+                <svg className="w-3 h-3 flex-shrink-0 text-text-faint" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span
