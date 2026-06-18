@@ -265,9 +265,9 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     if (canShare) {
       const file = new File([blob], filename, { type: DOCX_MIME });
       try {
-        // iOS の AirDrop は files と text が混在すると転送に失敗するため、
-        // canShare の判定と揃えてファイルのみを共有する
-        await navigator.share({ files: [file] });
+        // iOS のメール作成画面は title/text が無いと中身ゼロで開いて即閉じるため、
+        // 件名・本文を付けて共有する。AirDrop の転送失敗はファイル名の半角英数化で対処済み。
+        await navigator.share({ title: '感染対策ラウンド報告書', text: `${roundData.inspectorName} - ${dateStr}`, files: [file] });
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         saveAs(blob, filename);
