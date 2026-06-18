@@ -3,7 +3,7 @@ import { useTheme } from '../ThemeContext';
 import {
   Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel,
   BorderStyle, AlignmentType, Table, TableRow, TableCell, WidthType, VerticalAlign,
-  ShadingType,
+  ShadingType, TableLayoutType,
 } from 'docx';
 import { saveAs } from 'file-saver';
 import type { RoundData, Photo, ChecklistCategory } from '../types';
@@ -195,13 +195,15 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
         while (rowEntries.length < 3) rowEntries.push({ photo: null as unknown as Photo, label: '' });
 
         children.push(new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
+          width: { size: 9026, type: WidthType.DXA },
+          columnWidths: [3009, 3009, 3008],
+          layout: TableLayoutType.FIXED,
           rows: [
             new TableRow({
-              children: rowEntries.map((entry) => {
+              children: rowEntries.map((entry, idx) => {
                 if (!entry.photo) {
                   return new TableCell({
-                    width: { size: 33, type: WidthType.PERCENTAGE },
+                    width: { size: idx === 2 ? 3008 : 3009, type: WidthType.DXA },
                     children: [new Paragraph({ children: [] })],
                   });
                 }
@@ -218,7 +220,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
                   cellChildren.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: entry.photo.comment, size: 16 })] }));
                 }
                 return new TableCell({
-                  width: { size: 33, type: WidthType.PERCENTAGE },
+                  width: { size: idx === 2 ? 3008 : 3009, type: WidthType.DXA },
                   children: cellChildren, verticalAlign: VerticalAlign.CENTER,
                 });
               }),
