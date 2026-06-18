@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../ThemeContext';
 import {
   Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel,
@@ -50,13 +50,17 @@ function base64ToUint8Array(dataUrl: string): Uint8Array {
 export default function ReportPreview({ roundData, categories, onBack }: Props) {
   const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
+  // docx は写真込みだと生成に時間がかかるため、プレビュー表示時に事前生成して File をキャッシュする。
+  // iOS では navigator.share() をタップ直後（transient activation 中）に await を挟まず呼ぶ必要があり、
+  // 生成を待ってから share すると共有/メール画面が即閉じてしまうため。
+  const [shareFile, setShareFile] = useState<File | null>(null);
   const canShare = (() => {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
     const testFile = new File([''], 'test.docx', { type: DOCX_MIME });
     return navigator.canShare?.({ files: [testFile] }) ?? false;
   })();
 
-  const handleExportDocx = async () => { try {
+  const buildDocxBlob = async (): Promise<Blob> => {
     const clr = {
       primary:    getCssHex('--t-primary'),
       primaryLt:  getCssHex('--t-primary-light'),
@@ -258,27 +262,40 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     }
 
     const doc = new Document({ sections: [{ children }] });
-    const blob = await Packer.toBlob(doc);
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const filename = `ICTround_${dateStr}.docx`;
+    return Packer.toBlob(doc);
+  };
 
+  const filename = `ICTround_${new Date().toISOString().slice(0, 10)}.docx`;
+
+  // プレビュー表示時に docx を事前生成して File をキャッシュしておく。
+  // roundData / categories はこの画面の表示中に変化しないため生成は1回でよい。
+  useEffect(() => {
+    let cancelled = false;
+    buildDocxBlob()
+      .then((blob) => {
+        if (!cancelled) setShareFile(new File([blob], filename, { type: DOCX_MIME }));
+      })
+      .catch((err) => {
+        console.error('DOCX生成エラー:', err);
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleExportDocx = () => {
+    if (!shareFile) return;
     if (canShare) {
-      const file = new File([blob], filename, { type: DOCX_MIME });
-      try {
-        // iOS の AirDrop は files と text が混在すると転送に失敗するため、
-        // canShare の判定と揃えてファイルのみを共有する
-        await navigator.share({ files: [file] });
-      } catch (err: unknown) {
+      // iOS では transient activation が切れると共有画面が即閉じるため、
+      // await を挟まずキャッシュ済みの File を同期的に share する。
+      // また AirDrop は files と text が混在すると転送に失敗するためファイルのみを渡す。
+      navigator.share({ files: [shareFile] }).catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;
-        saveAs(blob, filename);
-      }
+        saveAs(shareFile, filename);
+      });
     } else {
-      saveAs(blob, filename);
+      saveAs(shareFile, filename);
     }
-  } catch (err) {
-    console.error('DOCX生成エラー:', err);
-    alert('レポートの生成に失敗しました。\n' + String(err));
-  } };
+  };
 
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalItems = roundData.checklistResults.length;
@@ -298,7 +315,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
         </button>
         <button
           onClick={handleExportDocx}
-          className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-1.5"
+          disabled={!shareFile}
+          className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-1.5 disabled:opacity-50"
         >
           {canShare ? (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -309,7 +327,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
           )}
-          {canShare ? '共有' : 'Word出力'}
+          {!shareFile ? '準備中…' : canShare ? '共有' : 'Word出力'}
         </button>
       </div>
 
