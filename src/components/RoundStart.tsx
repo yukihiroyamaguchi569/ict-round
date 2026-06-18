@@ -133,7 +133,7 @@ export default function RoundStart({
         {/* Form */}
         <form onSubmit={handleSubmit} className="card p-6 space-y-4">
           <div>
-            <label className="block text-sm font-bold text-text-muted mb-2">担当者名</label>
+            <label className="block text-sm font-bold text-text-muted mb-2">参加者</label>
             <input
               type="text"
               value={name}
