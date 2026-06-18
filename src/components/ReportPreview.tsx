@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { useTheme } from '../ThemeContext';
 import {
   Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel,
-  BorderStyle, AlignmentType, Table, TableRow, TableCell, WidthType,
+  BorderStyle, AlignmentType, Table, TableRow, TableCell, WidthType, VerticalAlign,
   ShadingType,
 } from 'docx';
 import { saveAs } from 'file-saver';
@@ -29,6 +29,12 @@ function getCssHex(varName: string): string {
     .trim();
   const hex = raw.replace('#', '');
   return /^[0-9a-fA-F]{6}$/.test(hex) ? hex : 'CCCCCC';
+}
+
+function fitContain(w?: number, h?: number, frame = 150): { width: number; height: number } {
+  if (!w || !h) return { width: 148, height: 111 };
+  const scale = Math.min(frame / w, frame / h);
+  return { width: Math.round(w * scale), height: Math.round(h * scale) };
 }
 
 function base64ToUint8Array(dataUrl: string): Uint8Array {
@@ -200,20 +206,20 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
                   });
                 }
                 const cellChildren: Paragraph[] = [
-                  new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: entry.label, size: 16, bold: true, color: clr.primary })] }),
+                  new Paragraph({ spacing: { after: 40 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: entry.label, size: 16, bold: true, color: clr.primary })] }),
                 ];
                 try {
                   cellChildren.push(new Paragraph({
                     spacing: { after: 40 },
-                    children: [new ImageRun({ data: base64ToUint8Array(entry.photo.dataUrl), transformation: { width: 148, height: 111 }, type: 'jpg' })],
+                    alignment: AlignmentType.CENTER, children: [new ImageRun({ data: base64ToUint8Array(entry.photo.dataUrl), transformation: fitContain(entry.photo.width, entry.photo.height), type: 'jpg' })],
                   }));
                 } catch { /* skip */ }
                 if (entry.photo.comment) {
-                  cellChildren.push(new Paragraph({ children: [new TextRun({ text: entry.photo.comment, size: 16 })] }));
+                  cellChildren.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: entry.photo.comment, size: 16 })] }));
                 }
                 return new TableCell({
                   width: { size: 33, type: WidthType.PERCENTAGE },
-                  children: cellChildren,
+                  children: cellChildren, verticalAlign: VerticalAlign.CENTER,
                 });
               }),
             }),
@@ -384,14 +390,14 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
                   return result.photos.map((photo) => (
                     <div key={photo.id} className="rounded overflow-hidden bg-base border border-line">
                       <p className="px-1.5 py-1 text-[9px] font-bold text-primary truncate bg-base-deep">{item?.category}：{item?.description.slice(0, 20)}{item && item.description.length > 20 ? '…' : ''}</p>
-                      <img src={photo.dataUrl} alt="" className="w-full aspect-square object-cover" />
+                      <img src={photo.dataUrl} alt="" className="w-full aspect-square object-contain bg-base" />
                       {photo.comment && <p className="px-1.5 py-1 text-[9px] text-text-muted line-clamp-2">{photo.comment}</p>}
                     </div>
                   ));
                 })}
                 {roundData.generalPhotos.map((photo) => (
                   <div key={photo.id} className="rounded overflow-hidden bg-base border border-line">
-                    <img src={photo.dataUrl} alt="" className="w-full aspect-square object-cover" />
+                    <img src={photo.dataUrl} alt="" className="w-full aspect-square object-contain bg-base" />
                     {photo.comment && <p className="px-1.5 py-1 text-[9px] text-text-muted line-clamp-2">{photo.comment}</p>}
                   </div>
                 ))}

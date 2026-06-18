@@ -13,34 +13,31 @@ interface Props {
 export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }: Props) {
   const { theme } = useTheme();
   const [photoDataUrl, setPhotoDataUrl] = useState('');
+  const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
   const [comment, setComment] = useState('');
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const linkedItem = linkedItemId ? findItemById(categories, linkedItemId) : undefined;
 
-  function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        let { width, height } = img;
-        if (width > maxWidth) {
-          height = Math.round(height * (maxWidth / width));
-          width = maxWidth;
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { reject(new Error('Canvas not supported')); return; }
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('画像の読み込みに失敗')); };
-      img.src = url;
-    });
+  async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<{ dataUrl: string; width: number; height: number }> {
+    // imageOrientation: 'from-image' で EXIF の回転をピクセルへ反映する
+    // （スマホ縦撮影の写真が90度回転する問題への対処）
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    let width = bitmap.width;
+    let height = bitmap.height;
+    if (width > maxWidth) {
+      height = Math.round(height * (maxWidth / width));
+      width = maxWidth;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) { bitmap.close(); throw new Error('Canvas not supported'); }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    return { dataUrl: canvas.toDataURL('image/jpeg', quality), width, height };
   }
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,8 +48,9 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
       return;
     }
     try {
-      const dataUrl = await compressImage(file);
+      const { dataUrl, width, height } = await compressImage(file);
       setPhotoDataUrl(dataUrl);
+      setPhotoSize({ width, height });
     } catch {
       alert('ファイルの読み込みに失敗しました');
     }
@@ -66,6 +64,8 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
       dataUrl: photoDataUrl,
       comment: comment.trim(),
       timestamp: new Date().toLocaleString('ja-JP'),
+      width: photoSize?.width,
+      height: photoSize?.height,
     });
   };
 

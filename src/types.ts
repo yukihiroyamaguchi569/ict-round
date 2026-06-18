@@ -24,6 +24,8 @@ export interface Photo {
   dataUrl: string;
   comment: string;
   timestamp: string;
+  width?: number;
+  height?: number;
 }
 
 export interface ChecklistItemResult {
