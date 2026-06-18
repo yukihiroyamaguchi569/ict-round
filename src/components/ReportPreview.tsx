@@ -287,8 +287,13 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     if (canShare) {
       // iOS では transient activation が切れると共有画面が即閉じるため、
       // await を挟まずキャッシュ済みの File を同期的に share する。
-      // また AirDrop は files と text が混在すると転送に失敗するためファイルのみを渡す。
-      navigator.share({ files: [shareFile] }).catch((err: unknown) => {
+      // メール作成画面は title/text が無いと中身ゼロで開いて即閉じるため件名・本文を付ける。
+      // AirDrop の転送失敗はファイル名の半角英数化で対処済み。
+      navigator.share({
+        title: '感染対策ラウンド報告書',
+        text: `${roundData.inspectorName} - ${new Date().toISOString().slice(0, 10)}`,
+        files: [shareFile],
+      }).catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         saveAs(shareFile, filename);
       });
