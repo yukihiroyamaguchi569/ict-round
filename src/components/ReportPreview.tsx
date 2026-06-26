@@ -9,7 +9,8 @@ import { saveAs } from 'file-saver';
 import type { RoundData, Photo, ChecklistCategory } from '../types';
 import { findItemById } from '../checklistData';
 
-const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+// Variant A 検証中: type を省略しているため一時的に未使用（Variant B/恒久対応で復活）
+// const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 const RATING_HEX: Record<string, string> = {
   A: '059669',
