@@ -56,7 +56,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
   const [shareFile, setShareFile] = useState<File | null>(null);
   const canShare = (() => {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
-    const testFile = new File([''], 'test.docx', { type: DOCX_MIME });
+    // Variant A: type を省略（DOCX_MIME を渡すと iOS メール共有が即閉じる問題の検証）
+    const testFile = new File([''], 'test.docx');
     return navigator.canShare?.({ files: [testFile] }) ?? false;
   })();
 
@@ -273,7 +274,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     let cancelled = false;
     buildDocxBlob()
       .then((blob) => {
-        if (!cancelled) setShareFile(new File([blob], filename, { type: DOCX_MIME }));
+        // Variant A: type を省略（手動添付と同様に OS が拡張子から MIME を推定させる）
+        if (!cancelled) setShareFile(new File([blob], filename));
       })
       .catch((err) => {
         console.error('DOCX生成エラー:', err);
