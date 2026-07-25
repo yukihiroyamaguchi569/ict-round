@@ -62,6 +62,7 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
 
 ## Repo Summary
 
+- This app's name is "めぐる君".
 - This repository is a small client-side React + TypeScript + Vite app for hospital infection-control rounds.
 - The app has no backend, API, auth, or database.
 - The current flow is:
