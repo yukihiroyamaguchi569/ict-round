@@ -25,14 +25,19 @@ export function initAnalytics(): void {
     window.dataLayer.push(arguments);
   };
   window.gtag('js', new Date());
-  window.gtag('config', MEASUREMENT_ID);
 
-  // iOS Safari: appinstalled イベントが発火しないため、
-  // スタンドアロンモードで初回起動したときにインストールとして計測する
   const isStandalone =
     window.navigator.standalone === true ||
     window.matchMedia('(display-mode: standalone)').matches;
 
+  // インストール版(PWA)とブラウザ版の利用比率を分析するためのユーザープロパティ
+  window.gtag('set', 'user_properties', {
+    display_mode: isStandalone ? 'standalone' : 'browser',
+  });
+  window.gtag('config', MEASUREMENT_ID);
+
+  // iOS Safari: appinstalled イベントが発火しないため、
+  // スタンドアロンモードで初回起動したときにインストールとして計測する
   if (isStandalone && !localStorage.getItem(INSTALL_TRACKED_KEY)) {
     localStorage.setItem(INSTALL_TRACKED_KEY, '1');
     trackEvent('pwa_install', { method: 'standalone_first_launch' });
