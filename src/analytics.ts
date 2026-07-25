@@ -34,7 +34,10 @@ export function initAnalytics(): void {
   window.gtag('set', 'user_properties', {
     display_mode: isStandalone ? 'standalone' : 'browser',
   });
-  window.gtag('config', MEASUREMENT_ID);
+
+  // PWAウィンドウではChrome拡張のデバッグモードが効かないため、
+  // 開発時のみコード側から GA4 の DebugView を有効にする
+  window.gtag('config', MEASUREMENT_ID, import.meta.env.DEV ? { debug_mode: true } : {});
 
   // iOS Safari: appinstalled イベントが発火しないため、
   // スタンドアロンモードで初回起動したときにインストールとして計測する
