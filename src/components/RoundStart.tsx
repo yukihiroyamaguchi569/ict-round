@@ -186,7 +186,35 @@ export default function RoundStart({
 
         <InstallBanner />
 
-        <p className="text-center text-text-faint text-xs mt-10">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
+        {/* 統合ページは PC で開く別ページ（相対パスなので GitHub Pages / Cloudflare Pages のどちらでも通る） */}
+        <div className="card p-4 mt-4 flex items-center gap-3">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: 'var(--t-primary-light)' }}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="var(--t-primary)" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h5l3 3h8a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 12v5m0-5l-2 2m2-2l2 2" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-text">複数部署のレポートを統合</p>
+            <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
+              集めたデータをPCで1本のWord報告書にまとめます
+            </p>
+          </div>
+          <a
+            href="./merge.html"
+            target="_blank"
+            rel="noopener"
+            className="text-xs font-bold px-3 py-2 rounded-t flex-shrink-0 transition-colors"
+            style={{ backgroundColor: 'var(--t-primary)', color: '#fff' }}
+          >
+            開く
+          </a>
+        </div>
+
+        <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
 
       {showImport && (
