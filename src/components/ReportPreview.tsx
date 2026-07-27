@@ -23,6 +23,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
   // iOS では navigator.share() をタップ直後（transient activation 中）に await を挟まず呼ぶ必要があり、
   // 生成を待ってから share すると共有/メール画面が即閉じてしまうため。
   const [shareFiles, setShareFiles] = useState<File[] | null>(null);
+  // 共有に失敗した環境ではダウンロード表示に切り替える
+  const [shareFailed, setShareFailed] = useState(false);
   const canShare = (() => {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
     // Variant A: type を省略（DOCX_MIME を渡すと iOS メール共有が即閉じる問題の検証）
@@ -79,7 +81,10 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
       files: shareFiles,
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
-      saveOne(shareFiles[0]);
+      // 勝手に片方だけ保存すると json を送り忘れるので、
+      // 2ファイルを個別に保存できるダウンロード表示へ切り替える。
+      console.error('共有エラー:', err);
+      setShareFailed(true);
     });
     trackEvent('round_export', { method: 'share', file_count: shareFiles.length });
   };
@@ -106,7 +111,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
           </svg>
           {theme.backLabel}
         </button>
-        {canShare ? (
+        {canShare && !shareFailed ? (
           <button
             onClick={handleShare}
             disabled={!shareFiles}
@@ -118,7 +123,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
             {!shareFiles ? '準備中…' : '共有'}
           </button>
         ) : (
-          // 共有非対応環境。1クリック1ファイルにしないと2件目がブラウザに落とされる
+          // 共有非対応 or 共有失敗。1クリック1ファイルにしないと2件目がブラウザに落とされる
           <div className="flex items-center gap-2">
             {([['Word出力', 'docx'], ['データ出力', 'json']] as const).map(([label, kind], i) => (
               <button
@@ -136,6 +141,15 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
           </div>
         )}
       </div>
+
+      {shareFailed && (
+        <div className="bg-primary-light border-b border-line px-5 py-2.5">
+          <p className="text-xs text-text leading-relaxed max-w-2xl mx-auto">
+            共有できませんでした。<strong>Word出力</strong>と<strong>データ出力</strong>を1つずつ押して、2つのファイルを保存してください。
+            データ（.json）は統合ページで複数部署をまとめるのに使います。
+          </p>
+        </div>
+      )}
 
       {/* Report preview */}
       <div className="animate-page px-4 py-5 pb-10">
