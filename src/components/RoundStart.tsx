@@ -186,7 +186,20 @@ export default function RoundStart({
 
         <InstallBanner />
 
-        <p className="text-center text-text-faint text-xs mt-10">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
+        {/* 統合ページは PC で開く別ページ（相対パスなので GitHub Pages / Cloudflare Pages のどちらでも通る） */}
+        <a
+          href="./merge.html"
+          target="_blank"
+          rel="noopener"
+          className="mt-6 flex items-center justify-center gap-1.5 text-xs font-bold text-text-muted hover:text-primary transition-colors"
+        >
+          複数部署のレポートを統合する（PC向け）
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+
+        <p className="text-center text-text-faint text-xs mt-6">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
 
       {showImport && (

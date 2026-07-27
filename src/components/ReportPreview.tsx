@@ -263,6 +263,22 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
           </div>
 
         </div>
+
+        {/* 共有した .json の使い道を、送った直後の文脈で案内する */}
+        <div className="max-w-2xl mx-auto mt-5 px-1">
+          <p className="text-xs text-text-muted leading-relaxed">
+            複数部署のレポートを1本にまとめるには、PCで
+            <a
+              href="./merge.html"
+              target="_blank"
+              rel="noopener"
+              className="font-bold text-primary hover:underline mx-1"
+            >
+              統合ページ
+            </a>
+            を開き、各担当者から集めた <code className="font-bold">.json</code> を読み込んでください。
+          </p>
+        </div>
       </div>
     </div>
   );
