@@ -49,8 +49,28 @@ const STYLE = `
     margin: 0 auto;
     padding: 1rem 0;
     font-size: .875rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
   }
   nav.doc-nav a { color: #0c6b8a; }
+  .print-button {
+    display: inline-flex;
+    align-items: center;
+    gap: .35em;
+    padding: .45em .9em;
+    border: 1px solid #0c6b8a;
+    border-radius: 999px;
+    background: #fff;
+    color: #0c6b8a;
+    font-size: .8rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .print-button:hover { background: #eef4f7; }
   h1, h2, h3, h4 { line-height: 1.4; font-weight: 700; }
   h1 { font-size: 1.75rem; margin: 1.5rem 0 1rem; padding-bottom: .75rem; border-bottom: 3px solid #0c6b8a; }
   h2 { font-size: 1.3rem; margin: 2.5rem 0 .75rem; padding-left: .6rem; border-left: 5px solid #0c6b8a; }
@@ -141,7 +161,10 @@ function render(doc, markdown) {
 ${gtagSnippet()}  <style>${STYLE}</style>
 </head>
 <body>
-  <nav class="doc-nav"><a href="/about">&larr; めぐる君について</a></nav>
+  <nav class="doc-nav">
+    <a href="/about">&larr; めぐる君について</a>
+    <button type="button" class="print-button" onclick="window.print()">🖨 PDFとして保存</button>
+  </nav>
   <main>
 ${content}
   </main>
