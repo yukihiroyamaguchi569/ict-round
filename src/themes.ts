@@ -7,7 +7,6 @@ export interface ThemeConfig {
   startTitle: string;
   startSubtitle: string;
   backLabel: string;
-  listeningLabel: string;
   photoOkLabel: string;
   commentPlaceholder: string;
 }
@@ -20,7 +19,6 @@ export const themes: Record<ThemeName, ThemeConfig> = {
     startTitle: 'お疲れ様です',
     startSubtitle: '感染対策ラウンドを始めましょう\n担当者名を入力してください',
     backLabel: 'もどる',
-    listeningLabel: '聞いています...',
     photoOkLabel: 'OK',
     commentPlaceholder: '気になった点をメモ...',
   },
@@ -31,9 +29,8 @@ export const themes: Record<ThemeName, ThemeConfig> = {
     startTitle: 'お疲れ様です',
     startSubtitle: 'ラウンドを開始するには担当者名を入力してください',
     backLabel: '戻る',
-    listeningLabel: '音声認識中...',
     photoOkLabel: '撮影済み',
-    commentPlaceholder: '音声入力またはテキスト入力...',
+    commentPlaceholder: 'メモを入力...',
   },
   medical: {
     name: 'medical',
@@ -42,9 +39,8 @@ export const themes: Record<ThemeName, ThemeConfig> = {
     startTitle: 'お疲れ様です',
     startSubtitle: 'ラウンドを開始するには担当者名を入力してください',
     backLabel: '戻る',
-    listeningLabel: '音声認識中...',
     photoOkLabel: '撮影済み',
-    commentPlaceholder: '音声入力またはテキスト入力...',
+    commentPlaceholder: '気になった点を記録...',
   },
 };
 
