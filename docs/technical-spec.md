@@ -527,7 +527,7 @@ npm run lint
 | `docs/user-guide.md` | 取扱説明書 | https://ict-round.conect.llc/docs/user-guide |
 | `docs/ga4-plan.md` | アクセス解析の運用方針 | 非公開 |
 
-この技術仕様書自体も https://ict-round.conect.llc/docs/technical-spec で公開しています。公開ページは `docs/*.md` からビルド時に生成しており、内容は同一です。
+この技術仕様書自体も https://ict-round.conect.llc/docs/technical-spec で公開しています。公開ページは上記の公開対象3文書の Markdown からビルド時に生成しており、内容は同一です。`docs/` 配下のその他の文書は公開していません。
 
 ---
 
