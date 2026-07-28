@@ -91,36 +91,6 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
 - Treat `docs/` as supporting context only; do not assume it matches the current implementation.
 - If `README.md` or `docs/` conflicts with `src/`, trust `src/`.
 
-## App Structure
-- App state and screen transitions:
-  - `src/App.tsx`
-- Shared data model:
-  - `src/types.ts`
-- Checklist master data and item lookup:
-  - `src/checklistData.ts`
-- Start screen:
-  - `src/components/RoundStart.tsx`
-- Main tab container and progress summary:
-  - `src/components/MainScreen.tsx`
-  - `src/components/BottomTabBar.tsx`
-- Checklist rating flow:
-  - `src/components/ChecklistTab.tsx`
-  - `src/components/CategoryAccordion.tsx`
-  - `src/components/RatingButtons.tsx`
-- Photo capture and photo lists:
-  - `src/components/PhotoForm.tsx`
-  - `src/components/PhotoTab.tsx`
-- Overall evaluation input:
-  - `src/components/EvaluationTab.tsx`
-- Report preview and `.docx` generation:
-  - `src/components/ReportPreview.tsx`
-- Theme selection and persistence:
-  - `src/ThemeContext.tsx`
-  - `src/themes.ts`
-  - `src/components/ThemeSelector.tsx`
-- Global styling:
-  - `src/index.css`
-
 ## Important Current Behaviors
 - Checklist results are initialized from `CHECKLIST_CATEGORIES` at round start.
 - Each checklist item stores a rating plus zero or more linked photos.
@@ -140,12 +110,6 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
 - If the task is about theme, colors, or labels, start in `src/themes.ts` and `src/ThemeContext.tsx`.
 
 ## Ignore By Default
-- Do not scan these unless the task clearly requires them:
-  - `node_modules/`
-  - `dist/`
-  - `.venv/`
-  - lockfiles
-  - generated build output
 - Do not inspect `docs/reference/round-checklist.xlsx` unless the task is about the original checklist source.
 - Do not inspect `public/` assets unless the task is about static assets or sharing UX.
 
