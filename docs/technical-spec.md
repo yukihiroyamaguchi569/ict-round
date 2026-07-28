@@ -4,7 +4,7 @@
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
 **最終更新日:** 2026年7月28日  
-**対象バージョン:** 1.9.2
+**対象バージョン:** 1.10.0
 
 ---
 
@@ -521,11 +521,13 @@ npm run lint
 
 ## 12 関連文書
 
-| 文書 | 内容 |
-|------|------|
-| `docs/privacy-policy.md` | プライバシーポリシー |
-| `docs/user-guide.md` | 取扱説明書 |
-| `docs/ga4-plan.md` | アクセス解析の運用方針 |
+| 文書 | 内容 | 公開 URL |
+|------|------|----------|
+| `docs/privacy-policy.md` | プライバシーポリシー | https://ict-round.conect.llc/docs/privacy-policy |
+| `docs/user-guide.md` | 取扱説明書 | https://ict-round.conect.llc/docs/user-guide |
+| `docs/ga4-plan.md` | アクセス解析の運用方針 | 非公開 |
+
+この技術仕様書自体も https://ict-round.conect.llc/docs/technical-spec で公開しています。公開ページは `docs/*.md` からビルド時に生成しており、内容は同一です。
 
 ---
 
