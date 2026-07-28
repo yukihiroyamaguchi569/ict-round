@@ -163,6 +163,17 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
 - Use semantic versioning: new feature → minor (e.g. 1.1.0 → 1.2.0), bug fix → patch (e.g. 1.2.0 → 1.2.1).
 - Do not create a separate PR just for a version bump.
 
+## Documentation Policy
+- When a PR adds, changes, or removes a feature, update the affected documents in the same PR. Do not defer it to a follow-up PR.
+- Which document to update:
+  - What the user sees or operates changes → `docs/user-guide.md`
+  - Screen structure, data model, storage, external communication, or dependencies change → `docs/technical-spec.md`
+  - What is stored or transmitted changes → `docs/privacy-policy.md`
+  - The public landing page would contradict the app → `public/about/index.html`
+- When updating a document, also update its header: `最終更新日` and `対象バージョン` for the user guide and technical spec, or the `改定履歴` table for the privacy policy.
+- **When removing a feature, grep the docs for its keywords and delete every stale mention.** Removing an implementation while leaving its description behind is how the docs drifted before (`SpeechRecognition` was removed in v1.7.6 but stayed documented in 6 places).
+- If a change genuinely needs no documentation update, say so in the PR and why.
+
 
 
 
