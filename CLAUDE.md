@@ -170,6 +170,8 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
   - Screen structure, data model, storage, external communication, or dependencies change → `docs/technical-spec.md`
   - What is stored or transmitted changes → `docs/privacy-policy.md`
   - The public landing page would contradict the app → `public/about/index.html`
+  - A version bump ships a change users can notice → `public/updates/releases.json`
+- `public/updates/releases.json` is the update history rendered on `/updates`. Add an entry (`version`, `date`, `changes`) in the same PR as the version bump, written from the user's point of view. Internal-only bumps (refactoring, analytics, documentation) need no entry.
 - When updating a document, also update its header: `最終更新日` and `対象バージョン` for the user guide and technical spec, or the `改定履歴` table for the privacy policy.
 - **When removing a feature, grep the docs for its keywords and delete every stale mention.** Removing an implementation while leaving its description behind is how the docs drifted before (`SpeechRecognition` was removed in v1.7.6 but stayed documented in 6 places).
 - If a change genuinely needs no documentation update, say so in the PR and why.
