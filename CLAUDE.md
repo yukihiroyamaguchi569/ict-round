@@ -175,6 +175,7 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
 - When updating a document, also update its header: `最終更新日` and `対象バージョン` for the user guide and technical spec, or the `改定履歴` table for the privacy policy.
 - **When removing a feature, grep the docs for its keywords and delete every stale mention.** Removing an implementation while leaving its description behind is how the docs drifted before (`SpeechRecognition` was removed in v1.7.6 but stayed documented in 6 places).
 - If a change genuinely needs no documentation update, say so in the PR and why.
+- `docs/technical-spec.md`, `docs/user-guide.md`, and `docs/privacy-policy.md` are **published as public web pages** under `/docs/<slug>`, generated from the Markdown at build time by `scripts/build-docs.mjs`. Write them for an outside reader — a hospital's security review is a real audience. Never put internal notes, credentials, or non-public information in these three files. Statements already published elsewhere (for example a roadmap answer in the landing page FAQ) are fine; keep them consistent with that source rather than removing them. Other files under `docs/` are internal and are not published; publishing is controlled by the explicit list in that script.
 
 
 

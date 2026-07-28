@@ -152,6 +152,7 @@ https://forms.gle/idcb12fFk1GT2wHR7
 
 | 日付 | 内容 |
 |------|------|
+| 2026年7月28日 | 技術仕様書・取扱説明書・本ポリシーの公開ページ（`/docs/` 配下）を開設。これらのページもアクセス解析の対象に含まれます |
 | 2026年7月28日 | 制定 |
 
 ---
@@ -160,5 +161,5 @@ https://forms.gle/idcb12fFk1GT2wHR7
 
 | 文書 | 内容 |
 |------|------|
-| `docs/technical-spec.md` | 技術仕様書（情報システム部門向け） |
-| `docs/user-guide.md` | 取扱説明書 |
+| [技術仕様書](https://ict-round.conect.llc/docs/technical-spec) | 情報システム部門向け。保存先、外部通信先、アクセス解析の送信項目を記載 |
+| [取扱説明書](https://ict-round.conect.llc/docs/user-guide) | 操作手順と注意事項 |
