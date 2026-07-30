@@ -31,9 +31,10 @@ describe('parseCsv', () => {
     expect(result[0].items).toHaveLength(1);
   });
 
-  it('引用符で囲まれたカンマを項目の一部として扱う', () => {
-    const result = parseCsv('手指衛生,"手洗い、手指消毒の両方"');
-    expect(result[0].items[0].description).toBe('手洗い、手指消毒の両方');
+  it('引用符で囲まれたカンマを列の区切りとして扱わない', () => {
+    const result = parseCsv('手指衛生,"手洗い,手指消毒の両方"');
+    expect(result[0].items).toHaveLength(1);
+    expect(result[0].items[0].description).toBe('手洗い,手指消毒の両方');
   });
 
   it('引用符のエスケープ（""）を1つの引用符に戻す', () => {

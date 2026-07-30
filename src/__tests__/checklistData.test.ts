@@ -17,8 +17,8 @@ const categories: ChecklistCategory[] = [
 ];
 
 describe('checklistData', () => {
-  it('getAllItems は全カテゴリの項目をフラットに集約する', () => {
-    expect(getAllItems(categories)).toHaveLength(3);
+  it('getAllItems は全カテゴリの項目を定義順にフラットに集約する', () => {
+    expect(getAllItems(categories).map((item) => item.id)).toEqual(['a-1', 'a-2', 'b-1']);
   });
 
   it('getTotalItems は項目の総数を返す', () => {
