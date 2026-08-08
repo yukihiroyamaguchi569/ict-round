@@ -156,20 +156,20 @@ function render(doc, markdown) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
   <meta name="description" content="${escapeHtml(doc.description)}">
-  <link rel="canonical" href="https://ict-round.conect.llc/docs/${doc.slug}">
+  <link rel="canonical" href="https://ict-round.conect.llc/docs/${doc.slug}/">
   <link rel="icon" type="image/png" href="/meguru.png">
 ${gtagSnippet()}  <style>${STYLE}</style>
 </head>
 <body>
   <nav class="doc-nav">
-    <a href="/about">&larr; めぐる君について</a>
+    <a href="/about/">&larr; めぐる君について</a>
     <button type="button" class="print-button" onclick="window.print()">🖨 PDFとして保存</button>
   </nav>
   <main>
 ${content}
   </main>
   <footer class="doc-footer">
-    <p>&copy; 2026 コネクト合同会社 &mdash; <a href="/">アプリを開く</a> / <a href="/docs/privacy-policy">プライバシーポリシー</a> / <a href="/docs/technical-spec">技術仕様書</a> / <a href="/docs/user-guide">取扱説明書</a></p>
+    <p>&copy; 2026 コネクト合同会社 &mdash; <a href="/">アプリを開く</a> / <a href="/docs/privacy-policy/">プライバシーポリシー</a> / <a href="/docs/technical-spec/">技術仕様書</a> / <a href="/docs/user-guide/">取扱説明書</a></p>
   </footer>
 </body>
 </html>
