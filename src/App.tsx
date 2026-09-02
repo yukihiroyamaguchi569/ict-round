@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ThemeProvider } from './ThemeContext';
 import { IconProvider } from './IconContext';
 import RoundStart from './components/RoundStart';
@@ -6,6 +6,7 @@ import MainScreen from './components/MainScreen';
 import PhotoForm from './components/PhotoForm';
 import ReportPreview from './components/ReportPreview';
 import SavedRoundsList from './components/SavedRoundsList';
+import LeaveRoundDialog from './components/LeaveRoundDialog';
 import type { Rating, Photo, RoundData, SavedChecklist, SavedRound } from './types';
 import {
   seedDefaultIfFirstRun,
@@ -17,6 +18,7 @@ import {
   upsertSavedRound,
   deleteSavedRound,
 } from './checklistStorage';
+import { snapshotRound, hasUnsavedChanges } from './roundDirty';
 
 type Screen = 'start' | 'main' | 'photo-add' | 'report' | 'saved-rounds';
 type MainTab = 'checklist' | 'photos' | 'evaluation';
@@ -48,6 +50,8 @@ function AppContent() {
 
   const [savedRounds, setSavedRounds] = useState<SavedRound[]>(() => loadSavedRounds());
   const [savedRoundId, setSavedRoundId] = useState<string | null>(null);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const savedSnapshotRef = useRef('');
 
   const handleSelectChecklist = (id: string) => {
     setActiveId(id);
@@ -70,7 +74,7 @@ function AppContent() {
   };
 
   const handleStartRound = (name: string, wardName: string) => {
-    setRoundData({
+    const newRound: RoundData = {
       inspectorName: name,
       wardName,
       startTime: new Date().toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
@@ -80,7 +84,9 @@ function AppContent() {
       generalPhotos: [],
       overallEvaluation: '',
       checklistName: activeChecklist.name,
-    });
+    };
+    setRoundData(newRound);
+    savedSnapshotRef.current = snapshotRound(newRound);
     setSavedRoundId(null);
     setActiveMainTab('checklist');
     setScreen('main');
@@ -104,6 +110,7 @@ function AppContent() {
       upsertSavedRound(round);
       setSavedRoundId(id);
       setSavedRounds(loadSavedRounds());
+      savedSnapshotRef.current = snapshotRound(roundData);
       return true;
     } catch (err) {
       const quotaExceeded =
@@ -126,6 +133,7 @@ function AppContent() {
     }
     handleSelectChecklist(round.checklistId);
     setRoundData(round.roundData);
+    savedSnapshotRef.current = snapshotRound(round.roundData);
     setSavedRoundId(round.id);
     setActiveMainTab('checklist');
     setScreen('main');
@@ -193,6 +201,19 @@ function AppContent() {
     setRoundData((prev) => ({ ...prev, inspectorName: name }));
   };
 
+  const handleGoHome = () => {
+    if (hasUnsavedChanges(roundData, savedSnapshotRef.current)) {
+      setShowLeaveDialog(true);
+    } else {
+      setScreen('start');
+    }
+  };
+
+  const handleLeaveToStart = () => {
+    setShowLeaveDialog(false);
+    setScreen('start');
+  };
+
   const handleOpenPhotoAdd = (itemId?: string) => {
     setPhotoContext(itemId ? { itemId } : null);
     setScreen('photo-add');
@@ -246,20 +267,32 @@ function AppContent() {
   }
 
   return (
-    <MainScreen
-      roundData={roundData}
-      categories={activeChecklist.categories}
-      activeTab={activeMainTab}
-      onTabChange={setActiveMainTab}
-      onRatingChange={handleRatingChange}
-      onAddPhoto={handleOpenPhotoAdd}
-      onDeleteItemPhoto={handleDeleteItemPhoto}
-      onDeleteGeneralPhoto={handleDeleteGeneralPhoto}
-      onEvaluationChange={handleEvaluationChange}
-      onInspectorChange={handleInspectorChange}
-      onReport={() => setScreen('report')}
-      onSave={handleSaveRound}
-    />
+    <>
+      <MainScreen
+        roundData={roundData}
+        categories={activeChecklist.categories}
+        activeTab={activeMainTab}
+        onTabChange={setActiveMainTab}
+        onRatingChange={handleRatingChange}
+        onAddPhoto={handleOpenPhotoAdd}
+        onDeleteItemPhoto={handleDeleteItemPhoto}
+        onDeleteGeneralPhoto={handleDeleteGeneralPhoto}
+        onEvaluationChange={handleEvaluationChange}
+        onInspectorChange={handleInspectorChange}
+        onReport={() => setScreen('report')}
+        onSave={handleSaveRound}
+        onHome={handleGoHome}
+      />
+      {showLeaveDialog && (
+        <LeaveRoundDialog
+          onSaveAndLeave={() => {
+            if (handleSaveRound()) handleLeaveToStart();
+          }}
+          onLeave={handleLeaveToStart}
+          onCancel={() => setShowLeaveDialog(false)}
+        />
+      )}
+    </>
   );
 }
 
