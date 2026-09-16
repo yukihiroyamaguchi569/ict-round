@@ -225,6 +225,7 @@ function AppContent() {
         library={library}
         activeId={activeId}
         savedRoundsCount={savedRounds.length}
+        initialName={roundData.inspectorName}
         onStart={handleStartRound}
         onSelectChecklist={handleSelectChecklist}
         onAddChecklist={handleAddChecklist}

@@ -10,6 +10,7 @@ interface Props {
   library: SavedChecklist[];
   activeId: string;
   savedRoundsCount: number;
+  initialName: string;
   onStart: (name: string, wardName: string) => void;
   onSelectChecklist: (id: string) => void;
   onAddChecklist: (c: SavedChecklist) => void;
@@ -21,13 +22,15 @@ export default function RoundStart({
   library,
   activeId,
   savedRoundsCount,
+  initialName,
   onStart,
   onSelectChecklist,
   onAddChecklist,
   onDeleteChecklist,
   onViewSaved,
 }: Props) {
-  const [name, setName] = useState('');
+  // Carry over the participant name so consecutive ward rounds do not require retyping it
+  const [name, setName] = useState(initialName);
   const [wardName, setWardName] = useState('');
   const [showImport, setShowImport] = useState(false);
   const { theme } = useTheme();
