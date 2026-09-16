@@ -51,6 +51,7 @@ function AppContent() {
   const [savedRounds, setSavedRounds] = useState<SavedRound[]>(() => loadSavedRounds());
   const [savedRoundId, setSavedRoundId] = useState<string | null>(null);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [carriedInspectorName, setCarriedInspectorName] = useState('');
   const savedSnapshotRef = useRef('');
 
   const handleSelectChecklist = (id: string) => {
@@ -86,6 +87,7 @@ function AppContent() {
       checklistName: activeChecklist.name,
     };
     setRoundData(newRound);
+    setCarriedInspectorName(name);
     savedSnapshotRef.current = snapshotRound(newRound);
     setSavedRoundId(null);
     setActiveMainTab('checklist');
@@ -199,6 +201,7 @@ function AppContent() {
 
   const handleInspectorChange = (name: string) => {
     setRoundData((prev) => ({ ...prev, inspectorName: name }));
+    setCarriedInspectorName(name);
   };
 
   const handleGoHome = () => {
@@ -225,7 +228,7 @@ function AppContent() {
         library={library}
         activeId={activeId}
         savedRoundsCount={savedRounds.length}
-        initialName={roundData.inspectorName}
+        initialName={carriedInspectorName}
         onStart={handleStartRound}
         onSelectChecklist={handleSelectChecklist}
         onAddChecklist={handleAddChecklist}
