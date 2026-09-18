@@ -4,6 +4,7 @@ import { saveAs } from 'file-saver';
 import type { RoundData, RoundExport, ChecklistCategory } from '../types';
 import { findItemById } from '../checklistData';
 import { buildDocxBlob, RATING_HEX } from '../docx';
+import { embedRoundExport } from '../roundExportDocx';
 import { trackEvent } from '../analytics';
 
 // Variant A 検証中: type を省略しているため一時的に未使用（Variant B/恒久対応で復活）
@@ -18,29 +19,28 @@ interface Props {
 export default function ReportPreview({ roundData, categories, onBack }: Props) {
   const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
-  // 報告書用の .docx と、統合ページ用の .json を1回の共有で両方送る。
+  // 送るのは .docx 1本だけ。統合ページ用のラウンドデータは docx の中に同梱する。
   // docx は写真込みだと生成に時間がかかるため、プレビュー表示時に事前生成して File をキャッシュする。
   // iOS では navigator.share() をタップ直後（transient activation 中）に await を挟まず呼ぶ必要があり、
   // 生成を待ってから share すると共有/メール画面が即閉じてしまうため。
-  const [shareFiles, setShareFiles] = useState<File[] | null>(null);
+  const [shareFile, setShareFile] = useState<File | null>(null);
   // 共有に失敗した環境ではダウンロード表示に切り替える
   const [shareFailed, setShareFailed] = useState(false);
   const canShare = (() => {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
     // Variant A: type を省略（DOCX_MIME を渡すと iOS メール共有が即閉じる問題の検証）
-    const testFiles = [new File([''], 'test.docx'), new File([''], 'test.json')];
-    return navigator.canShare?.({ files: testFiles }) ?? false;
+    const testFile = new File([''], 'test.docx');
+    return navigator.canShare?.({ files: [testFile] }) ?? false;
   })();
 
-  // プレビュー表示時に docx / json を事前生成して File をキャッシュしておく。
+  // プレビュー表示時に docx を事前生成して File をキャッシュしておく。
   // roundData / categories はこの画面の表示中に変化しないため生成は1回でよい。
   useEffect(() => {
     let cancelled = false;
     // ファイル名は半角英数のみ（日本語名だと iOS の AirDrop が失敗する）。
-    // json は複数人分が受信側で衝突しないよう末尾に乱数を付ける。
+    // 複数人分が受信側で衝突しないよう末尾に乱数を付ける。
     const dateStr = new Date().toISOString().slice(0, 10);
-    const docxFilename = `ICTround_${dateStr}.docx`;
-    const jsonFilename = `ICTround_${dateStr}_${Math.random().toString(36).slice(2, 6)}.json`;
+    const docxFilename = `ICTround_${dateStr}_${Math.random().toString(36).slice(2, 6)}.docx`;
 
     // 統合ページは localStorage を持たないためチェックリスト定義を同梱する。
     const roundExport: RoundExport = {
@@ -51,12 +51,12 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
       categories,
       roundData,
     };
-    const jsonFile = new File([JSON.stringify(roundExport)], jsonFilename);
 
     buildDocxBlob(roundData, categories)
+      .then((blob) => embedRoundExport(blob, roundExport))
       .then((blob) => {
         // Variant A: type を省略（手動添付と同様に OS が拡張子から MIME を推定させる）
-        if (!cancelled) setShareFiles([new File([blob], docxFilename), jsonFile]);
+        if (!cancelled) setShareFile(new File([blob], docxFilename));
       })
       .catch((err) => {
         console.error('DOCX生成エラー:', err);
@@ -65,12 +65,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ダウンロードは1クリック1ファイル。ブラウザが1回の操作で2件目のダウンロードを
-  // 「複数ファイルの自動ダウンロード」とみなして黙って落とすため、まとめて保存しない。
-  const saveOne = (file: File) => saveAs(file, file.name);
-
   const handleShare = () => {
-    if (!shareFiles) return;
+    if (!shareFile) return;
     // iOS では transient activation が切れると共有画面が即閉じるため、
     // await を挟まずキャッシュ済みの File を同期的に share する。
     // メール作成画面は title/text が無いと中身ゼロで開いて即閉じるため件名・本文を付ける。
@@ -78,21 +74,19 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     navigator.share({
       title: '感染対策ラウンド報告書',
       text: `${roundData.inspectorName} - ${new Date().toISOString().slice(0, 10)}`,
-      files: shareFiles,
+      files: [shareFile],
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
-      // 勝手に片方だけ保存すると json を送り忘れるので、
-      // 2ファイルを個別に保存できるダウンロード表示へ切り替える。
       console.error('共有エラー:', err);
       setShareFailed(true);
     });
-    trackEvent('round_export', { method: 'share', file_count: shareFiles.length });
+    trackEvent('round_export', { method: 'share' });
   };
 
-  const handleDownload = (index: number, kind: 'docx' | 'json') => {
-    if (!shareFiles) return;
-    saveOne(shareFiles[index]);
-    trackEvent('round_export', { method: 'download', file_kind: kind });
+  const handleDownload = () => {
+    if (!shareFile) return;
+    saveAs(shareFile, shareFile.name);
+    trackEvent('round_export', { method: 'download' });
   };
 
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
@@ -114,39 +108,33 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
         {canShare && !shareFailed ? (
           <button
             onClick={handleShare}
-            disabled={!shareFiles}
+            disabled={!shareFile}
             className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-1.5 disabled:opacity-50"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
-            {!shareFiles ? '準備中…' : '共有'}
+            {!shareFile ? '準備中…' : '共有'}
           </button>
         ) : (
-          // 共有非対応 or 共有失敗。1クリック1ファイルにしないと2件目がブラウザに落とされる
-          <div className="flex items-center gap-2">
-            {([['Word出力', 'docx'], ['データ出力', 'json']] as const).map(([label, kind], i) => (
-              <button
-                key={kind}
-                onClick={() => handleDownload(i, kind)}
-                disabled={!shareFiles}
-                className={`${i === 0 ? 'btn-primary' : 'border border-line text-text-muted hover:text-text'} px-4 py-2.5 rounded-t text-sm font-bold flex items-center gap-1.5 disabled:opacity-50`}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                {!shareFiles ? '準備中…' : label}
-              </button>
-            ))}
-          </div>
+          // 共有非対応 or 共有失敗
+          <button
+            onClick={handleDownload}
+            disabled={!shareFile}
+            className="btn-primary px-4 py-2.5 text-sm font-bold flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {!shareFile ? '準備中…' : 'Word出力'}
+          </button>
         )}
       </div>
 
       {shareFailed && (
         <div className="bg-primary-light border-b border-line px-5 py-2.5">
           <p className="text-xs text-text leading-relaxed max-w-2xl mx-auto">
-            共有できませんでした。<strong>Word出力</strong>と<strong>データ出力</strong>を1つずつ押して、2つのファイルを保存してください。
-            データ（.json）は統合ページで複数部署をまとめるのに使います。
+            共有できませんでした。<strong>Word出力</strong>を押して報告書を保存し、メールなどで送ってください。
           </p>
         </div>
       )}
@@ -264,7 +252,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
 
         </div>
 
-        {/* 共有した .json の使い道を、送った直後の文脈で案内する */}
+        {/* 共有した .docx の使い道を、送った直後の文脈で案内する */}
         <div className="max-w-2xl mx-auto mt-5 px-1">
           <p className="text-xs text-text-muted leading-relaxed">
             複数部署のレポートを1本にまとめるには、PCで
@@ -276,7 +264,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
             >
               統合ページ
             </a>
-            を開き、各担当者から集めた <code className="font-bold">.json</code> を読み込んでください。
+            を開き、各担当者から集めた <code className="font-bold">.docx</code> を読み込んでください。統合に必要なデータはこの報告書の中に入っています。
           </p>
         </div>
       </div>
