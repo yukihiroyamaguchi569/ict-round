@@ -32,7 +32,7 @@ export function parseRoundExport(text: string): RoundExport {
 
   const obj = parsed as Partial<RoundExport>;
   if (obj.format !== 'meguru-round') {
-    return fail('めぐる君のラウンドデータではありません（.docx や別のJSONを選んでいませんか？）');
+    return fail('めぐる君のラウンドデータではありません（別のファイルを選んでいませんか？）');
   }
   if (obj.version !== 1) {
     return fail(`未対応のバージョンです（version: ${String(obj.version)}）`);

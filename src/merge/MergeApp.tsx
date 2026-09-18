@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { saveAs } from 'file-saver';
 import type { RoundExport } from '../types';
 import { RATING_HEX } from '../docx';
-import { mergeRounds, parseRoundExport } from './mergeRounds';
+import { mergeRounds } from './mergeRounds';
+import { loadRoundFile } from './loadRoundFile';
 import { buildMergedDocxBlob } from './mergedDocx';
 
 interface LoadedFile {
@@ -40,7 +41,7 @@ export default function MergeApp() {
 
     for (const file of Array.from(fileList)) {
       try {
-        const data = parseRoundExport(await file.text());
+        const data = await loadRoundFile(file);
         loaded.push({ id: crypto.randomUUID(), filename: file.name, data });
       } catch (err) {
         failed.push(`${file.name}: ${err instanceof Error ? err.message : '読み込みに失敗しました'}`);
@@ -80,7 +81,7 @@ export default function MergeApp() {
       <div className="sticky top-0 z-10 bg-surface/90 backdrop-blur-lg border-b border-line px-5 py-3.5">
         <h1 className="text-base font-extrabold text-text">ラウンド報告書の統合</h1>
         <p className="text-xs text-text-muted mt-0.5">
-          複数の部署のラウンドデータ（.json）をまとめて1本のWord報告書にします
+          複数の部署の報告書（.docx）をまとめて1本のWord報告書にします
         </p>
       </div>
 
@@ -94,20 +95,21 @@ export default function MergeApp() {
             dragging ? 'border-primary bg-primary-light' : 'border-line'
           }`}
         >
-          <p className="text-sm font-bold text-text">ここに .json ファイルをドラッグ&ドロップ</p>
+          <p className="text-sm font-bold text-text">ここに報告書の .docx ファイルをドラッグ&ドロップ</p>
           <p className="text-xs text-text-muted mt-1">または</p>
           <label className="btn-primary inline-block px-5 py-2.5 text-sm font-bold mt-3 cursor-pointer">
             ファイルを選ぶ
             <input
               type="file"
               multiple
-              accept=".json,application/json"
+              accept=".docx,.json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/json"
               className="hidden"
               onChange={(e) => { void addFiles(e.target.files); e.target.value = ''; }}
             />
           </label>
           <p className="text-[11px] text-text-faint mt-4 leading-relaxed">
-            めぐる君の報告書プレビュー画面で「共有」を押すと、Wordと一緒に .json が送られます。<br />
+            めぐる君から共有された報告書（.docx）には、統合に必要なラウンドデータが入っています。受け取ったファイルをそのまま読み込んでください。<br />
+            以前の形式の .json も読み込めます。<br />
             このページは読み込んだデータを保存しません。ページを再読み込みすると消えます。
           </p>
         </div>
