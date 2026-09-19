@@ -19,8 +19,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         // merge.html は PC で複数部署のラウンドデータを統合するページ（別エントリなのでスマホ側のバンドルは増えない）
-        main: resolve(__dirname, 'index.html'),
-        merge: resolve(__dirname, 'merge.html'),
+        main: resolve(import.meta.dirname, 'index.html'),
+        merge: resolve(import.meta.dirname, 'merge.html'),
       },
     },
   },
