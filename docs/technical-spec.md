@@ -432,7 +432,7 @@ interface RoundExport {
 | `pwa_install_banner_click` | インストールバナーの操作 | `method` |
 | `pwa_install_prompt_result` | インストールプロンプトの結果 | `outcome` |
 | `pwa_install_banner_dismiss` | バナーを閉じた時 | `method` |
-| `round_export` | 報告書を共有・保存した時 | `method`（`share` / `download`） |
+| `round_export` | 報告書の共有・Word出力を操作した時（共有画面を開いた時点。キャンセルされた場合も送信されます） | `method`（`share` / `download`） |
 
 上記に加え、GA4 が自動収集する `session_start`、`first_visit`、`user_engagement` が送信されます。
 ユーザープロパティとして `display_mode`（`standalone` / `browser`）を設定します。
