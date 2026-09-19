@@ -26,6 +26,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
   const [shareFile, setShareFile] = useState<File | null>(null);
   // 共有に失敗した環境ではダウンロード表示に切り替える
   const [shareFailed, setShareFailed] = useState(false);
+  // docx の生成に失敗すると共有も保存もできないため、理由を画面に出す
+  const [buildError, setBuildError] = useState<string | null>(null);
   const canShare = (() => {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
     // Variant A: type を省略（DOCX_MIME を渡すと iOS メール共有が即閉じる問題の検証）
@@ -58,8 +60,9 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
         // Variant A: type を省略（手動添付と同様に OS が拡張子から MIME を推定させる）
         if (!cancelled) setShareFile(new File([blob], docxFilename));
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         console.error('DOCX生成エラー:', err);
+        if (!cancelled) setBuildError(err instanceof Error ? err.message : String(err));
       });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -89,6 +92,9 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     trackEvent('round_export', { method: 'download' });
   };
 
+  // 生成前のボタン表示。失敗したまま「準備中…」を出し続けないようにする
+  const pendingLabel = buildError ? '作成できません' : '準備中…';
+
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalItems = roundData.checklistResults.length;
   const totalPhotos =
@@ -114,7 +120,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
-            {!shareFile ? '準備中…' : '共有'}
+            {!shareFile ? pendingLabel : '共有'}
           </button>
         ) : (
           // 共有非対応 or 共有失敗
@@ -126,10 +132,18 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
-            {!shareFile ? '準備中…' : 'Word出力'}
+            {!shareFile ? pendingLabel : 'Word出力'}
           </button>
         )}
       </div>
+
+      {buildError && (
+        <div className="bg-primary-light border-b border-line px-5 py-2.5">
+          <p className="text-xs text-text leading-relaxed max-w-2xl mx-auto">
+            報告書ファイルを作成できませんでした（{buildError}）。写真の枚数を減らすか、ページを再読み込みしてやり直してください。
+          </p>
+        </div>
+      )}
 
       {shareFailed && (
         <div className="bg-primary-light border-b border-line px-5 py-2.5">
