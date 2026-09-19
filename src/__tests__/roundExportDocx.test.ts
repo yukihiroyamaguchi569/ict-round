@@ -123,6 +123,30 @@ describe('embedRoundExport / extractRoundExport', () => {
     expect(await extractRoundExport(embedded)).toEqual(makeRoundExport());
   });
 
+  it('itemProps だけが残っている .docx でも既存パートを壊さない', async () => {
+    const existingProps = '<?xml version="1.0"?><ds:datastoreItem xmlns:ds="x">keep me</ds:datastoreItem>';
+    const base = await makeDocx({ 'customXml/itemProps1.xml': existingProps });
+
+    const embedded = await embedRoundExport(base, makeRoundExport());
+
+    expect(await readPart(embedded, 'customXml/itemProps1.xml')).toBe(existingProps);
+    expect(await hasPart(embedded, 'customXml/item2.xml')).toBe(true);
+    expect(await extractRoundExport(embedded)).toEqual(makeRoundExport());
+  });
+
+  it('リレーションだけが残っている .docx でも既存パートを壊さない', async () => {
+    const existingRels = '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">keep me</Relationships>';
+    const base = await makeDocx({ 'customXml/_rels/item1.xml.rels': existingRels });
+
+    const embedded = await embedRoundExport(base, makeRoundExport());
+
+    expect(await readPart(embedded, 'customXml/_rels/item1.xml.rels')).toBe(existingRels);
+    expect(await readPart(embedded, 'customXml/_rels/item2.xml.rels')).toContain(
+      'Target="itemProps2.xml"'
+    );
+    expect(await extractRoundExport(embedded)).toEqual(makeRoundExport());
+  });
+
   it('ラウンドデータの無い .docx は理由の分かるエラーになる', async () => {
     await expect(extractRoundExport(await makeDocx())).rejects.toThrow(
       /ラウンドデータが入っていません/
@@ -135,6 +159,14 @@ describe('embedRoundExport / extractRoundExport', () => {
     );
   });
 });
+
+/** roundData から指定フィールドを落とした JSON 文字列 */
+function jsonWithoutRoundDataField(field: string): string {
+  const roundExport = makeRoundExport();
+  const roundData: Record<string, unknown> = { ...roundExport.roundData };
+  delete roundData[field];
+  return JSON.stringify({ ...roundExport, roundData });
+}
 
 describe('parseRoundExport', () => {
   it('壊れた JSON を弾く', () => {
@@ -157,5 +189,105 @@ describe('parseRoundExport', () => {
     expect(() =>
       parseRoundExport(JSON.stringify({ format: 'meguru-round', version: 1, categories: [] }))
     ).toThrow(/形式が壊れています/);
+  });
+
+  it('妥当なデータはそのまま通す', () => {
+    const roundExport = makeRoundExport();
+
+    expect(parseRoundExport(JSON.stringify(roundExport))).toEqual(roundExport);
+  });
+
+  it('省略可能な checklistName が無い roundData も通す', () => {
+    const roundExport = makeRoundExport();
+    delete roundExport.roundData.checklistName;
+
+    expect(parseRoundExport(JSON.stringify(roundExport))).toEqual(roundExport);
+  });
+
+  it('部署名が欠けているものを「どこが」付きで弾く', () => {
+    expect(() => parseRoundExport(jsonWithoutRoundDataField('wardName'))).toThrow(
+      /形式が壊れています（部署名）/
+    );
+  });
+
+  it('総評が欠けているものを弾く', () => {
+    expect(() => parseRoundExport(jsonWithoutRoundDataField('overallEvaluation'))).toThrow(
+      /形式が壊れています（総評）/
+    );
+  });
+
+  it('roundData が配列のものを弾く', () => {
+    expect(() =>
+      parseRoundExport(JSON.stringify({ ...makeRoundExport(), roundData: [] }))
+    ).toThrow(/形式が壊れています（ラウンドの内容）/);
+  });
+
+  it('評価が A/B/C/null 以外のものを弾く', () => {
+    const roundExport = makeRoundExport();
+    const results: unknown[] = [{ itemId: 'i1', rating: 'D', photos: [] }];
+
+    expect(() =>
+      parseRoundExport(JSON.stringify({ ...roundExport, roundData: { ...roundExport.roundData, checklistResults: results } }))
+    ).toThrow(/形式が壊れています（チェック結果1の評価）/);
+  });
+
+  it('評価が null のチェック結果は通す', () => {
+    const roundExport = makeRoundExport();
+    roundExport.roundData.checklistResults = [{ itemId: 'i1', rating: null, photos: [] }];
+
+    expect(parseRoundExport(JSON.stringify(roundExport))).toEqual(roundExport);
+  });
+
+  it('写真が配列でないチェック結果を弾く', () => {
+    const roundExport = makeRoundExport();
+    const results: unknown[] = [{ itemId: 'i1', rating: 'A', photos: null }];
+
+    expect(() =>
+      parseRoundExport(JSON.stringify({ ...roundExport, roundData: { ...roundExport.roundData, checklistResults: results } }))
+    ).toThrow(/形式が壊れています（チェック結果1の写真）/);
+  });
+
+  it('カテゴリの中の項目が壊れているものを弾く', () => {
+    const categories: unknown[] = [
+      { category: '手指衛生', items: [{ id: 1, description: '擦式消毒薬がある' }] },
+    ];
+
+    expect(() => parseRoundExport(JSON.stringify({ ...makeRoundExport(), categories }))).toThrow(
+      /形式が壊れています（カテゴリ1の項目1のID）/
+    );
+  });
+
+  it('カテゴリの items が配列でないものを弾く', () => {
+    const categories: unknown[] = [{ category: '手指衛生', items: null }];
+
+    expect(() => parseRoundExport(JSON.stringify({ ...makeRoundExport(), categories }))).toThrow(
+      /形式が壊れています（カテゴリ1の項目一覧）/
+    );
+  });
+
+  it('categories が配列でないものを弾く', () => {
+    expect(() =>
+      parseRoundExport(JSON.stringify({ ...makeRoundExport(), categories: {} }))
+    ).toThrow(/形式が壊れています（カテゴリ一覧）/);
+  });
+
+  it('チェック結果が配列でないものを弾く', () => {
+    const roundExport = makeRoundExport();
+
+    expect(() =>
+      parseRoundExport(JSON.stringify({ ...roundExport, roundData: { ...roundExport.roundData, checklistResults: 'none' } }))
+    ).toThrow(/形式が壊れています（チェック結果）/);
+  });
+
+  it('全体の写真が欠けているものを弾く', () => {
+    expect(() => parseRoundExport(jsonWithoutRoundDataField('generalPhotos'))).toThrow(
+      /形式が壊れています（全体の写真）/
+    );
+  });
+
+  it('JSON が配列やスカラーのものを弾く', () => {
+    expect(() => parseRoundExport('[]')).toThrow(/JSONの中身が空です/);
+    expect(() => parseRoundExport('null')).toThrow(/JSONの中身が空です/);
+    expect(() => parseRoundExport('"text"')).toThrow(/JSONの中身が空です/);
   });
 });
