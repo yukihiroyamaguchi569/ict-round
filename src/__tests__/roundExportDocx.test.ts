@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import JSZip from 'jszip';
 import { embedRoundExport, extractRoundExport } from '../roundExportDocx';
 import { parseRoundExport } from '../merge/mergeRounds';
+import { buildDocxBlob } from '../docx';
 import type { RoundExport } from '../types';
 
 const CONTENT_TYPES =
@@ -157,6 +160,56 @@ describe('embedRoundExport / extractRoundExport', () => {
     await expect(extractRoundExport(new Blob(['not a zip']))).rejects.toThrow(
       /Wordファイルとして読み取れません/
     );
+  });
+});
+
+describe('docx ライブラリで生成した報告書との往復', () => {
+  // getDocxColors は CSS 変数を読むため、environment: 'node' では最小限の stub を置く
+  vi.stubGlobal('document', { documentElement: {} });
+  vi.stubGlobal('getComputedStyle', () => ({ getPropertyValue: () => '' }));
+
+  /** 写真の入出力も通すため、1x1 の JPEG を使う */
+  const PIXEL_JPEG = readFileSync(
+    fileURLToPath(new URL('./fixtures/pixel.jpg', import.meta.url))
+  ).toString('base64');
+
+  function makeRoundExportWithPhoto(): RoundExport {
+    const roundExport = makeRoundExport();
+    roundExport.roundData.checklistResults[0].photos = [{
+      id: 'p1',
+      dataUrl: `data:image/jpeg;base64,${PIXEL_JPEG}`,
+      comment: '擦式消毒薬が空だった',
+      timestamp: '2026-09-19T01:00:00.000Z',
+      width: 1,
+      height: 1,
+    }];
+    return roundExport;
+  }
+
+  it('実際に生成した報告書 .docx でも埋め込んだラウンドデータを取り出せる', async () => {
+    const roundExport = makeRoundExportWithPhoto();
+    const docx = await buildDocxBlob(roundExport.roundData, roundExport.categories);
+
+    const embedded = await embedRoundExport(docx, roundExport);
+
+    expect(await extractRoundExport(embedded)).toEqual(roundExport);
+  });
+
+  it('埋め込んでも Word のパートを壊さない', async () => {
+    const roundExport = makeRoundExportWithPhoto();
+    const docx = await buildDocxBlob(roundExport.roundData, roundExport.categories);
+
+    const embedded = await embedRoundExport(docx, roundExport);
+
+    // 本文と写真はそのまま残り、customXml が足される
+    expect(await readPart(embedded, 'word/document.xml')).toContain('擦式消毒薬がある');
+    expect(await readPart(embedded, 'word/document.xml')).toBe(
+      await readPart(docx, 'word/document.xml')
+    );
+    const zip = await JSZip.loadAsync(await embedded.arrayBuffer());
+    const media = Object.values(zip.files).filter((f) => f.name.startsWith('word/media/') && !f.dir);
+    expect(media).toHaveLength(1);
+    expect(await hasPart(embedded, 'customXml/item1.xml')).toBe(true);
   });
 });
 
