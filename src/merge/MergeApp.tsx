@@ -102,14 +102,13 @@ export default function MergeApp() {
             <input
               type="file"
               multiple
-              accept=".docx,.json,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/json"
+              accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               className="hidden"
               onChange={(e) => { void addFiles(e.target.files); e.target.value = ''; }}
             />
           </label>
           <p className="text-[11px] text-text-faint mt-4 leading-relaxed">
             めぐる君から共有された報告書（.docx）には、統合に必要なラウンドデータが入っています。受け取ったファイルをそのまま読み込んでください。<br />
-            以前の形式の .json も読み込めます。<br />
             このページは読み込んだデータを保存しません。ページを再読み込みすると消えます。
           </p>
         </div>

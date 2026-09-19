@@ -1,6 +1,5 @@
 import type { RoundExport } from '../types';
 import { extractRoundExport } from '../roundExportDocx';
-import { parseRoundExport } from './mergeRounds';
 
 /** ZIP（=.docx）の先頭4バイト */
 const ZIP_SIGNATURE = [0x50, 0x4b, 0x03, 0x04];
@@ -13,8 +12,8 @@ const ZIP_SIGNATURE = [0x50, 0x4b, 0x03, 0x04];
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 /**
- * 報告書の .docx（ラウンドデータ同梱）と、旧形式の .json の両方を受け付ける。
- * 拡張子は付け替えられることがあるので中身の先頭バイトで見分ける。
+ * 報告書の .docx（ラウンドデータ同梱）を読み込む。
+ * 拡張子は付け替えられることがあるので中身の先頭バイトで .docx かどうかを見分ける。
  */
 export async function loadRoundFile(file: Blob): Promise<RoundExport> {
   if (file.size > MAX_FILE_BYTES) {
@@ -23,6 +22,10 @@ export async function loadRoundFile(file: Blob): Promise<RoundExport> {
     );
   }
   const head = new Uint8Array(await file.slice(0, ZIP_SIGNATURE.length).arrayBuffer());
-  const isZip = ZIP_SIGNATURE.every((byte, i) => head[i] === byte);
-  return isZip ? extractRoundExport(file) : parseRoundExport(await file.text());
+  if (!ZIP_SIGNATURE.every((byte, i) => head[i] === byte)) {
+    throw new Error(
+      'Wordファイル（.docx）ではありません（めぐる君から共有された報告書をそのまま選んでください）'
+    );
+  }
+  return extractRoundExport(file);
 }
