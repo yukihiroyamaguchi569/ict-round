@@ -40,8 +40,14 @@ function readCdata(xml: string): string {
 
 /** 既存の customXml と衝突しない item 番号を探す */
 function findFreeItemNumber(zip: JSZip): number {
+  // item 本体が無くても itemProps やリレーションだけが残っていることがあるため、
+  // 3つのいずれかが存在する番号は使用済みとして避ける
+  const isUsed = (n: number) =>
+    zip.file(`customXml/item${n}.xml`) ||
+    zip.file(`customXml/itemProps${n}.xml`) ||
+    zip.file(`customXml/_rels/item${n}.xml.rels`);
   let n = 1;
-  while (zip.file(`customXml/item${n}.xml`)) n++;
+  while (isUsed(n)) n++;
   return n;
 }
 
