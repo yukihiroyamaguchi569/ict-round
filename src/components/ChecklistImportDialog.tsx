@@ -25,7 +25,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
 
     try {
       let categories: ChecklistCategory[];
-      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      if (file.name.endsWith('.xlsx')) {
         const buf = await file.arrayBuffer();
         categories = await parseXlsx(buf);
       } else {
@@ -151,7 +151,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
               <input
                 ref={fileRef}
                 type="file"
-                accept=".csv,.xlsx,.xls"
+                accept=".csv,.xlsx"
                 onChange={handleFile}
                 className="hidden"
               />

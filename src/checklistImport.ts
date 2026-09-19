@@ -82,10 +82,9 @@ export function parseCsv(text: string): ChecklistCategory[] {
 }
 
 export async function parseXlsx(buf: ArrayBuffer): Promise<ChecklistCategory[]> {
-  const XLSX = await import('xlsx');
-  const wb = XLSX.read(buf, { type: 'array' });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const raw = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
+  const { readSheet } = await import('read-excel-file/browser');
+  // 先頭シートを行の配列として読む。セルは string | number | boolean | Date で返る。
+  const raw = await readSheet(buf);
 
   const rows: [string, string][] = [];
   for (let i = 0; i < raw.length; i++) {
