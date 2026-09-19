@@ -10,8 +10,25 @@ import {
 import { itemRowKey, type MergeResult, type DeptColumn } from './mergeRounds';
 
 // A4横（16838 twips）から左右余白 1440×2 を引いた本文幅
-const CONTENT_W = 13958;
+export const CONTENT_W = 13958;
+/** 部署が少ないときの部署列の幅 */
 const DEPT_COL_W = 900;
+/** チェック項目の文言に残す最低幅 */
+const ITEM_COL_MIN = 3000;
+/** これより部署列が狭いと列見出しと評価が読み取りにくい */
+const DEPT_COL_MIN = 700;
+/** 部署列の幅を確保できる部署数。これを超えると表が読みにくくなるため統合ページで警告する */
+export const READABLE_DEPT_MAX = Math.floor((CONTENT_W - ITEM_COL_MIN) / DEPT_COL_MIN);
+
+/**
+ * 列幅を本文幅に収まるよう配分する。
+ * 固定レイアウトの表なので、指定幅の合計が本文幅を超えるとはみ出しや極端な縮小が起きる。
+ * 項目列に最低幅を残し、残りを部署数で等分する（部署が多いほど部署列が狭くなる）。
+ */
+function computeColumnWidths(deptCount: number): { itemColW: number; deptColW: number } {
+  const deptColW = Math.min(DEPT_COL_W, Math.floor((CONTENT_W - ITEM_COL_MIN) / Math.max(deptCount, 1)));
+  return { itemColW: CONTENT_W - deptColW * deptCount, deptColW };
+}
 
 function headerCell(text: string, width: number, clr: DocxColors, center = false): TableCell {
   return new TableCell({
@@ -28,8 +45,8 @@ function headerCell(text: string, width: number, clr: DocxColors, center = false
 export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
   const clr = getDocxColors();
   const { columns, categories } = merged;
-  const itemColW = Math.max(2000, CONTENT_W - DEPT_COL_W * columns.length);
-  const columnWidths = [itemColW, ...columns.map(() => DEPT_COL_W)];
+  const { itemColW, deptColW } = computeColumnWidths(columns.length);
+  const columnWidths = [itemColW, ...columns.map(() => deptColW)];
 
   const children: (Paragraph | Table)[] = [];
 
@@ -93,7 +110,7 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
         tableHeader: true,
         children: [
           headerCell('チェック項目', itemColW, clr),
-          ...columns.map((col) => headerCell(col.label, DEPT_COL_W, clr, true)),
+          ...columns.map((col) => headerCell(col.label, deptColW, clr, true)),
         ],
       }),
     ];
@@ -111,7 +128,7 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
             const text = rating ?? '—';
             const color = rating ? RATING_HEX[rating] : clr.textFaint;
             return new TableCell({
-              width: { size: DEPT_COL_W, type: WidthType.DXA },
+              width: { size: deptColW, type: WidthType.DXA },
               shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
               children: [new Paragraph({
                 alignment: AlignmentType.CENTER,

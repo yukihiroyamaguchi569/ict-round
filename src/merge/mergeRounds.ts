@@ -1,4 +1,7 @@
 import type { ChecklistCategory, ChecklistItemDef, Rating, RoundData, RoundExport } from '../types';
+// 部署数の警告は Word の表レイアウトが決める閾値なので、出力側の値をそのまま使う
+// （mergedDocx 側は型だけを import するため実行時の循環参照は発生しない）
+import { READABLE_DEPT_MAX } from './mergedDocx';
 
 /** 統合レポートの1列 = 1部署（1つのエクスポートファイル） */
 export interface DeptColumn {
@@ -204,8 +207,8 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
     warnings.push(`チェックリスト名が混在しています: ${checklistNames.join(' / ')}`);
   }
 
-  if (columns.length > 6) {
-    warnings.push(`部署が ${columns.length} 件あります。Wordの表が横幅に収まらず読みにくくなる場合があります。`);
+  if (columns.length > READABLE_DEPT_MAX) {
+    warnings.push(`部署が ${columns.length} 件あります。Wordの表は用紙幅に収めますが、${READABLE_DEPT_MAX} 件を超えると部署の列が狭くなり読みにくくなります。`);
   }
 
   return { columns, categories, warnings };

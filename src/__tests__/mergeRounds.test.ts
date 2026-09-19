@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { itemRowKey, mergeRounds } from '../merge/mergeRounds';
+import { READABLE_DEPT_MAX } from '../merge/mergedDocx';
 import type { ChecklistCategory, RoundExport } from '../types';
 
 const HYGIENE: ChecklistCategory = {
@@ -77,6 +78,17 @@ describe('mergeRounds', () => {
     expect(east.ratings.get(keyOf('手袋を適切に外している'))).toBeUndefined();
     expect(westCol.ratings.get(keyOf('手袋を適切に外している'))).toBe('C');
     expect(westCol.ratings.get(keyOf('擦式消毒薬がある'))).toBeUndefined();
+  });
+
+  it('部署が多すぎると表が読みにくくなる旨を警告する', () => {
+    const many = Array.from({ length: READABLE_DEPT_MAX }, (_, i) =>
+      makeExport(`${i + 1}階病棟`, [HYGIENE])
+    );
+
+    expect(mergeRounds(many).warnings).toEqual([]);
+    expect(mergeRounds([...many, makeExport('外来', [HYGIENE])]).warnings).toEqual([
+      expect.stringContaining(`部署が ${READABLE_DEPT_MAX + 1} 件あります`),
+    ]);
   });
 
   it('同じ項目IDが違うカテゴリに属していると警告する', () => {
