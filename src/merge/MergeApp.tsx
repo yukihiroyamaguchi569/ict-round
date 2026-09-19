@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { saveAs } from 'file-saver';
 import type { RoundExport } from '../types';
 import { RATING_HEX } from '../docx';
-import { mergeRounds } from './mergeRounds';
+import { itemRowKey, mergeRounds } from './mergeRounds';
 import { loadRoundFile } from './loadRoundFile';
 import { buildMergedDocxBlob } from './mergedDocx';
 
@@ -206,10 +206,10 @@ export default function MergeApp() {
                       </td>
                     </tr>,
                     ...cat.items.map((item) => (
-                      <tr key={item.id}>
+                      <tr key={itemRowKey(cat.category, item)}>
                         <td className="px-2 py-1.5 border border-line text-text leading-relaxed">{item.description}</td>
                         {merged.columns.map((col) => {
-                          const rating = col.ratings.get(item.id) ?? null;
+                          const rating = col.ratings.get(itemRowKey(cat.category, item)) ?? null;
                           return (
                             <td key={col.label} className="px-2 py-1.5 border border-line text-center align-middle">
                               {rating ? (

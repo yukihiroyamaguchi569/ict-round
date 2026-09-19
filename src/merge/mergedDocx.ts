@@ -7,7 +7,7 @@ import {
   RATING_HEX, getDocxColors, buildPhotoTables, collectPhotoEntries,
   type DocxColors,
 } from '../docx';
-import type { MergeResult, DeptColumn } from './mergeRounds';
+import { itemRowKey, type MergeResult, type DeptColumn } from './mergeRounds';
 
 // A4横（16838 twips）から左右余白 1440×2 を引いた本文幅
 const CONTENT_W = 13958;
@@ -107,7 +107,7 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
             children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18, color: clr.text })] })],
           }),
           ...columns.map((col) => {
-            const rating = col.ratings.get(item.id) ?? null;
+            const rating = col.ratings.get(itemRowKey(cat.category, item)) ?? null;
             const text = rating ?? '—';
             const color = rating ? RATING_HEX[rating] : clr.textFaint;
             return new TableCell({

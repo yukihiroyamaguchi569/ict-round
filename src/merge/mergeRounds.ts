@@ -1,4 +1,4 @@
-import type { ChecklistCategory, Rating, RoundData, RoundExport } from '../types';
+import type { ChecklistCategory, ChecklistItemDef, Rating, RoundData, RoundExport } from '../types';
 
 /** 統合レポートの1列 = 1部署（1つのエクスポートファイル） */
 export interface DeptColumn {
@@ -7,10 +7,21 @@ export interface DeptColumn {
   wardName: string;
   inspectorName: string;
   startTime: string;
-  /** itemId -> 評価。その部署に存在しない項目はキーごと無い */
+  /** 行キー（itemRowKey）-> 評価。その部署に存在しない項目はキーごと無い */
   ratings: Map<string, Rating>;
   roundData: RoundData;
   categories: ChecklistCategory[];
+}
+
+/**
+ * 表の行を識別するキー。
+ * 項目IDは「カテゴリ名-連番」で機械生成されるため、別々に作ったチェックリストでは
+ * 同じIDが違う項目に割り当たり得る。IDだけで突き合わせると別項目の評価が同じ行に
+ * 並んでしまうので、カテゴリ名と文言も含めて識別する。
+ */
+export function itemRowKey(category: string, item: ChecklistItemDef): string {
+  // 連結の境目が曖昧にならないよう JSON 配列の文字列にする
+  return JSON.stringify([item.id, category, item.description]);
 }
 
 export interface MergeResult {
@@ -110,9 +121,9 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
 
   // ---- 行の並び: 先頭ファイルを基準にした項目の和集合 ----
   const categories: ChecklistCategory[] = [];
-  // 項目IDは「カテゴリ名-連番」で機械生成されるため、別々に作ったチェックリストでは
-  // 同じIDが違う項目に割り当たり得る。先頭ファイルの文言だけを採ると別項目の評価が
-  // 同じ行に並んでしまうので、食い違いを見つけて警告する。
+  // 行は itemRowKey（ID＋カテゴリ名＋文言）で識別する。同じIDに違う文言が割り当てられて
+  // いる場合は別の行として出力し、どの部署の評価も正しい文言の行に載るようにする。
+  const rowKeys = new Set<string>();
   const seenItems = new Map<string, { category: string; description: string }>();
   const itemConflicts = new Map<string, string>();
   for (const exp of exports) {
@@ -124,16 +135,16 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
       }
       for (const item of cat.items) {
         const seen = seenItems.get(item.id);
-        if (seen) {
-          if (seen.category !== cat.category || seen.description !== item.description) {
-            itemConflicts.set(
-              item.id,
-              `同じ項目ID（${item.id}）に違うチェック項目が割り当てられています（「${seen.category}：${seen.description}」と「${cat.category}：${item.description}」）。別々に作ったチェックリストが混ざっていると、同じ行に別の項目の評価が並びます。同じチェックリストで記録した報告書だけを読み込んでください。`
-            );
-          }
-          continue;
+        if (seen && (seen.category !== cat.category || seen.description !== item.description)) {
+          itemConflicts.set(
+            item.id,
+            `同じ項目ID（${item.id}）に違うチェック項目が割り当てられています（「${seen.category}：${seen.description}」と「${cat.category}：${item.description}」）。別々に作ったチェックリストが混ざっていると起こります。評価が混ざらないよう、文言ごとに別の行に分けて出力します。同じ項目のつもりでも行が分かれるため、表の内容をご確認ください。`
+          );
         }
-        seenItems.set(item.id, { category: cat.category, description: item.description });
+        const key = itemRowKey(cat.category, item);
+        if (rowKeys.has(key)) continue;
+        rowKeys.add(key);
+        if (!seen) seenItems.set(item.id, { category: cat.category, description: item.description });
         target.items.push(item);
       }
     }
@@ -141,9 +152,15 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
 
   // ---- 列 ----
   const columns: DeptColumn[] = exports.map((exp) => {
+    // 評価はその部署のチェックリスト定義から行キーを引いて格納する（項目IDだけでは行を特定できない）
+    const rowKeyByItemId = new Map<string, string>();
+    for (const cat of exp.categories) {
+      for (const item of cat.items) rowKeyByItemId.set(item.id, itemRowKey(cat.category, item));
+    }
     const ratings = new Map<string, Rating>();
     for (const result of exp.roundData.checklistResults) {
-      ratings.set(result.itemId, result.rating);
+      const key = rowKeyByItemId.get(result.itemId);
+      if (key) ratings.set(key, result.rating);
     }
     return {
       label: exp.roundData.wardName.trim() || exp.roundData.inspectorName.trim() || '（名称未設定）',
@@ -174,9 +191,9 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
   // ---- 警告 ----
   warnings.push(...itemConflicts.values());
 
-  const allItemIds = [...seenItems.keys()];
+  const allRowKeys = [...rowKeys];
   for (const col of columns) {
-    const missing = allItemIds.filter((id) => !col.ratings.has(id)).length;
+    const missing = allRowKeys.filter((key) => !col.ratings.has(key)).length;
     if (missing > 0) {
       warnings.push(`「${col.label}」には他のファイルにある ${missing} 項目がありません（チェックリストの版が違う可能性があります）。該当セルは「—」になります。`);
     }

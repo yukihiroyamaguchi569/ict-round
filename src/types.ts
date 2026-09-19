@@ -47,7 +47,7 @@ export interface RoundData {
 /**
  * 統合ページ（merge.html）へ受け渡すエクスポート形式。
  * 統合ページは localStorage を持たないため、チェックリスト定義を同梱する。
- * 項目の照合は端末ごとにランダムな checklistId ではなく itemId で行う。
+ * 項目の照合は端末ごとにランダムな checklistId ではなく、itemId とカテゴリ名・文言で行う（mergeRounds の itemRowKey）。
  */
 export interface RoundExport {
   format: 'meguru-round';

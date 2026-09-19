@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mergeRounds } from '../merge/mergeRounds';
+import { itemRowKey, mergeRounds } from '../merge/mergeRounds';
 import type { ChecklistCategory, RoundExport } from '../types';
 
 const HYGIENE: ChecklistCategory = {
@@ -52,9 +52,31 @@ describe('mergeRounds', () => {
     expect(conflictWarnings(merged.warnings)).toHaveLength(1);
     expect(conflictWarnings(merged.warnings)[0]).toContain('shushi-1');
     expect(conflictWarnings(merged.warnings)[0]).toContain('手袋を適切に外している');
-    // 統合自体は止めない（先頭ファイルの文言で1行にまとまる）
-    expect(merged.categories[0].items).toHaveLength(1);
+    expect(conflictWarnings(merged.warnings)[0]).toContain('別の行に分けて出力します');
+    // 統合自体は止めない
     expect(merged.columns).toHaveLength(2);
+  });
+
+  it('同じ項目IDでも文言が違えば別の行にし、各部署の評価を自分の文言の行に載せる', () => {
+    const renamed: ChecklistCategory = {
+      category: '手指衛生',
+      items: [{ id: 'shushi-1', category: '手指衛生', description: '手袋を適切に外している' }],
+    };
+    const west = makeExport('4階西病棟', [renamed]);
+    west.roundData.checklistResults = [{ itemId: 'shushi-1', rating: 'C', photos: [] }];
+
+    const merged = mergeRounds([makeExport('3階東病棟', [HYGIENE]), west]);
+
+    const items = merged.categories[0].items;
+    expect(items.map((i) => i.description)).toEqual(['擦式消毒薬がある', '手袋を適切に外している']);
+
+    const keyOf = (description: string) =>
+      itemRowKey('手指衛生', items.find((i) => i.description === description)!);
+    const [east, westCol] = merged.columns;
+    expect(east.ratings.get(keyOf('擦式消毒薬がある'))).toBe('A');
+    expect(east.ratings.get(keyOf('手袋を適切に外している'))).toBeUndefined();
+    expect(westCol.ratings.get(keyOf('手袋を適切に外している'))).toBe('C');
+    expect(westCol.ratings.get(keyOf('擦式消毒薬がある'))).toBeUndefined();
   });
 
   it('同じ項目IDが違うカテゴリに属していると警告する', () => {
