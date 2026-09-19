@@ -28,6 +28,9 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
   const [shareFailed, setShareFailed] = useState(false);
   // docx の生成に失敗すると共有も保存もできないため、理由を画面に出す
   const [buildError, setBuildError] = useState<string | null>(null);
+  // 二重タップで navigator.share() が並行実行されると、後発が InvalidStateError で
+  // 落ちて「共有できませんでした」表示になるため、共有中は押せないようにする
+  const [sharing, setSharing] = useState(false);
   const canShare = (() => {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
     // Variant A: type を省略（DOCX_MIME を渡すと iOS メール共有が即閉じる問題の検証）
@@ -69,7 +72,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
   }, []);
 
   const handleShare = () => {
-    if (!shareFile) return;
+    if (!shareFile || sharing) return;
+    setSharing(true);
     // iOS では transient activation が切れると共有画面が即閉じるため、
     // await を挟まずキャッシュ済みの File を同期的に share する。
     // メール作成画面は title/text が無いと中身ゼロで開いて即閉じるため件名・本文を付ける。
@@ -82,6 +86,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('共有エラー:', err);
       setShareFailed(true);
+    }).finally(() => {
+      setSharing(false);
     });
     trackEvent('round_export', { method: 'share' });
   };
@@ -114,7 +120,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
         {canShare && !shareFailed ? (
           <button
             onClick={handleShare}
-            disabled={!shareFile}
+            disabled={!shareFile || sharing}
             className="btn-primary px-5 py-2.5 text-sm font-bold flex items-center gap-1.5 disabled:opacity-50"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
