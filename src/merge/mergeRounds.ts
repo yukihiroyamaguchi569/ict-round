@@ -28,19 +28,76 @@ export function parseRoundExport(text: string): RoundExport {
   } catch {
     return fail('JSONとして読み取れません（ファイルが壊れている可能性があります）');
   }
-  if (typeof parsed !== 'object' || parsed === null) return fail('JSONの中身が空です');
+  assertRoundExport(parsed);
+  return parsed;
+}
 
-  const obj = parsed as Partial<RoundExport>;
-  if (obj.format !== 'meguru-round') {
-    return fail('めぐる君のラウンドデータではありません（別のファイルを選んでいませんか？）');
+/**
+ * 統合ページは他人から受け取ったファイルを読むため、統合処理へ渡す前に形状を検証する。
+ * 表示・統合で実際に触るフィールドを対象にし、写真1枚ずつの中身までは見ない。
+ */
+function assertRoundExport(value: unknown): asserts value is RoundExport {
+  if (!isRecord(value)) fail('JSONの中身が空です');
+
+  if (value.format !== 'meguru-round') {
+    fail('めぐる君のラウンドデータではありません（別のファイルを選んでいませんか？）');
   }
-  if (obj.version !== 1) {
-    return fail(`未対応のバージョンです（version: ${String(obj.version)}）`);
+  if (value.version !== 1) {
+    fail(`未対応のバージョンです（version: ${String(value.version)}）`);
   }
-  if (!Array.isArray(obj.categories) || !obj.roundData || !Array.isArray(obj.roundData.checklistResults)) {
-    return fail('ラウンドデータの形式が壊れています');
-  }
-  return obj as RoundExport;
+  requireString(value.exportedAt, '作成日時');
+  requireString(value.checklistName, 'チェックリスト名');
+  requireArray(value.categories, 'カテゴリ一覧').forEach((cat, i) =>
+    assertCategory(cat, `カテゴリ${i + 1}`)
+  );
+  assertRoundData(value.roundData);
+}
+
+function assertCategory(value: unknown, where: string): void {
+  if (!isRecord(value)) failAt(where);
+  requireString(value.category, `${where}の名前`);
+  requireArray(value.items, `${where}の項目一覧`).forEach((item, i) => {
+    const itemWhere = `${where}の項目${i + 1}`;
+    if (!isRecord(item)) failAt(itemWhere);
+    requireString(item.id, `${itemWhere}のID`);
+    requireString(item.description, `${itemWhere}の文言`);
+  });
+}
+
+function assertRoundData(value: unknown): void {
+  if (!isRecord(value)) failAt('ラウンドの内容');
+  requireString(value.inspectorName, '担当者名');
+  requireString(value.wardName, '部署名');
+  requireString(value.startTime, '実施日時');
+  requireString(value.overallEvaluation, '総評');
+  requireArray(value.generalPhotos, '全体の写真');
+  requireArray(value.checklistResults, 'チェック結果').forEach((result, i) => {
+    const where = `チェック結果${i + 1}`;
+    if (!isRecord(result)) failAt(where);
+    requireString(result.itemId, `${where}の項目ID`);
+    const { rating } = result;
+    if (rating !== null && rating !== 'A' && rating !== 'B' && rating !== 'C') {
+      failAt(`${where}の評価`);
+    }
+    requireArray(result.photos, `${where}の写真`);
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function requireString(value: unknown, where: string): void {
+  if (typeof value !== 'string') failAt(where);
+}
+
+function requireArray(value: unknown, where: string): unknown[] {
+  if (!Array.isArray(value)) failAt(where);
+  return value;
+}
+
+function failAt(where: string): never {
+  return fail(`ラウンドデータの形式が壊れています（${where}）`);
 }
 
 function fail(message: string): never {
