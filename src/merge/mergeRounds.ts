@@ -110,7 +110,11 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
 
   // ---- 行の並び: 先頭ファイルを基準にした項目の和集合 ----
   const categories: ChecklistCategory[] = [];
-  const seenItemIds = new Set<string>();
+  // 項目IDは「カテゴリ名-連番」で機械生成されるため、別々に作ったチェックリストでは
+  // 同じIDが違う項目に割り当たり得る。先頭ファイルの文言だけを採ると別項目の評価が
+  // 同じ行に並んでしまうので、食い違いを見つけて警告する。
+  const seenItems = new Map<string, { category: string; description: string }>();
+  const itemConflicts = new Map<string, string>();
   for (const exp of exports) {
     for (const cat of exp.categories) {
       let target = categories.find((c) => c.category === cat.category);
@@ -119,8 +123,17 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
         categories.push(target);
       }
       for (const item of cat.items) {
-        if (seenItemIds.has(item.id)) continue;
-        seenItemIds.add(item.id);
+        const seen = seenItems.get(item.id);
+        if (seen) {
+          if (seen.category !== cat.category || seen.description !== item.description) {
+            itemConflicts.set(
+              item.id,
+              `同じ項目ID（${item.id}）に違うチェック項目が割り当てられています（「${seen.category}：${seen.description}」と「${cat.category}：${item.description}」）。別々に作ったチェックリストが混ざっていると、同じ行に別の項目の評価が並びます。同じチェックリストで記録した報告書だけを読み込んでください。`
+            );
+          }
+          continue;
+        }
+        seenItems.set(item.id, { category: cat.category, description: item.description });
         target.items.push(item);
       }
     }
@@ -159,7 +172,9 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
   }
 
   // ---- 警告 ----
-  const allItemIds = [...seenItemIds];
+  warnings.push(...itemConflicts.values());
+
+  const allItemIds = [...seenItems.keys()];
   for (const col of columns) {
     const missing = allItemIds.filter((id) => !col.ratings.has(id)).length;
     if (missing > 0) {
