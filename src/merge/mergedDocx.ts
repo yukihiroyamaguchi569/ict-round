@@ -177,7 +177,8 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
       // （担当者が1人のときは見出しに名前が入るので繰り返さない）
       const inspector = source.inspectorName.trim();
       const prefix = col.sources.length > 1 && inspector ? `${inspector}：` : '';
-      const lines = source.roundData.overallEvaluation.trim().split('\n');
+      // 未記載かどうかは上流で判定済みなので、本文は入力どおりに出す（単独報告書と揃える）
+      const lines = source.roundData.overallEvaluation.split('\n');
       lines.forEach((line, i) => {
         children.push(new Paragraph({
           spacing: { after: 80 },

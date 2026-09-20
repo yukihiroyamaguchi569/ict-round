@@ -235,6 +235,19 @@ describe('buildMergedDocxBlob（同じ病棟のまとめ方）', () => {
     expect(allTexts(xml).some((text) => text.startsWith('山田：'))).toBe(false);
   });
 
+  it('総評の本文は入力どおりに出す（前後の空行や字下げを落とさない）', async () => {
+    const yamada = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
+    yamada.roundData.overallEvaluation = '  先頭に字下げ\n\n空行のあと\n';
+    const merged = mergeRounds([yamada]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    // 未記載かどうかの判定だけ trim するので、本文の空白や空行は単独報告書と同じく残る
+    const texts = allTexts(xml);
+    expect(texts).toContain('  先頭に字下げ');
+    expect(texts).toContain('空行のあと');
+  });
+
   it('担当者全員が総評を書いていない病棟でも節見出しと書き込み用の空段落を出す', async () => {
     const merged = mergeRounds([
       withoutEvaluation(makeShared('1病棟', '山田', { 'shushi-1': 'A' })),
