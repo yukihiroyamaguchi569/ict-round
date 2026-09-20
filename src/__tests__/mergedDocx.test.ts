@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import JSZip from 'jszip';
 import { buildMergedDocxBlob, CONTENT_W, READABLE_DEPT_MAX } from '../merge/mergedDocx';
 import { mergeRounds } from '../merge/mergeRounds';
@@ -119,5 +121,133 @@ describe('buildMergedDocxBlob', () => {
       expect(gridWidths.reduce((sum, width) => sum + width, 0)).toBeLessThanOrEqual(CONTENT_W);
       expect(Math.min(...gridWidths)).toBeGreaterThan(0);
     }
+  });
+});
+
+/** 1つの病棟を2人で分担するため、項目が2つあるカテゴリを使う */
+const HYGIENE_2: ChecklistCategory = {
+  category: '手指衛生',
+  items: [
+    { id: 'shushi-1', category: '手指衛生', description: '擦式消毒薬がある' },
+    { id: 'shushi-2', category: '手指衛生', description: '手袋を適切に外している' },
+  ],
+};
+
+/** 写真の埋め込みも通すため、1x1 の JPEG を使う */
+const PIXEL_JPEG = readFileSync(
+  fileURLToPath(new URL('./fixtures/pixel.jpg', import.meta.url))
+).toString('base64');
+
+/** 担当者名と項目ごとの評価を指定した1件分のエクスポート（総評は担当者名入り） */
+function makeShared(
+  wardName: string,
+  inspectorName: string,
+  ratings: Record<string, 'A' | 'B' | 'C'>
+): RoundExport {
+  const roundExport = makeExport(wardName, null, [HYGIENE_2]);
+  roundExport.roundData.inspectorName = inspectorName;
+  roundExport.roundData.overallEvaluation = `${inspectorName}の所見`;
+  roundExport.roundData.checklistResults = HYGIENE_2.items.map((item) => ({
+    itemId: item.id,
+    rating: ratings[item.id] ?? null,
+    photos: [],
+  }));
+  return roundExport;
+}
+
+function withGeneralPhoto(roundExport: RoundExport, comment: string): RoundExport {
+  roundExport.roundData.generalPhotos = [{
+    id: `p-${comment}`,
+    dataUrl: `data:image/jpeg;base64,${PIXEL_JPEG}`,
+    comment,
+    timestamp: '2026-09-19T01:00:00.000Z',
+    width: 1,
+    height: 1,
+  }];
+  return roundExport;
+}
+
+/** 部署の節見出し（■ で始まる段落）だけを取り出す */
+function deptHeadings(xml: string): string[] {
+  return allTexts(xml).filter((text) => text.startsWith('■'));
+}
+
+describe('buildMergedDocxBlob（同じ病棟のまとめ方）', () => {
+  it('同じ病棟の報告書を1列にまとめ、列見出しに担当者名を付けない', async () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A' }),
+      makeShared('1病棟', '田中', { 'shushi-2': 'C' }),
+    ]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(tableCells(xml)[0]).toEqual([
+      ['チェック項目', '1病棟'],
+      ['擦式消毒薬がある', 'A'],
+      ['手袋を適切に外している', 'C'],
+    ]);
+    expect(allTexts(xml)).toContain('山田、田中');
+  });
+
+  it('総評は病棟ごとに1つの節へまとめ、担当者名を添えて並べる', async () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A' }),
+      makeShared('1病棟', '田中', { 'shushi-2': 'C' }),
+    ]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(deptHeadings(xml)).toEqual(['■ 1病棟']);
+    expect(allTexts(xml)).toContain('山田：山田の所見');
+    expect(allTexts(xml)).toContain('田中：田中の所見');
+  });
+
+  it('担当者が1人の病棟は節見出しに担当者名を添える', async () => {
+    const merged = mergeRounds([makeShared('1病棟', '山田', { 'shushi-1': 'A' })]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(deptHeadings(xml)).toEqual(['■ 1病棟（担当: 山田）']);
+    // 担当者が1人なら総評に担当者名を繰り返さない
+    expect(allTexts(xml)).toContain('山田の所見');
+  });
+
+  it('総評が空の担当者は担当者名付きで（記載なし）と出す', async () => {
+    const yamada = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
+    yamada.roundData.overallEvaluation = '';
+    const merged = mergeRounds([yamada, makeShared('1病棟', '田中', { 'shushi-2': 'C' })]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(allTexts(xml)).toContain('山田：（記載なし）');
+    expect(allTexts(xml)).toContain('田中：田中の所見');
+  });
+
+  it('写真も病棟ごとに1つの節へ集める', async () => {
+    const merged = mergeRounds([
+      withGeneralPhoto(makeShared('1病棟', '山田', { 'shushi-1': 'A' }), '山田の写真'),
+      withGeneralPhoto(makeShared('1病棟', '田中', { 'shushi-2': 'C' }), '田中の写真'),
+    ]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    // 総評と写真でそれぞれ1回ずつ、病棟名だけの節見出しが出る
+    expect(deptHeadings(xml)).toEqual(['■ 1病棟', '■ 1病棟']);
+    // 2人の写真が同じ写真テーブル（同じ節）に並ぶ
+    const photoTable = tableCells(xml).at(-1)!;
+    expect(photoTable[0][0]).toContain('山田の写真');
+    expect(photoTable[0][1]).toContain('田中の写真');
+  });
+
+  it('病棟が違えば従来どおり別の列・別の節にする', async () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A' }),
+      makeShared('2病棟', '田中', { 'shushi-1': 'C' }),
+    ]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(tableCells(xml)[0][0]).toEqual(['チェック項目', '1病棟', '2病棟']);
+    expect(deptHeadings(xml)).toEqual(['■ 1病棟（担当: 山田）', '■ 2病棟（担当: 田中）']);
   });
 });

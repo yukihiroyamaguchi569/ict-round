@@ -129,3 +129,165 @@ describe('mergeRounds', () => {
     expect(conflictWarnings(merged.warnings)).toEqual([]);
   });
 });
+
+/** 1つの病棟を2人で分担するため、項目が2つあるカテゴリを使う */
+const HYGIENE_2: ChecklistCategory = {
+  category: '手指衛生',
+  items: [
+    { id: 'shushi-1', category: '手指衛生', description: '擦式消毒薬がある' },
+    { id: 'shushi-2', category: '手指衛生', description: '手袋を適切に外している' },
+  ],
+};
+
+/** 担当者名と項目ごとの評価を指定した1件分のエクスポート（指定のない項目は未評価） */
+function makeShared(
+  wardName: string,
+  inspectorName: string,
+  ratings: Record<string, 'A' | 'B' | 'C'>,
+  categories = [HYGIENE_2]
+): RoundExport {
+  const roundExport = makeExport(wardName, categories);
+  roundExport.roundData.inspectorName = inspectorName;
+  roundExport.roundData.checklistResults = categories.flatMap((cat) =>
+    cat.items.map((item) => ({ itemId: item.id, rating: ratings[item.id] ?? null, photos: [] }))
+  );
+  return roundExport;
+}
+
+const keyOf = (description: string) =>
+  itemRowKey('手指衛生', HYGIENE_2.items.find((i) => i.description === description)!);
+
+function splitWarnings(warnings: string[]): string[] {
+  return warnings.filter((w) => w.includes('担当者間で評価が分かれました'));
+}
+
+describe('mergeRounds（同じ病棟のまとめ方）', () => {
+  it('病棟名が同じ報告書は担当者名を付けずに1列にまとまる', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A' }),
+      makeShared('1病棟', '田中', { 'shushi-2': 'B' }),
+    ]);
+
+    expect(merged.columns).toHaveLength(1);
+    expect(merged.columns[0].label).toBe('1病棟');
+    expect(merged.columns[0].sources.map((s) => s.inspectorName)).toEqual(['山田', '田中']);
+    expect(merged.warnings).toEqual([]);
+  });
+
+  it('チェック項目を分担した場合は未評価を相手の評価で補完する', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A' }),
+      makeShared('1病棟', '田中', { 'shushi-2': 'B' }),
+    ]);
+
+    const [column] = merged.columns;
+    expect(column.ratings.get(keyOf('擦式消毒薬がある'))).toBe('A');
+    expect(column.ratings.get(keyOf('手袋を適切に外している'))).toBe('B');
+  });
+
+  it('担当者間で評価が食い違う項目は厳しい方を採用し、誰がどう付けたかを警告する', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A', 'shushi-2': 'B' }),
+      makeShared('1病棟', '田中', { 'shushi-1': 'C', 'shushi-2': 'B' }),
+    ]);
+
+    const [column] = merged.columns;
+    expect(column.ratings.get(keyOf('擦式消毒薬がある'))).toBe('C');
+    expect(column.ratings.get(keyOf('手袋を適切に外している'))).toBe('B');
+
+    expect(splitWarnings(merged.warnings)).toHaveLength(1);
+    const [warning] = splitWarnings(merged.warnings);
+    expect(warning).toContain('1病棟');
+    expect(warning).toContain('擦式消毒薬がある');
+    expect(warning).toContain('山田: A');
+    expect(warning).toContain('田中: C');
+    expect(warning).toContain('厳しい方の評価');
+    // 一致した項目は分かれていないので出さない
+    expect(warning).not.toContain('手袋を適切に外している');
+  });
+
+  it('3人でA・B・Cが混ざっても読み込み順に関係なくCを採用する', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'B' }),
+      makeShared('1病棟', '田中', { 'shushi-1': 'C' }),
+      makeShared('1病棟', '佐藤', { 'shushi-1': 'A' }),
+    ]);
+
+    expect(merged.columns[0].ratings.get(keyOf('擦式消毒薬がある'))).toBe('C');
+    const [warning] = splitWarnings(merged.warnings);
+    expect(warning).toContain('山田: B');
+    expect(warning).toContain('田中: C');
+    expect(warning).toContain('佐藤: A');
+  });
+
+  it('評価が一致していれば警告しない', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'B', 'shushi-2': 'B' }),
+      makeShared('1病棟', '田中', { 'shushi-1': 'B', 'shushi-2': 'B' }),
+    ]);
+
+    expect(merged.warnings).toEqual([]);
+    expect(merged.columns[0].ratings.get(keyOf('擦式消毒薬がある'))).toBe('B');
+  });
+
+  it('分かれた項目が複数あっても警告は病棟ごとに1件にまとめ、どの項目かは残す', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A', 'shushi-2': 'A' }),
+      makeShared('1病棟', '田中', { 'shushi-1': 'B', 'shushi-2': 'C' }),
+    ]);
+
+    expect(splitWarnings(merged.warnings)).toHaveLength(1);
+    const [warning] = splitWarnings(merged.warnings);
+    expect(warning).toContain('擦式消毒薬がある');
+    expect(warning).toContain('手袋を適切に外している');
+  });
+
+  it('病棟ごとに評価をまとめるので、病棟が違えば評価が違っても警告しない', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A' }),
+      makeShared('2病棟', '田中', { 'shushi-1': 'C' }),
+    ]);
+
+    expect(merged.columns.map((c) => c.label)).toEqual(['1病棟', '2病棟']);
+    expect(merged.columns[0].ratings.get(keyOf('擦式消毒薬がある'))).toBe('A');
+    expect(merged.columns[1].ratings.get(keyOf('擦式消毒薬がある'))).toBe('C');
+    expect(splitWarnings(merged.warnings)).toEqual([]);
+  });
+
+  it('病棟名の前後の空白は無視して同じ列にまとめる', () => {
+    const merged = mergeRounds([
+      makeShared('1病棟', '山田', { 'shushi-1': 'A' }),
+      makeShared(' 1病棟 ', '田中', { 'shushi-2': 'B' }),
+    ]);
+
+    expect(merged.columns).toHaveLength(1);
+    expect(merged.columns[0].label).toBe('1病棟');
+  });
+
+  it('病棟名が空の報告書はまとめず、担当者名を見出しにする', () => {
+    const merged = mergeRounds([
+      makeShared('', '山田', { 'shushi-1': 'A' }),
+      makeShared('', '田中', { 'shushi-2': 'B' }),
+    ]);
+
+    expect(merged.columns.map((c) => c.label)).toEqual(['山田', '田中']);
+  });
+
+  it('病棟名が空で担当者名も同じ報告書は連番で区別する', () => {
+    const merged = mergeRounds([
+      makeShared('', '山田', { 'shushi-1': 'A' }),
+      makeShared('', '山田', { 'shushi-2': 'B' }),
+    ]);
+
+    expect(merged.columns.map((c) => c.label)).toEqual(['山田', '山田 2']);
+  });
+
+  it('1列にまとまった報告書の実施日時は最も早いものにする', () => {
+    const early = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
+    early.roundData.startTime = '2026-09-19 09:00';
+    const late = makeShared('1病棟', '田中', { 'shushi-2': 'B' });
+    late.roundData.startTime = '2026-09-19 14:00';
+
+    expect(mergeRounds([late, early]).columns[0].startTime).toBe('2026-09-19 09:00');
+  });
+});
