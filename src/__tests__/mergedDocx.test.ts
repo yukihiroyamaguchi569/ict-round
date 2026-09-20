@@ -48,6 +48,11 @@ function allTexts(xml: string): string[] {
   return [...xml.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/g)].map(([, text]) => text);
 }
 
+/** 段落ごとの文字列（空の段落は空文字になる） */
+function paragraphTexts(xml: string): string[] {
+  return [...xml.matchAll(/<w:p(?:\s[^>]*)?>(.*?)<\/w:p>/g)].map(([, p]) => allTexts(p).join(''));
+}
+
 /** 表の中身をセルの文字列に落とす（表ごと → 行ごと → セルごと） */
 function tableCells(xml: string): string[][][] {
   return [...xml.matchAll(/<w:tbl>(.*?)<\/w:tbl>/g)].map(([, table]) =>
@@ -167,6 +172,11 @@ function withGeneralPhoto(roundExport: RoundExport, comment: string): RoundExpor
   return roundExport;
 }
 
+function withoutEvaluation(roundExport: RoundExport): RoundExport {
+  roundExport.roundData.overallEvaluation = '';
+  return roundExport;
+}
+
 /** 部署の節見出し（■ で始まる段落）だけを取り出す */
 function deptHeadings(xml: string): string[] {
   return allTexts(xml).filter((text) => text.startsWith('■'));
@@ -212,15 +222,44 @@ describe('buildMergedDocxBlob（同じ病棟のまとめ方）', () => {
     expect(allTexts(xml)).toContain('山田の所見');
   });
 
-  it('総評が空の担当者は担当者名付きで（記載なし）と出す', async () => {
+  it('総評が空の担当者は段落を出さず、記載のある担当者だけ担当者名付きで並べる', async () => {
     const yamada = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
     yamada.roundData.overallEvaluation = '';
     const merged = mergeRounds([yamada, makeShared('1病棟', '田中', { 'shushi-2': 'C' })]);
 
     const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
 
-    expect(allTexts(xml)).toContain('山田：（記載なし）');
+    // 記載があるのが1人だけでも、列に複数の担当者がいる事実は変わらないので担当者名は添える
     expect(allTexts(xml)).toContain('田中：田中の所見');
+    expect(allTexts(xml)).not.toContain('（記載なし）');
+    expect(allTexts(xml).some((text) => text.startsWith('山田：'))).toBe(false);
+  });
+
+  it('担当者全員が総評を書いていない病棟でも節見出しと書き込み用の空段落を出す', async () => {
+    const merged = mergeRounds([
+      withoutEvaluation(makeShared('1病棟', '山田', { 'shushi-1': 'A' })),
+      withoutEvaluation(makeShared('1病棟', '田中', { 'shushi-2': 'C' })),
+    ]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(deptHeadings(xml)).toEqual(['■ 1病棟']);
+    expect(allTexts(xml)).not.toContain('（記載なし）');
+    // 見出しの直後に、あとから Word で書き込める空の段落が1つある
+    const paragraphs = paragraphTexts(xml);
+    expect(paragraphs[paragraphs.indexOf('■ 1病棟') + 1]).toBe('');
+  });
+
+  it('どの病棟にも総評が無くても総評の節見出しは出す', async () => {
+    const merged = mergeRounds([
+      withoutEvaluation(makeShared('1病棟', '山田', { 'shushi-1': 'A' })),
+      withoutEvaluation(makeShared('2病棟', '田中', { 'shushi-1': 'C' })),
+    ]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(allTexts(xml)).toContain('  総評（部署別）');
+    expect(deptHeadings(xml)).toEqual(['■ 1病棟（担当: 山田）', '■ 2病棟（担当: 田中）']);
   });
 
   it('写真も病棟ごとに1つの節へ集める', async () => {
