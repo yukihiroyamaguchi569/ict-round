@@ -264,9 +264,8 @@ export async function buildDocxBlob(roundData: RoundData, categories: ChecklistC
       }));
     }
   } else {
-    children.push(new Paragraph({
-      children: [new TextRun({ text: '（記載なし）', size: 22, color: clr.textFaint })],
-    }));
+    // 未記載の総評は、出力後に Word で書き込めるよう空の段落を1つ置く
+    children.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
   }
 
   const doc = new Document({ sections: [{ children }] });
