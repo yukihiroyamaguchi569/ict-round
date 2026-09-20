@@ -291,3 +291,93 @@ describe('mergeRounds（同じ病棟のまとめ方）', () => {
     expect(mergeRounds([late, early]).columns[0].startTime).toBe('2026-09-19 09:00');
   });
 });
+
+function duplicateIdWarnings(warnings: string[]): string[] {
+  return warnings.filter((w) => w.includes('複数のチェック項目に使われています'));
+}
+
+function unknownIdWarnings(warnings: string[]): string[] {
+  return warnings.filter((w) => w.includes('チェックリストに無い項目ID'));
+}
+
+function missingItemWarnings(warnings: string[]): string[] {
+  return warnings.filter((w) => w.includes('項目がありません'));
+}
+
+describe('mergeRounds（1つの報告書の中の不整合）', () => {
+  it('1つの報告書の中で項目IDが重複していたら、どの報告書のどのIDかを警告する', () => {
+    // 項目IDは「カテゴリ名の短縮-連番」で作られるため、記号だけが違うカテゴリ名では衝突し得る
+    const room: ChecklistCategory = {
+      category: '手指衛生（病室）',
+      items: [{ id: 'shushi-1', category: '手指衛生（病室）', description: '擦式消毒薬がある' }],
+    };
+    const treatment: ChecklistCategory = {
+      category: '手指衛生(処置室)',
+      items: [{ id: 'shushi-1', category: '手指衛生(処置室)', description: '擦式消毒薬がある' }],
+    };
+
+    const merged = mergeRounds([makeExport('3階東病棟', [room, treatment])]);
+
+    expect(duplicateIdWarnings(merged.warnings)).toHaveLength(1);
+    const [warning] = duplicateIdWarnings(merged.warnings);
+    expect(warning).toContain('3階東病棟');
+    expect(warning).toContain('山口');
+    expect(warning).toContain('shushi-1');
+    expect(warning).toContain('本来の行に載らない可能性があります');
+    // 統合自体は止めない
+    expect(merged.columns).toHaveLength(1);
+    expect(merged.categories.flatMap((c) => c.items)).toHaveLength(2);
+  });
+
+  it('項目IDが重複していなければ重複の警告は出さない', () => {
+    const merged = mergeRounds([makeExport('3階東病棟', [HYGIENE_2])]);
+
+    expect(duplicateIdWarnings(merged.warnings)).toEqual([]);
+  });
+
+  it('チェックリストに無い項目IDの評価は表に反映されない旨を警告する', () => {
+    const stale = makeExport('3階東病棟', [HYGIENE_2]);
+    stale.roundData.checklistResults.push({ itemId: 'kankyo-9', rating: 'C', photos: [] });
+
+    const merged = mergeRounds([stale]);
+
+    expect(unknownIdWarnings(merged.warnings)).toHaveLength(1);
+    const [warning] = unknownIdWarnings(merged.warnings);
+    expect(warning).toContain('3階東病棟');
+    expect(warning).toContain('kankyo-9');
+    // 定義にある項目の評価は従来どおり載る
+    expect(merged.columns[0].ratings.get(keyOf('擦式消毒薬がある'))).toBe('A');
+  });
+
+  it('チェックリストに無い項目IDでも未評価なら警告しない', () => {
+    const stale = makeExport('3階東病棟', [HYGIENE_2]);
+    stale.roundData.checklistResults.push({ itemId: 'kankyo-9', rating: null, photos: [] });
+
+    expect(unknownIdWarnings(mergeRounds([stale]).warnings)).toEqual([]);
+  });
+
+  it('定義にある項目のチェック結果が無くても、項目が足りないとは警告しない', () => {
+    const partial = makeExport('3階東病棟', [HYGIENE_2]);
+    partial.roundData.checklistResults = [{ itemId: 'shushi-1', rating: 'A', photos: [] }];
+
+    const merged = mergeRounds([partial]);
+
+    expect(merged.warnings).toEqual([]);
+    // 結果が無い項目は「その部署に無い項目」ではなく未評価として扱う
+    expect(merged.columns[0].ratings.get(keyOf('手袋を適切に外している'))).toBeNull();
+  });
+
+  it('別の病棟の列にしかない項目があれば、従来どおり項目が足りない旨を警告する', () => {
+    const water: ChecklistCategory = {
+      category: '水回り',
+      items: [{ id: 'mizumawari-1', category: '水回り', description: '流し台が清潔である' }],
+    };
+
+    const merged = mergeRounds([makeExport('1病棟', [HYGIENE]), makeExport('2病棟', [water])]);
+
+    const warnings = missingItemWarnings(merged.warnings);
+    expect(warnings).toHaveLength(2);
+    expect(warnings[0]).toContain('「1病棟」には他のファイルにある 1 項目がありません');
+    expect(warnings[1]).toContain('「2病棟」には他のファイルにある 1 項目がありません');
+  });
+});

@@ -250,4 +250,35 @@ describe('buildMergedDocxBlob（同じ病棟のまとめ方）', () => {
     expect(tableCells(xml)[0][0]).toEqual(['チェック項目', '1病棟', '2病棟']);
     expect(deptHeadings(xml)).toEqual(['■ 1病棟（担当: 山田）', '■ 2病棟（担当: 田中）']);
   });
+
+  it('病棟名に担当者名が含まれていても節見出しに担当者名を添える', async () => {
+    const merged = mergeRounds([makeShared('山田病棟', '山田', { 'shushi-1': 'A' })]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(deptHeadings(xml)).toEqual(['■ 山田病棟（担当: 山田）']);
+  });
+
+  it('病棟名が空の列は見出しが担当者名なので担当者名を重ねない', async () => {
+    const merged = mergeRounds([makeShared('', '山田', { 'shushi-1': 'A' })]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(deptHeadings(xml)).toEqual(['■ 山田']);
+  });
+
+  it('チェック結果が無い項目のセルは — になり、項目が足りない扱いにもしない', async () => {
+    const partial = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
+    partial.roundData.checklistResults = [{ itemId: 'shushi-1', rating: 'A', photos: [] }];
+    const merged = mergeRounds([partial]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(tableCells(xml)[0]).toEqual([
+      ['チェック項目', '1病棟'],
+      ['擦式消毒薬がある', 'A'],
+      ['手袋を適切に外している', '—'],
+    ]);
+    expect(merged.warnings).toEqual([]);
+  });
 });
