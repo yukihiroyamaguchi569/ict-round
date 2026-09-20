@@ -304,6 +304,22 @@ function missingItemWarnings(warnings: string[]): string[] {
   return warnings.filter((w) => w.includes('項目がありません'));
 }
 
+/** 1つのチェックリストの中で同じ項目IDが2つの項目に割り当たった報告書（評価は1件だけ記録する） */
+function makeDuplicateIdExport(): RoundExport {
+  // 項目IDは「カテゴリ名の短縮-連番」で作られるため、記号だけが違うカテゴリ名では衝突し得る
+  const room: ChecklistCategory = {
+    category: '手指衛生（病室）',
+    items: [{ id: 'shushi-1', category: '手指衛生（病室）', description: '擦式消毒薬がある' }],
+  };
+  const treatment: ChecklistCategory = {
+    category: '手指衛生(処置室)',
+    items: [{ id: 'shushi-1', category: '手指衛生(処置室)', description: '擦式消毒薬がある' }],
+  };
+  const roundExport = makeExport('3階東病棟', [room, treatment]);
+  roundExport.roundData.checklistResults = [{ itemId: 'shushi-1', rating: 'C', photos: [] }];
+  return roundExport;
+}
+
 describe('mergeRounds（1つの報告書の中の不整合）', () => {
   it('1つの報告書の中で項目IDが重複していたら、どの報告書のどのIDかを警告する', () => {
     // 項目IDは「カテゴリ名の短縮-連番」で作られるため、記号だけが違うカテゴリ名では衝突し得る
@@ -324,9 +340,60 @@ describe('mergeRounds（1つの報告書の中の不整合）', () => {
     expect(warning).toContain('山口');
     expect(warning).toContain('shushi-1');
     expect(warning).toContain('本来の行に載らない可能性があります');
+    // 項目に付けた写真も同じIDに紐づくため、写真も確認対象として案内する
+    expect(warning).toContain('写真も重複したり別の項目名の下に出ることがあります');
     // 統合自体は止めない
     expect(merged.columns).toHaveLength(1);
     expect(merged.categories.flatMap((c) => c.items)).toHaveLength(2);
+  });
+
+  it('1つの報告書の中で項目IDが重複していたら、評価は最初に現れた項目の行に載せる', () => {
+    const merged = mergeRounds([makeDuplicateIdExport()]);
+
+    // 行は定義どおり2つに分かれるが、評価はIDでしか特定できないので先に現れた行に載る
+    const [roomKey, treatmentKey] = merged.categories.map((cat) => itemRowKey(cat.category, cat.items[0]));
+    expect(merged.columns[0].ratings.get(roomKey)).toBe('C');
+    expect(merged.columns[0].ratings.get(treatmentKey)).toBeNull();
+  });
+
+  it('項目IDが重複した報告書では、行が分かれる警告と評価が載らない警告が両方出る', () => {
+    const merged = mergeRounds([makeDuplicateIdExport()]);
+
+    // 同じIDに違うカテゴリの項目が割り当たっているため、2種類の警告がそれぞれ別の事実を指す
+    const splitRowWarnings = merged.warnings.filter((w) => w.includes('違うチェック項目が割り当てられています'));
+    expect(splitRowWarnings).toHaveLength(1);
+    expect(splitRowWarnings[0]).toContain('別の行に分けて出力します');
+    expect(duplicateIdWarnings(merged.warnings)).toHaveLength(1);
+    expect(duplicateIdWarnings(merged.warnings)[0]).toContain('本来の行に載らない可能性があります');
+    // 「行は分かれる」「評価は片方の行にしか載らない」はどちらも実際の出力と一致する
+    const keys = merged.categories.map((cat) => itemRowKey(cat.category, cat.items[0]));
+    expect(keys).toHaveLength(2);
+    expect(keys.map((key) => merged.columns[0].ratings.get(key))).toEqual(['C', null]);
+  });
+
+  it('項目IDが重複していると、項目に付けた写真は同じIDのチェック結果すべてに残る', () => {
+    const photo = {
+      id: 'photo-1',
+      dataUrl: 'data:image/jpeg;base64,xxx',
+      comment: '消毒薬の設置',
+      timestamp: '2026-09-19T01:00:00.000Z',
+      width: 1,
+      height: 1,
+    };
+    const duplicated = makeDuplicateIdExport();
+    // アプリは項目IDが一致する結果すべてに写真を付けるため、重複したIDでは写真も重複する
+    duplicated.roundData.checklistResults = [
+      { itemId: 'shushi-1', rating: 'C', photos: [photo] },
+      { itemId: 'shushi-1', rating: 'C', photos: [photo] },
+    ];
+
+    const merged = mergeRounds([duplicated]);
+
+    const photos = merged.columns[0].sources.flatMap((s) =>
+      s.roundData.checklistResults.flatMap((r) => r.photos)
+    );
+    expect(photos).toHaveLength(2);
+    expect(photos.every((p) => p.id === 'photo-1')).toBe(true);
   });
 
   it('項目IDが重複していなければ重複の警告は出さない', () => {

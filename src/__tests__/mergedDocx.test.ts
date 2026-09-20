@@ -282,3 +282,56 @@ describe('buildMergedDocxBlob（同じ病棟のまとめ方）', () => {
     expect(merged.warnings).toEqual([]);
   });
 });
+
+/** 記号だけが違うカテゴリ名では項目IDが衝突し、1つのチェックリストの中で同じIDが2つの項目に割り当たる */
+const DUP_ROOM: ChecklistCategory = {
+  category: '手指衛生（病室）',
+  items: [{ id: 'shushi-1', category: '手指衛生（病室）', description: '擦式消毒薬がある' }],
+};
+const DUP_TREATMENT: ChecklistCategory = {
+  category: '手指衛生(処置室)',
+  items: [{ id: 'shushi-1', category: '手指衛生(処置室)', description: '擦式消毒薬がある' }],
+};
+
+describe('buildMergedDocxBlob（項目IDが重複した報告書）', () => {
+  it('評価は最初に現れた項目の行に載り、同じIDの残りの行は — になる', async () => {
+    const duplicated = makeExport('3階東病棟', null, [DUP_ROOM, DUP_TREATMENT]);
+    duplicated.roundData.checklistResults = [{ itemId: 'shushi-1', rating: 'C', photos: [] }];
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(mergeRounds([duplicated])));
+
+    const [roomTable, treatmentTable] = tableCells(xml);
+    expect(roomTable).toEqual([
+      ['チェック項目', '3階東病棟'],
+      ['擦式消毒薬がある', 'C'],
+    ]);
+    expect(treatmentTable).toEqual([
+      ['チェック項目', '3階東病棟'],
+      ['擦式消毒薬がある', '—'],
+    ]);
+  });
+
+  it('項目に付けた写真は重複し、どちらも最初に現れた項目名の下に出る', async () => {
+    const photo = {
+      id: 'photo-1',
+      dataUrl: `data:image/jpeg;base64,${PIXEL_JPEG}`,
+      comment: '消毒薬の設置',
+      timestamp: '2026-09-19T01:00:00.000Z',
+      width: 1,
+      height: 1,
+    };
+    const duplicated = makeExport('3階東病棟', null, [DUP_ROOM, DUP_TREATMENT]);
+    // アプリは項目IDが一致する結果すべてに写真を付けるため、重複したIDでは同じ写真が2件残る
+    duplicated.roundData.checklistResults = [
+      { itemId: 'shushi-1', rating: 'C', photos: [photo] },
+      { itemId: 'shushi-1', rating: 'C', photos: [photo] },
+    ];
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(mergeRounds([duplicated])));
+
+    const photoCells = tableCells(xml).at(-1)![0].filter((cell) => cell.includes('消毒薬の設置'));
+    expect(photoCells).toHaveLength(2);
+    // 写真のラベルは項目IDで最初に一致した項目から作るため、処置室の写真も病室の項目名の下に出る
+    expect(photoCells.every((cell) => cell.includes('手指衛生（病室）'))).toBe(true);
+  });
+});
