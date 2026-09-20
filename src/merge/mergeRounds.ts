@@ -3,17 +3,33 @@ import type { ChecklistCategory, ChecklistItemDef, Rating, RoundData, RoundExpor
 // （mergedDocx 側は型だけを import するため実行時の循環参照は発生しない）
 import { READABLE_DEPT_MAX } from './mergedDocx';
 
-/** 統合レポートの1列 = 1部署（1つのエクスポートファイル） */
+/** 列にまとまった報告書1件分（1つのエクスポートファイル） */
+export interface DeptSource {
+  inspectorName: string;
+  roundData: RoundData;
+  categories: ChecklistCategory[];
+}
+
+/** 統合レポートの1列 = 1部署。同じ病棟名の報告書は1列にまとまる */
 export interface DeptColumn {
-  /** 表の列見出し。wardName が空なら inspectorName、重複時は担当者名を併記 */
+  /** 表の列見出し。wardName が空なら inspectorName、それでも重なるなら連番を足す */
   label: string;
   wardName: string;
-  inspectorName: string;
+  /** この列にまとまった報告書（読み込み順）。1つの病棟を複数名で分担すると2件以上になる */
+  sources: DeptSource[];
+  /** 列の中で最も早い実施日時 */
   startTime: string;
   /** 行キー（itemRowKey）-> 評価。その部署に存在しない項目はキーごと無い */
   ratings: Map<string, Rating>;
-  roundData: RoundData;
-  categories: ChecklistCategory[];
+}
+
+/** 評価の厳しさ。担当者間で食い違ったときは大きい方を採用する */
+const RATING_SEVERITY: Record<Exclude<Rating, null>, number> = { A: 1, B: 2, C: 3 };
+
+/** 担当者間で評価が分かれたかを判定するための、1項目に集まった評価 */
+interface ItemVotes {
+  description: string;
+  votes: { inspectorName: string; rating: Exclude<Rating, null> }[];
 }
 
 /**
@@ -153,37 +169,65 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
     }
   }
 
-  // ---- 列 ----
-  const columns: DeptColumn[] = exports.map((exp) => {
-    // 評価はその部署のチェックリスト定義から行キーを引いて格納する（項目IDだけでは行を特定できない）
-    const rowKeyByItemId = new Map<string, string>();
-    for (const cat of exp.categories) {
-      for (const item of cat.items) rowKeyByItemId.set(item.id, itemRowKey(cat.category, item));
+  // ---- 列: 病棟名が同じ報告書は1列にまとめる ----
+  // 1つの病棟をチェック項目で分担して複数名で回る使い方があるため、病棟名が一致する
+  // 報告書は同じ列に集約する（病棟名は前後の空白だけ落として比較し、表記ゆれは揃えない）。
+  // 病棟名が空の報告書は誰のどの記録か区別できないため、まとめずに1件1列とする。
+  const columns: DeptColumn[] = [];
+  const columnByWard = new Map<string, DeptColumn>();
+  const votesByColumn = new Map<DeptColumn, Map<string, ItemVotes>>();
+
+  exports.forEach((exp, index) => {
+    const wardName = exp.roundData.wardName.trim();
+    const groupKey = wardName ? `ward:${wardName}` : `file:${index}`;
+    let column = columnByWard.get(groupKey);
+    if (!column) {
+      column = {
+        label: wardName || exp.roundData.inspectorName.trim() || '（名称未設定）',
+        wardName: exp.roundData.wardName,
+        sources: [],
+        startTime: exp.roundData.startTime,
+        ratings: new Map(),
+      };
+      columns.push(column);
+      columnByWard.set(groupKey, column);
+      votesByColumn.set(column, new Map());
     }
-    const ratings = new Map<string, Rating>();
-    for (const result of exp.roundData.checklistResults) {
-      const key = rowKeyByItemId.get(result.itemId);
-      if (key) ratings.set(key, result.rating);
-    }
-    return {
-      label: exp.roundData.wardName.trim() || exp.roundData.inspectorName.trim() || '（名称未設定）',
-      wardName: exp.roundData.wardName,
+    column.sources.push({
       inspectorName: exp.roundData.inspectorName,
-      startTime: exp.roundData.startTime,
-      ratings,
       roundData: exp.roundData,
       categories: exp.categories,
-    };
+    });
+    if (exp.roundData.startTime < column.startTime) column.startTime = exp.roundData.startTime;
+
+    // 評価はその部署のチェックリスト定義から行キーを引いて格納する（項目IDだけでは行を特定できない）
+    const rowByItemId = new Map<string, { key: string; description: string }>();
+    for (const cat of exp.categories) {
+      for (const item of cat.items) {
+        rowByItemId.set(item.id, { key: itemRowKey(cat.category, item), description: item.description });
+      }
+    }
+    const votes = votesByColumn.get(column)!;
+    for (const result of exp.roundData.checklistResults) {
+      const row = rowByItemId.get(result.itemId);
+      if (!row) continue;
+      // 未評価でも「その部署にある項目」として記録し、他の担当者の評価で埋められるようにする
+      const current = column.ratings.get(row.key) ?? null;
+      if (!column.ratings.has(row.key)) column.ratings.set(row.key, null);
+      if (result.rating === null) continue;
+      if (current === null || RATING_SEVERITY[result.rating] > RATING_SEVERITY[current]) {
+        column.ratings.set(row.key, result.rating);
+      }
+      const itemVotes = votes.get(row.key) ?? { description: row.description, votes: [] };
+      itemVotes.votes.push({ inspectorName: exp.roundData.inspectorName, rating: result.rating });
+      votes.set(row.key, itemVotes);
+    }
   });
 
-  // 同じ列見出しが並ぶと区別できないので担当者名を併記し、それでも重なるなら連番を足す
-  const labelCounts = new Map<string, number>();
-  for (const col of columns) labelCounts.set(col.label, (labelCounts.get(col.label) ?? 0) + 1);
+  // 病棟名が同じ報告書は1列にまとまるため見出しは基本的に重ならないが、
+  // 病棟名のない報告書が担当者名で並ぶと重なり得るので連番で区別する
   const usedLabels = new Set<string>();
   for (const col of columns) {
-    if ((labelCounts.get(col.label) ?? 0) > 1 && col.inspectorName.trim()) {
-      col.label = `${col.label}（${col.inspectorName.trim()}）`;
-    }
     let label = col.label;
     let n = 2;
     while (usedLabels.has(label)) label = `${col.label} ${n++}`;
@@ -193,6 +237,24 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
 
   // ---- 警告 ----
   warnings.push(...itemConflicts.values());
+
+  // 同じ病棟の中で評価が分かれたのは担当者間の食い違いなので、厳しい方を採用したうえで知らせる。
+  // （病棟が違う場合の評価の違いは食い違いではなく別々の結果なので、この判定は1列の中に閉じている）
+  for (const col of columns) {
+    const split = [...(votesByColumn.get(col)?.values() ?? [])].filter(
+      (item) => new Set(item.votes.map((v) => v.rating)).size > 1
+    );
+    if (split.length === 0) continue;
+    const detail = split
+      .map((item) => {
+        const votes = item.votes
+          .map((v) => `${v.inspectorName.trim() || '担当者名なし'}: ${v.rating}`)
+          .join(' / ');
+        return `「${item.description}」（${votes}）`;
+      })
+      .join('、');
+    warnings.push(`「${col.label}」は担当者間で評価が分かれました: ${detail}。厳しい方の評価（C＞B＞A）を採用しています。`);
+  }
 
   const allRowKeys = [...rowKeys];
   for (const col of columns) {

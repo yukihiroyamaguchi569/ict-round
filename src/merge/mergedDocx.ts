@@ -77,7 +77,7 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
     spacing: { after: 80 },
     children: [
       new TextRun({ text: '担当者: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: [...new Set(columns.map((c) => c.inspectorName).filter(Boolean))].join('、'), color: clr.text }),
+      new TextRun({ text: [...new Set(columns.flatMap((c) => c.sources.map((s) => s.inspectorName)).filter(Boolean))].join('、'), color: clr.text }),
     ],
   }));
 
@@ -165,26 +165,31 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
 
   for (const col of columns) {
     children.push(deptHeading(col, clr));
-    const body = col.roundData.overallEvaluation.trim();
-    if (body) {
-      for (const line of body.split('\n')) {
+    for (const source of col.sources) {
+      // 複数名で分担した病棟は、どの担当者の総評か分かるよう名前を添える
+      // （担当者が1人のときは見出しに名前が入るので繰り返さない）
+      const inspector = source.inspectorName.trim();
+      const prefix = col.sources.length > 1 && inspector ? `${inspector}：` : '';
+      const body = source.roundData.overallEvaluation.trim();
+      const lines = body ? body.split('\n') : ['（記載なし）'];
+      lines.forEach((line, i) => {
         children.push(new Paragraph({
           spacing: { after: 80 },
-          children: [new TextRun({ text: line, size: 22, color: clr.text })],
+          children: [new TextRun({
+            text: i === 0 ? `${prefix}${line}` : line,
+            size: 22,
+            color: body ? clr.text : clr.textFaint,
+          })],
         }));
-      }
-    } else {
-      children.push(new Paragraph({
-        spacing: { after: 80 },
-        children: [new TextRun({ text: '（記載なし）', size: 22, color: clr.textFaint })],
-      }));
+      });
     }
   }
 
   // ===== Section 3: 部署別の写真 =====
+  // 同じ病棟の写真は担当者をまたいで1つの節に集める
   const photosByDept = columns.map((col) => ({
     col,
-    entries: collectPhotoEntries(col.roundData, col.categories),
+    entries: col.sources.flatMap((s) => collectPhotoEntries(s.roundData, s.categories)),
   })).filter((d) => d.entries.length > 0);
 
   if (photosByDept.length > 0) {
@@ -218,8 +223,9 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
 }
 
 function deptHeading(col: DeptColumn, clr: DocxColors): Paragraph {
-  // label は重複回避で担当者名を含むことがあるので、その場合は担当者名を繰り返さない
-  const inspector = col.inspectorName.trim();
+  // 担当者が1人の病棟は見出しに担当者名を添える（複数名で分担した病棟は節の中で担当者名を出す）。
+  // label が担当者名そのもののこと（病棟名なし）があるので、その場合は繰り返さない
+  const inspector = col.sources.length === 1 ? col.sources[0].inspectorName.trim() : '';
   const suffix = inspector && !col.label.includes(inspector) ? `（担当: ${inspector}）` : '';
   return new Paragraph({
     spacing: { before: 200, after: 80 },

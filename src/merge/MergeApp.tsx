@@ -23,6 +23,13 @@ function ratedCount(data: RoundExport): number {
   return data.roundData.checklistResults.filter((r) => r.rating !== null).length;
 }
 
+/** 同じ病棟名の報告書は1列にまとまるので、まとまる相手がいるファイルを見分ける */
+function sharesWard(files: LoadedFile[], file: LoadedFile): boolean {
+  const ward = file.data.roundData.wardName.trim();
+  if (!ward) return false;
+  return files.filter((f) => f.data.roundData.wardName.trim() === ward).length > 1;
+}
+
 export default function MergeApp() {
   const [files, setFiles] = useState<LoadedFile[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -127,8 +134,10 @@ export default function MergeApp() {
         {files.length > 0 && (
           <div className="card p-5">
             <h2 className="text-sm font-extrabold text-text mb-3">
-              読み込んだ部署（{files.length}件）
-              <span className="ml-2 text-xs font-medium text-text-muted">この順序が表の列順になります</span>
+              読み込んだ報告書（{files.length}件）
+              <span className="ml-2 text-xs font-medium text-text-muted">
+                同じ病棟名の報告書は1列にまとまります（表は{merged?.columns.length ?? 0}列）。この順序が表の列順になります
+              </span>
             </h2>
             <ul className="space-y-2">
               {files.map((f, i) => (
@@ -143,6 +152,7 @@ export default function MergeApp() {
                     <p className="text-[11px] text-text-faint mt-0.5 truncate">
                       評価 {ratedCount(f.data)}/{f.data.roundData.checklistResults.length}項目・
                       写真 {photoCount(f.data)}枚・{f.filename}
+                      {sharesWard(files, f) && '・同じ病棟の報告書と1列にまとまります'}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
