@@ -242,10 +242,11 @@ describe('buildMergedDocxBlob（同じ病棟のまとめ方）', () => {
 
     const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
 
-    // 未記載かどうかの判定だけ trim するので、本文の空白や空行は単独報告書と同じく残る
-    const texts = allTexts(xml);
-    expect(texts).toContain('  先頭に字下げ');
-    expect(texts).toContain('空行のあと');
+    // 未記載かどうかの判定だけ trim するので、本文の空白・空行・行数が単独報告書と同じく残る
+    const paragraphs = paragraphTexts(xml);
+    const start = paragraphs.findIndex((text) => text === '  先頭に字下げ');
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(paragraphs.slice(start, start + 4)).toEqual(['  先頭に字下げ', '', '空行のあと', '']);
   });
 
   it('担当者全員が総評を書いていない病棟でも節見出しと書き込み用の空段落を出す', async () => {
