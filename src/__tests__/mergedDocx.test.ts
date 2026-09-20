@@ -250,6 +250,32 @@ describe('buildMergedDocxBlob（同じ病棟のまとめ方）', () => {
     expect(paragraphs[paragraphs.indexOf('■ 1病棟') + 1]).toBe('');
   });
 
+  it('総評が空白のみの担当者も段落を出さない', async () => {
+    const yamada = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
+    yamada.roundData.overallEvaluation = ' \n\t ';
+    const merged = mergeRounds([yamada, makeShared('1病棟', '田中', { 'shushi-2': 'C' })]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(allTexts(xml)).toContain('田中：田中の所見');
+    expect(allTexts(xml).some((text) => text.startsWith('山田：'))).toBe(false);
+  });
+
+  it('担当者全員の総評が空白のみの病棟にも書き込み用の空段落を1つだけ出す', async () => {
+    const yamada = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
+    const tanaka = makeShared('1病棟', '田中', { 'shushi-2': 'C' });
+    yamada.roundData.overallEvaluation = ' \n\t ';
+    tanaka.roundData.overallEvaluation = '   ';
+    const merged = mergeRounds([yamada, tanaka]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    expect(deptHeadings(xml)).toEqual(['■ 1病棟']);
+    // 空白だけの総評は段落にならないので、見出しの後は空の段落1つで終わる
+    const paragraphs = paragraphTexts(xml);
+    expect(paragraphs.slice(paragraphs.indexOf('■ 1病棟') + 1)).toEqual(['']);
+  });
+
   it('どの病棟にも総評が無くても総評の節見出しは出す', async () => {
     const merged = mergeRounds([
       withoutEvaluation(makeShared('1病棟', '山田', { 'shushi-1': 'A' })),
