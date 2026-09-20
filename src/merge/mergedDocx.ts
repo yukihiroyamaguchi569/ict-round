@@ -224,9 +224,9 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
 
 function deptHeading(col: DeptColumn, clr: DocxColors): Paragraph {
   // 担当者が1人の病棟は見出しに担当者名を添える（複数名で分担した病棟は節の中で担当者名を出す）。
-  // label が担当者名そのもののこと（病棟名なし）があるので、その場合は繰り返さない
+  // 病棟名がない列は label が担当者名そのものなので、その場合は繰り返さない
   const inspector = col.sources.length === 1 ? col.sources[0].inspectorName.trim() : '';
-  const suffix = inspector && !col.label.includes(inspector) ? `（担当: ${inspector}）` : '';
+  const suffix = inspector && col.wardName ? `（担当: ${inspector}）` : '';
   return new Paragraph({
     spacing: { before: 200, after: 80 },
     children: [new TextRun({ text: `■ ${col.label}${suffix}`, bold: true, size: 22, color: clr.primary })],

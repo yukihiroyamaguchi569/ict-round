@@ -14,6 +14,7 @@ export interface DeptSource {
 export interface DeptColumn {
   /** 表の列見出し。wardName が空なら inspectorName、それでも重なるなら連番を足す */
   label: string;
+  /** 列をまとめた病棟名（前後の空白を落としたもの）。空なら見出しは担当者名に由来する */
   wardName: string;
   /** この列にまとまった報告書（読み込み順）。1つの病棟を複数名で分担すると2件以上になる */
   sources: DeptSource[];
@@ -41,6 +42,14 @@ interface ItemVotes {
 export function itemRowKey(category: string, item: ChecklistItemDef): string {
   // 連結の境目が曖昧にならないよう JSON 配列の文字列にする
   return JSON.stringify([item.id, category, item.description]);
+}
+
+/** どの報告書のことか警告文で示す（病棟名と担当者名の分かる範囲で） */
+function describeExport(exp: RoundExport): string {
+  const ward = exp.roundData.wardName.trim();
+  const inspector = exp.roundData.inspectorName.trim();
+  if (ward && inspector) return `「${ward}」（担当: ${inspector}）`;
+  return `「${ward || inspector || '名称未設定'}」`;
 }
 
 export interface MergeResult {
@@ -176,6 +185,9 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
   const columns: DeptColumn[] = [];
   const columnByWard = new Map<string, DeptColumn>();
   const votesByColumn = new Map<DeptColumn, Map<string, ItemVotes>>();
+  // 1つの報告書の中で整合していない点は、その報告書を特定できる文言で警告にまとめる
+  const duplicateIdWarnings: string[] = [];
+  const unknownIdWarnings: string[] = [];
 
   exports.forEach((exp, index) => {
     const wardName = exp.roundData.wardName.trim();
@@ -184,7 +196,7 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
     if (!column) {
       column = {
         label: wardName || exp.roundData.inspectorName.trim() || '（名称未設定）',
-        wardName: exp.roundData.wardName,
+        wardName,
         sources: [],
         startTime: exp.roundData.startTime,
         ratings: new Map(),
@@ -200,20 +212,36 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
     });
     if (exp.roundData.startTime < column.startTime) column.startTime = exp.roundData.startTime;
 
-    // 評価はその部署のチェックリスト定義から行キーを引いて格納する（項目IDだけでは行を特定できない）
+    // 「その部署にある項目」はチェック結果ではなくチェックリスト定義で決める。
+    // まず定義の全項目を未評価として登録し、あとからチェック結果の評価を重ねる。
+    // （定義にあるのに結果が無い項目を「項目がありません」と誤警告しないため）
     const rowByItemId = new Map<string, { key: string; description: string }>();
+    const duplicateIds = new Set<string>();
     for (const cat of exp.categories) {
       for (const item of cat.items) {
-        rowByItemId.set(item.id, { key: itemRowKey(cat.category, item), description: item.description });
+        const key = itemRowKey(cat.category, item);
+        // 同じIDが複数の項目に使われていると、評価をどの行に載せるべきか決められない
+        if (rowByItemId.has(item.id)) duplicateIds.add(item.id);
+        else rowByItemId.set(item.id, { key, description: item.description });
+        if (!column.ratings.has(key)) column.ratings.set(key, null);
       }
     }
+    if (duplicateIds.size > 0) {
+      duplicateIdWarnings.push(
+        `${describeExport(exp)}の報告書では、同じ項目ID（${[...duplicateIds].join('、')}）が複数のチェック項目に使われています。評価は項目IDで記録するため、一部の評価が本来の行に載らない可能性があります。該当する項目の評価をご確認ください。`
+      );
+    }
+    const unknownIds = new Set<string>();
     const votes = votesByColumn.get(column)!;
     for (const result of exp.roundData.checklistResults) {
       const row = rowByItemId.get(result.itemId);
-      if (!row) continue;
-      // 未評価でも「その部署にある項目」として記録し、他の担当者の評価で埋められるようにする
+      if (!row) {
+        // 定義に無いIDの評価は載せる行が無いので、黙って捨てずに知らせる
+        // （未評価なら失われるものが無いため警告しない）
+        if (result.rating !== null) unknownIds.add(result.itemId);
+        continue;
+      }
       const current = column.ratings.get(row.key) ?? null;
-      if (!column.ratings.has(row.key)) column.ratings.set(row.key, null);
       if (result.rating === null) continue;
       if (current === null || RATING_SEVERITY[result.rating] > RATING_SEVERITY[current]) {
         column.ratings.set(row.key, result.rating);
@@ -221,6 +249,11 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
       const itemVotes = votes.get(row.key) ?? { description: row.description, votes: [] };
       itemVotes.votes.push({ inspectorName: exp.roundData.inspectorName, rating: result.rating });
       votes.set(row.key, itemVotes);
+    }
+    if (unknownIds.size > 0) {
+      unknownIdWarnings.push(
+        `${describeExport(exp)}の報告書には、チェックリストに無い項目ID（${[...unknownIds].join('、')}）の評価が含まれています。載せる行が無いため表には反映されません。チェックリストを編集した前後の報告書が混ざっていると起こります。`
+      );
     }
   });
 
@@ -237,6 +270,7 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
 
   // ---- 警告 ----
   warnings.push(...itemConflicts.values());
+  warnings.push(...duplicateIdWarnings, ...unknownIdWarnings);
 
   // 同じ病棟の中で評価が分かれたのは担当者間の食い違いなので、厳しい方を採用したうえで知らせる。
   // （病棟が違う場合の評価の違いは食い違いではなく別々の結果なので、この判定は1列の中に閉じている）
