@@ -325,6 +325,7 @@ interface RoundExport {
 
 - プレビュー画面ではチェック結果、写真、総評を HTML で表示
 - 出力時は `docx` ライブラリで `.docx` を生成
+- 総評が空（空白のみの場合を含む）のときは、総評の見出しに続けて書き加えられるよう空の段落を 1 つ置きます
 - 生成した `.docx` に、`RoundExport`（4.3）を JSON 文字列として **customXml パート**（`customXml/itemN.xml`、名前空間 `urn:meguru-round:export`）として書き込みます。統合ページはこのパートを読み取ります
   - 実装: `src/roundExportDocx.ts`。`[Content_Types].xml` と `word/_rels/document.xml.rels` を併せて更新し、Word が開いても壊れない正規の形で格納します
   - 報告書としての体裁・本文は変わりません。共有するファイルは `.docx` 1 本のみで、別途 JSON 等を出力・共有する仕組みはありません
