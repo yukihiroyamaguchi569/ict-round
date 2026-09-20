@@ -228,7 +228,7 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
     }
     if (duplicateIds.size > 0) {
       duplicateIdWarnings.push(
-        `${describeExport(exp)}の報告書では、同じ項目ID（${[...duplicateIds].join('、')}）が複数のチェック項目に使われています。評価は項目IDで記録するため、一部の評価が本来の行に載らない可能性があります。該当する項目の評価をご確認ください。`
+        `${describeExport(exp)}の報告書では、同じ項目ID（${[...duplicateIds].join('、')}）が複数のチェック項目に使われています。評価と写真は項目IDで記録するため、一部の評価が本来の行に載らない可能性があります。写真も重複したり別の項目名の下に出ることがあります。該当する項目の評価と写真をご確認ください。`
       );
     }
     const unknownIds = new Set<string>();
