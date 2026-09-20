@@ -165,20 +165,26 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
 
   for (const col of columns) {
     children.push(deptHeading(col, clr));
-    for (const source of col.sources) {
+    // 総評は記載のある担当者の分だけ出す
+    const written = col.sources.filter((s) => s.roundData.overallEvaluation.trim() !== '');
+    if (written.length === 0) {
+      // 誰も記載していない病棟は、出力後に Word で書き込めるよう空の段落を1つ置く
+      children.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
+      continue;
+    }
+    for (const source of written) {
       // 複数名で分担した病棟は、どの担当者の総評か分かるよう名前を添える
       // （担当者が1人のときは見出しに名前が入るので繰り返さない）
       const inspector = source.inspectorName.trim();
       const prefix = col.sources.length > 1 && inspector ? `${inspector}：` : '';
-      const body = source.roundData.overallEvaluation.trim();
-      const lines = body ? body.split('\n') : ['（記載なし）'];
+      const lines = source.roundData.overallEvaluation.trim().split('\n');
       lines.forEach((line, i) => {
         children.push(new Paragraph({
           spacing: { after: 80 },
           children: [new TextRun({
             text: i === 0 ? `${prefix}${line}` : line,
             size: 22,
-            color: body ? clr.text : clr.textFaint,
+            color: clr.text,
           })],
         }));
       });
