@@ -3,8 +3,8 @@
 **文書番号:** ICT-TS-001  
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
-**最終更新日:** 2026年9月16日  
-**対象バージョン:** 1.13.0
+**最終更新日:** 2026年9月23日  
+**対象バージョン:** 1.13.1
 
 ---
 
@@ -372,6 +372,14 @@ interface SavedRound {
 | `pwa_install_banner_click` | インストールバナーの操作 | `method` |
 | `pwa_install_prompt_result` | インストールプロンプトの結果 | `outcome` |
 | `pwa_install_banner_dismiss` | バナーを閉じた時 | `method` |
+| `photo_add_attempt` | 写真追加画面で「撮影」または「ギャラリーから選択」を押した時 | `method`（`camera` / `gallery`） |
+| `photo_add_success` | 選択した写真の読み込みに成功した時 | `method`（`camera` / `gallery`） |
+| `checklist_import_open` | チェックリスト取り込みダイアログを開いた時 | なし |
+| `checklist_import_error` | 取り込むファイルの読み込みに失敗した時 | `file_type`（`csv` / `xlsx`） |
+| `checklist_import_success` | 取り込んだチェックリストを保存した時 | `file_type`（`csv` / `xlsx`） |
+| `report_export` | 報告書の共有が完了した時、またはファイル保存を実行した時（共有をキャンセルした場合は送信しない） | `method`（`share` / `download`） |
+
+写真の追加・チェックリストの取り込み・報告書の出力に関するイベントは、操作の種類だけを送信します。写真、ファイル名、チェックリストの内容や件数、エラーメッセージは含みません。
 
 上記に加え、GA4 が自動収集する `session_start`、`first_visit`、`user_engagement` が送信されます。
 ユーザープロパティとして `display_mode`（`standalone` / `browser`）を設定します。
