@@ -298,15 +298,15 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
         text: `${roundData.inspectorName} - ${new Date().toISOString().slice(0, 10)}`,
         files: [shareFile],
       }).then(() => {
-        trackEvent('report_export', { method: 'share' });
+        trackEvent('round_export', { method: 'share' });
       }).catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         saveAs(shareFile, filename);
-        trackEvent('report_export', { method: 'download' });
+        trackEvent('round_export', { method: 'download' });
       });
     } else {
       saveAs(shareFile, filename);
-      trackEvent('report_export', { method: 'download' });
+      trackEvent('round_export', { method: 'download' });
     }
   };
 

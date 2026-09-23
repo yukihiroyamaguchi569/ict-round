@@ -377,7 +377,7 @@ interface SavedRound {
 | `checklist_import_open` | チェックリスト取り込みダイアログを開いた時 | なし |
 | `checklist_import_error` | 取り込むファイルの読み込みに失敗した時 | `file_type`（`csv` / `xlsx`） |
 | `checklist_import_success` | 取り込んだチェックリストを保存した時 | `file_type`（`csv` / `xlsx`） |
-| `report_export` | 報告書の共有が完了した時、またはファイル保存を実行した時（共有をキャンセルした場合は送信しない） | `method`（`share` / `download`） |
+| `round_export` | 報告書の共有が完了した時、またはファイル保存を実行した時（共有をキャンセルした場合は送信しない） | `method`（`share` / `download`） |
 
 写真の追加・チェックリストの取り込み・報告書の出力に関するイベントは、操作の種類だけを送信します。写真、ファイル名、チェックリストの内容や件数、エラーメッセージは含みません。
 
