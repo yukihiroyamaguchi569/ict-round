@@ -287,8 +287,9 @@ Google公式の [googleanalytics/google-analytics-mcp](https://github.com/google
 1. ~~GA4管理画面でデータ保持期間を14ヶ月に変更~~ → 対応済み。
 2. ~~GA4管理画面で `display_mode` をカスタムディメンションとして登録する~~ → 対応済み（2026-07-26）。
 3. ~~フェーズ3のコホート探索で定着状況を確認する~~ → 対応済み（2026-08-06）。
-4. **ゴールイベントを実装する（最優先）**。「レポート出力」「共有」など、ラウンド完了を示すイベントをmainに入れる。これがないと定着の定義ができず、以降の分析が意味を持たない。あわせて以下も同PRでまとめる。
-   - `ChecklistImportDialog.tsx`: `checklist_import_open` / `checklist_import_error` / `checklist_import_success`
+4. ~~**ゴールイベントを実装する（最優先）**。「レポート出力」「共有」など、ラウンド完了を示すイベントをmainに入れる。これがないと定着の定義ができず、以降の分析が意味を持たない。あわせて以下も同PRでまとめる。~~ → 対応済み（2026-09-23、v1.13.1）。
+   - `ReportPreview.tsx`: `report_export`（`method: share | download`。共有キャンセルでは送らない）
+   - `ChecklistImportDialog.tsx`: `checklist_import_open` / `checklist_import_error` / `checklist_import_success`（error と success は `file_type: csv | xlsx`）
    - `PhotoForm.tsx`: `photo_add_attempt` / `photo_add_success`（いずれも `method: camera | gallery`）— Issue #45 の実害測定に必要
 5. **GA4のデータフィルタで開発トラフィックを除外する。** `localhost` と `*.ict-round-preview.pages.dev` を対象にする。
    - まず `Testing` 状態で作成し、`localhost` とプレビューのイベントが除外対象として拾われること、および `ict-round.conect.llc` のイベントが残ることを確認してから `Active` に切り替える。
