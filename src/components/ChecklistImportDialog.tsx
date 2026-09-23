@@ -53,13 +53,13 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
     if (!preview) return;
     const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const useName = name.trim() || fileName.replace(/\.[^.]+$/, '') || '取込チェックリスト';
-    trackEvent('checklist_import_success', { file_type: fileType });
     onSave({
       id,
       name: useName,
       createdAt: new Date().toISOString(),
       categories: preview,
     });
+    trackEvent('checklist_import_success', { file_type: fileType });
   };
 
   const totalItems = preview?.reduce((sum, cat) => sum + cat.items.length, 0) ?? 0;
