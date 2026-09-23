@@ -8,6 +8,7 @@ import {
 import { saveAs } from 'file-saver';
 import type { RoundData, Photo, ChecklistCategory } from '../types';
 import { findItemById } from '../checklistData';
+import { trackEvent } from '../analytics';
 
 // Variant A 検証中: type を省略しているため一時的に未使用（Variant B/恒久対応で復活）
 // const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -296,12 +297,16 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
         title: '感染対策ラウンド報告書',
         text: `${roundData.inspectorName} - ${new Date().toISOString().slice(0, 10)}`,
         files: [shareFile],
+      }).then(() => {
+        trackEvent('report_export', { method: 'share' });
       }).catch((err: unknown) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         saveAs(shareFile, filename);
+        trackEvent('report_export', { method: 'download' });
       });
     } else {
       saveAs(shareFile, filename);
+      trackEvent('report_export', { method: 'download' });
     }
   };
 
