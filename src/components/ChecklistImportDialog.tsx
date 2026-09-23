@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { SavedChecklist, ChecklistCategory } from '../types';
 import { parseCsv, parseXlsx } from '../checklistImport';
+import { trackEvent } from '../analytics';
 
 interface Props {
   onSave: (checklist: SavedChecklist) => void;
@@ -11,9 +12,14 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
   const [name, setName] = useState('');
   const [preview, setPreview] = useState<ChecklistCategory[] | null>(null);
   const [fileName, setFileName] = useState('');
+  const [fileType, setFileType] = useState<'csv' | 'xlsx'>('csv');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    trackEvent('checklist_import_open');
+  }, []);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -22,10 +28,12 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
     setPreview(null);
     setLoading(true);
     setFileName(file.name);
+    const type = file.name.endsWith('.xlsx') ? 'xlsx' : 'csv';
+    setFileType(type);
 
     try {
       let categories: ChecklistCategory[];
-      if (file.name.endsWith('.xlsx')) {
+      if (type === 'xlsx') {
         const buf = await file.arrayBuffer();
         categories = await parseXlsx(buf);
       } else {
@@ -34,6 +42,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
       }
       setPreview(categories);
     } catch (err) {
+      trackEvent('checklist_import_error', { file_type: type });
       setError(err instanceof Error ? err.message : '読み込みに失敗しました');
     } finally {
       setLoading(false);
@@ -44,6 +53,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
     if (!preview) return;
     const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const useName = name.trim() || fileName.replace(/\.[^.]+$/, '') || '取込チェックリスト';
+    trackEvent('checklist_import_success', { file_type: fileType });
     onSave({
       id,
       name: useName,
