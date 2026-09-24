@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ThemeProvider } from './ThemeContext';
 import { IconProvider } from './IconContext';
 import RoundStart from './components/RoundStart';
@@ -7,6 +7,8 @@ import PhotoForm from './components/PhotoForm';
 import ReportPreview from './components/ReportPreview';
 import SavedRoundsList from './components/SavedRoundsList';
 import LeaveRoundDialog from './components/LeaveRoundDialog';
+import WhatsNewDialog from './components/WhatsNewDialog';
+import releasesJson from '../public/updates/releases.json';
 import type { Rating, Photo, RoundData, SavedChecklist, SavedRound } from './types';
 import {
   seedDefaultIfFirstRun,
@@ -19,6 +21,13 @@ import {
   deleteSavedRound,
 } from './checklistStorage';
 import { snapshotRound, hasUnsavedChanges } from './roundDirty';
+import {
+  parseReleases,
+  pickUnseenReleases,
+  loadLastSeenVersion,
+  saveLastSeenVersion,
+  type Release,
+} from './whatsNew';
 
 type Screen = 'start' | 'main' | 'photo-add' | 'report' | 'saved-rounds';
 type MainTab = 'checklist' | 'photos' | 'evaluation';
@@ -53,6 +62,20 @@ function AppContent() {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [carriedInspectorName, setCarriedInspectorName] = useState('');
   const savedSnapshotRef = useRef('');
+  const [unseenReleases, setUnseenReleases] = useState<Release[]>(() =>
+    pickUnseenReleases(parseReleases(releasesJson), loadLastSeenVersion(), __APP_VERSION__)
+  );
+
+  useEffect(() => {
+    if (unseenReleases.length === 0 && loadLastSeenVersion() !== __APP_VERSION__) {
+      saveLastSeenVersion(__APP_VERSION__);
+    }
+  }, [unseenReleases]);
+
+  const handleCloseWhatsNew = () => {
+    saveLastSeenVersion(__APP_VERSION__);
+    setUnseenReleases([]);
+  };
 
   const handleSelectChecklist = (id: string) => {
     setActiveId(id);
@@ -224,17 +247,22 @@ function AppContent() {
 
   if (screen === 'start') {
     return (
-      <RoundStart
-        library={library}
-        activeId={activeId}
-        savedRoundsCount={savedRounds.length}
-        initialName={carriedInspectorName}
-        onStart={handleStartRound}
-        onSelectChecklist={handleSelectChecklist}
-        onAddChecklist={handleAddChecklist}
-        onDeleteChecklist={handleDeleteChecklist}
-        onViewSaved={() => setScreen('saved-rounds')}
-      />
+      <>
+        <RoundStart
+          library={library}
+          activeId={activeId}
+          savedRoundsCount={savedRounds.length}
+          initialName={carriedInspectorName}
+          onStart={handleStartRound}
+          onSelectChecklist={handleSelectChecklist}
+          onAddChecklist={handleAddChecklist}
+          onDeleteChecklist={handleDeleteChecklist}
+          onViewSaved={() => setScreen('saved-rounds')}
+        />
+        {unseenReleases.length > 0 && (
+          <WhatsNewDialog releases={unseenReleases} onClose={handleCloseWhatsNew} />
+        )}
+      </>
     );
   }
 
