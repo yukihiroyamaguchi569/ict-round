@@ -3,8 +3,8 @@
 **文書番号:** ICT-TS-001  
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
-**最終更新日:** 2026年9月16日  
-**対象バージョン:** 1.13.0
+**最終更新日:** 2026年9月24日  
+**対象バージョン:** 1.14.0
 
 ---
 
@@ -195,6 +195,7 @@ interface SavedRound {
 | `icn-round-icon` | アイコン設定 |
 | `pwa_install_tracked` | インストール計測の重複送信防止フラグ |
 | `pwa_banner_dismissed` | インストールバナーを閉じたかどうか |
+| `icn-round:last-seen-version` | 新機能のお知らせを最後に確認したアプリのバージョン |
 
 `IndexedDB`、`Cookie`、`sessionStorage` はアプリ本体では使用していません。Cookie は Google Analytics 4 が設定します（7.4 を参照）。
 
@@ -257,6 +258,7 @@ interface SavedRound {
 - この引き継ぎ値は React state のみで保持し、単独では永続化しないため再読み込みで空に戻る。保存済みラウンドを開いても引き継ぎ値は変化しない
 - 開始時刻は `new Date().toLocaleString('ja-JP')` で生成
 - 選択中チェックリストに基づき `checklistResults` を初期化
+- アプリ更新後の初回表示時は、更新履歴（`/updates/releases.json` をビルド時に取り込み）のうち未確認のエントリを「新機能のお知らせ」ダイアログとして開始画面に重ねて表示する。確認済みのバージョンは `localStorage`（`icn-round:last-seen-version`）に記録し、閉じると現在のバージョンで更新する。記録がない端末では最新の 1 件のみ表示する（実装: `src/whatsNew.ts`、`src/components/WhatsNewDialog.tsx`）
 
 ### 6.2 チェックリスト評価
 
