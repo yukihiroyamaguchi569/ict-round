@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useTheme } from '../ThemeContext';
 import type { Photo, ChecklistCategory } from '../types';
 import { findItemById } from '../checklistData';
+import { trackEvent } from '../analytics';
 
 interface Props {
   linkedItemId?: string;
@@ -40,7 +41,7 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
     return { dataUrl: canvas.toDataURL('image/jpeg', quality), width, height };
   }
 
-  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>, method: 'camera' | 'gallery') => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
@@ -49,6 +50,7 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
     }
     try {
       const { dataUrl, width, height } = await compressImage(file);
+      trackEvent('photo_add_success', { method });
       setPhotoDataUrl(dataUrl);
       setPhotoSize({ width, height });
     } catch {
@@ -130,7 +132,7 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => cameraInputRef.current?.click()}
+                  onClick={() => { trackEvent('photo_add_attempt', { method: 'camera' }); cameraInputRef.current?.click(); }}
                   className="bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-8 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200 flex flex-col items-center gap-2"
                 >
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -141,7 +143,7 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
                 </button>
                 <button
                   type="button"
-                  onClick={() => galleryInputRef.current?.click()}
+                  onClick={() => { trackEvent('photo_add_attempt', { method: 'gallery' }); galleryInputRef.current?.click(); }}
                   className="bg-primary-light/50 border-2 border-dashed border-primary/30 rounded-t py-8 text-primary hover:bg-primary-light hover:border-primary/50 transition-all duration-200 flex flex-col items-center gap-2"
                 >
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -160,14 +162,14 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={handlePhoto}
+            onChange={(e) => handlePhoto(e, 'camera')}
             className="hidden"
           />
           <input
             ref={galleryInputRef}
             type="file"
             accept="image/*"
-            onChange={handlePhoto}
+            onChange={(e) => handlePhoto(e, 'gallery')}
             className="hidden"
           />
         </div>

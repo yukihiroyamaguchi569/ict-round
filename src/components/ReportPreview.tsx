@@ -82,6 +82,9 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
       title: '感染対策ラウンド報告書',
       text: `${roundData.inspectorName} - ${new Date().toISOString().slice(0, 10)}`,
       files: [shareFile],
+    }).then(() => {
+      // Count only completed shares, same as main (PR #87): a cancelled share sheet is not an export.
+      trackEvent('round_export', { method: 'share' });
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('共有エラー:', err);
@@ -89,7 +92,6 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     }).finally(() => {
       setSharing(false);
     });
-    trackEvent('round_export', { method: 'share' });
   };
 
   const handleDownload = () => {
