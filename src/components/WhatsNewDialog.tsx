@@ -55,7 +55,6 @@ export default function WhatsNewDialog({ releases, onClose }: Props) {
           </a>
           <button
             type="button"
-            autoFocus
             onClick={onClose}
             className="btn-primary w-full py-2.5 text-sm font-bold"
           >
