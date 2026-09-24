@@ -109,12 +109,14 @@ One line per file describing its role. When a PR adds, removes, or renames a fil
 src/
   main.tsx                 Entry point; initializes analytics and mounts App
   App.tsx                  Screen state machine (start / main / photo-add / report / saved-rounds), round state owner, wraps ThemeProvider / IconProvider
-  types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound
+  types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound, RoundExport
   checklistData.ts         Built-in default checklist (CHECKLIST_CATEGORIES) and item lookup helpers
   checklistImport.ts       Parses user checklists from CSV / .xlsx
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
+  docx.ts                  Builds the report .docx (checklist table, photos, evaluation) and shared docx helpers
+  roundExportDocx.ts       Embeds / extracts round data (RoundExport) as a customXml part of the report .docx
   themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
   ThemeContext.tsx         React context providing the current theme
   icons.ts                 App icon definitions (ran / meguru) and localStorage persistence
@@ -124,7 +126,7 @@ src/
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
-    RoundStart.tsx         Start screen: inspector / ward name, checklist select / import / delete, link to saved rounds
+    RoundStart.tsx         Start screen: inspector / ward name, checklist select / import / delete, links to saved rounds and the merge page
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
     ThemeSelector.tsx      Theme and icon picker (shown on the start screen)
@@ -139,8 +141,15 @@ src/
     EvaluationTab.tsx      Overall evaluation free-text input
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
-    ReportPreview.tsx      Report preview, .docx generation, share / download
-  __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx)
+    ReportPreview.tsx      Report preview; builds the .docx with embedded round data, share / download
+  merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
+    main.tsx               Entry point; mounts MergeApp
+    MergeApp.tsx           File drop / select, merge preview, warnings, merged .docx download
+    loadRoundFile.ts       Reads one report .docx (size limit, ZIP signature check) and extracts its round data
+    mergeRounds.ts         Validates RoundExport and merges reports into department columns keyed by checklist item
+    mergedDocx.ts          Builds the merged landscape .docx (item x department rating table, then evaluations and photos per department)
+  __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx and a tiny .jpg)
+merge.html                 HTML entry of the merge page (second Vite input in vite.config.ts)
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
   sw.js                    Service Worker (offline support)
