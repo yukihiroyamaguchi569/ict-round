@@ -65,6 +65,32 @@ export function loadLastSeenVersion(): string | null {
   return localStorage.getItem(LAST_SEEN_VERSION_KEY);
 }
 
-export function saveLastSeenVersion(version: string): void {
-  localStorage.setItem(LAST_SEEN_VERSION_KEY, version);
+export function markVersionSeen(current: string): void {
+  const lastSeen = loadLastSeenVersion();
+  // Never overwrite a newer record (rollback or a stale Service Worker shell).
+  if (lastSeen !== null && compareVersions(lastSeen, current) >= 0) return;
+  try {
+    localStorage.setItem(LAST_SEEN_VERSION_KEY, current);
+  } catch {
+    // Storage is full or unavailable; the dialog will simply show again next time.
+  }
+}
+
+// Returns null on any failure so callers can tell it apart from "no entries".
+export async function fetchReleases(
+  baseUrl: string,
+  fetchFn: typeof fetch = fetch,
+  timeoutMs = 5000
+): Promise<Release[] | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchFn(`${baseUrl}updates/releases.json`, { signal: controller.signal });
+    if (!response.ok) return null;
+    return parseReleases(await response.json());
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }

@@ -8,7 +8,6 @@ import ReportPreview from './components/ReportPreview';
 import SavedRoundsList from './components/SavedRoundsList';
 import LeaveRoundDialog from './components/LeaveRoundDialog';
 import WhatsNewDialog from './components/WhatsNewDialog';
-import releasesJson from '../public/updates/releases.json';
 import type { Rating, Photo, RoundData, SavedChecklist, SavedRound } from './types';
 import {
   seedDefaultIfFirstRun,
@@ -22,10 +21,10 @@ import {
 } from './checklistStorage';
 import { snapshotRound, hasUnsavedChanges } from './roundDirty';
 import {
-  parseReleases,
+  fetchReleases,
   pickUnseenReleases,
   loadLastSeenVersion,
-  saveLastSeenVersion,
+  markVersionSeen,
   type Release,
 } from './whatsNew';
 
@@ -62,19 +61,28 @@ function AppContent() {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [carriedInspectorName, setCarriedInspectorName] = useState('');
   const savedSnapshotRef = useRef('');
-  const [unseenReleases, setUnseenReleases] = useState<Release[]>(() =>
-    pickUnseenReleases(parseReleases(releasesJson), loadLastSeenVersion(), __APP_VERSION__)
-  );
+  const [unseenReleases, setUnseenReleases] = useState<Release[]>([]);
 
   useEffect(() => {
-    if (unseenReleases.length === 0 && loadLastSeenVersion() !== __APP_VERSION__) {
-      saveLastSeenVersion(__APP_VERSION__);
-    }
-  }, [unseenReleases]);
+    let cancelled = false;
+    void fetchReleases(import.meta.env.BASE_URL).then((releases) => {
+      // On fetch failure, show nothing and keep the record so it is retried next launch.
+      if (cancelled || releases === null) return;
+      const unseen = pickUnseenReleases(releases, loadLastSeenVersion(), __APP_VERSION__);
+      if (unseen.length === 0) {
+        markVersionSeen(__APP_VERSION__);
+      } else {
+        setUnseenReleases(unseen);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleCloseWhatsNew = () => {
-    saveLastSeenVersion(__APP_VERSION__);
     setUnseenReleases([]);
+    markVersionSeen(__APP_VERSION__);
   };
 
   const handleSelectChecklist = (id: string) => {
