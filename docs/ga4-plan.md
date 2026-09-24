@@ -1,7 +1,9 @@
 # GA4 学習・活用計画（めぐる君）
 
 作成日: 2026-07-26
-最終更新: 2026-08-08
+最終更新: 2026-09-23
+
+> 各分析の節（「重要な既知事象」とフェーズ別の分析）は、それぞれの日付時点の状態を記録したもの。そこにある「計測していない」という記述は、v1.13.1（2026-09-23）でアプリ本体の計測イベントを追加する前の状態を指す。現在の計測内容は「現状の実装」を参照。
 
 ## 前提・方針
 
@@ -27,10 +29,13 @@
 - `pwa_install_banner_click`
 - `pwa_install_prompt_result`（outcome）
 - `pwa_install_banner_dismiss`
+- `photo_add_attempt` / `photo_add_success`（method: `camera` / `gallery`）— v1.13.1 から
+- `checklist_import_open` / `checklist_import_error` / `checklist_import_success`（error と success は file_type: `csv` / `xlsx`）— v1.13.1 から
+- `round_export`（method: `share` / `download`）— v1.13.1 から
 
 `session_start` / `first_visit` / `user_engagement` はGA4が自動収集するため、追加実装なしで既に計測されている。
 
-`src/` で `trackEvent` を呼んでいるのは以下の2経路のみ（2026-08-06時点）。いずれもPWAインストール計測で、アプリ本体の操作は1つも計測していない。
+以下は2026-08-06時点の記録。当時 `src/` で `trackEvent` を呼んでいたのは以下の2経路のみで、いずれもPWAインストール計測だった。アプリ本体の操作の計測は v1.13.1（2026-09-23）で上記の6イベントとして追加した。
 
 - `src/components/InstallBanner.tsx`: バナー系3イベント（`pwa_install_banner_click` / `pwa_install_prompt_result` / `pwa_install_banner_dismiss`）
 - `src/analytics.ts`: `pwa_install`。初回のstandalone起動を検知したとき（`method: standalone_first_launch`）と、`src/main.tsx` の `appinstalled` リスナーから `trackInstallEvent()` が呼ばれたとき（`method: appinstalled`）の2箇所。
@@ -42,9 +47,11 @@
 
 ## 重要な既知事象: 本番に「ラウンド完了」の計測が存在しない (2026-08-06 判明)
 
+> 2026-09-23 追記: v1.13.1 で `round_export` を main に入れたため解消（次のアクション 4）。イベント名とパラメータは PR #51（`feat/issue-46-merge-departments`）の `round_export` に揃えた。ただし送信契機は異なり、main は共有が完了した時点、PR #51 は共有ボタンを押した時点で送る。PR #51 をマージする際は送信契機をどちらかに揃えること。
+
 アプリの核心的な成功である「ラウンドを最後まで実施してレポートを出力した」がGA4で計測できていない。
 
-- `round_export` イベントはGA4に届いているが、**全て `localhost` とプレビュー環境からのもの**で本番からは1件もない。このイベントは未マージブランチ `feat/issue-46-merge-departments` にのみ実装されており、mainには入っていないため。
+- （2026-08-06時点）`round_export` イベントはGA4に届いていたが、**全て `localhost` とプレビュー環境からのもの**で本番からは1件もなかった。当時このイベントは未マージブランチ `feat/issue-46-merge-departments` にのみ実装されており、mainには入っていなかったため。
 - `file_download` は上記のとおりチェックリストのテンプレート配布であり、代理指標にならない。
 
 この状態ではコホート分析をしても「何をもって定着とみなすか」を定義できず、単なる再訪率しか見られない。**ゴールイベントの実装が、今後の分析すべての前提になる。**
@@ -225,7 +232,7 @@ Androidのみ +9.7ポイント改善しiOSは横ばいだが、**統計的には
 
 **この先が計測できない。** `src/components/ChecklistImportDialog.tsx` に `trackEvent` の呼び出しは一切なく、取り込みダイアログを開いた回数・パース失敗（同ファイル36-38行目の `setError`）・「保存して適用」への到達はいずれも計測されていない。「48人がカスタマイズを試みた」までは言えるが、「何人が実際に自院用チェックリストを使い始めたか」は分からない。
 
-改善案として、`checklist_import_open` / `checklist_import_error`（エラー内容・拡張子）/ `checklist_import_success`（カテゴリ数・項目数）の3イベントを追加すれば埋まる。`checklist_import_error` は Issue #8 / #18 のCSV形式ヘルプ対応の効果測定にも使える。ゴールイベント実装と同じPRにまとめるのが効率的（どちらも `trackEvent` の追加で影響範囲が重なる）。
+改善案として、`checklist_import_open` / `checklist_import_error`（エラー内容・拡張子）/ `checklist_import_success`（カテゴリ数・項目数）の3イベントを追加すれば埋まる。（2026-09-23 追記: v1.13.1 で3イベントを実装した。ただし送るのは `file_type` のみで、エラー内容とカテゴリ数・項目数は送らない。エラー文言やチェックリストの規模から取り込み内容が推測されうるため、送信項目を操作の種類だけに絞った。）`checklist_import_error` は Issue #8 / #18 のCSV形式ヘルプ対応の効果測定にも使える。ゴールイベント実装と同じPRにまとめるのが効率的（どちらも `trackEvent` の追加で影響範囲が重なる）。
 
 ### `/about` 着地ユーザーの後続行動（本番のみ、2026-07-12〜08-05）
 
@@ -287,14 +294,15 @@ Google公式の [googleanalytics/google-analytics-mcp](https://github.com/google
 1. ~~GA4管理画面でデータ保持期間を14ヶ月に変更~~ → 対応済み。
 2. ~~GA4管理画面で `display_mode` をカスタムディメンションとして登録する~~ → 対応済み（2026-07-26）。
 3. ~~フェーズ3のコホート探索で定着状況を確認する~~ → 対応済み（2026-08-06）。
-4. **ゴールイベントを実装する（最優先）**。「レポート出力」「共有」など、ラウンド完了を示すイベントをmainに入れる。これがないと定着の定義ができず、以降の分析が意味を持たない。あわせて以下も同PRでまとめる。
-   - `ChecklistImportDialog.tsx`: `checklist_import_open` / `checklist_import_error` / `checklist_import_success`
+4. ~~**ゴールイベントを実装する（最優先）**。「レポート出力」「共有」など、ラウンド完了を示すイベントをmainに入れる。これがないと定着の定義ができず、以降の分析が意味を持たない。あわせて以下も同PRでまとめる。~~ → 対応済み（2026-09-23、v1.13.1）。
+   - `ReportPreview.tsx`: `round_export`（`method: share | download`。共有キャンセルでは送らない）
+   - `ChecklistImportDialog.tsx`: `checklist_import_open` / `checklist_import_error` / `checklist_import_success`（error と success は `file_type: csv | xlsx`）
    - `PhotoForm.tsx`: `photo_add_attempt` / `photo_add_success`（いずれも `method: camera | gallery`）— Issue #45 の実害測定に必要
 5. **GA4のデータフィルタで開発トラフィックを除外する。** `localhost` と `*.ict-round-preview.pages.dev` を対象にする。
    - まず `Testing` 状態で作成し、`localhost` とプレビューのイベントが除外対象として拾われること、および `ict-round.conect.llc` のイベントが残ることを確認してから `Active` に切り替える。
    - データフィルタは**適用後に収集されるデータにのみ効き、除外されたデータは恒久的に失われる**（後から取り消しても戻らない）。過去に混入した `localhost` / プレビューのイベントもフィルタでは消えないため、過去分の分析ではこれまでどおりホスト名を `ict-round.conect.llc` に絞って読む。
 6. 8月中旬、学会由来のスパイクが30日集計から抜けた頃に「ユーザーのアクティビティの推移」を再確認し、定常状態のDAUを基準値として記録する。
-7. ゴールイベント実装後、ユーザーのライフタイム探索で累積利用回数・ヘビーユーザーを把握する。
+7. ゴールイベントのデータが溜まったら、ユーザーのライフタイム探索で累積利用回数・ヘビーユーザーを把握する。
 8. **初週の脱落を減らす施策を検討する。** フェーズ3で「勝負は最初の1週間」と分かったため、ここが最も効果の見込める箇所。
 9. **`/about` からアプリ本体への導線を改善する。** 着地した紹介ページ訪問者の47.4%がアプリを開かずに離脱している一方、開いた人の55.3%は着手まで進んでいる。
 10. **今後の学会発表・配布資料のURLにUTMパラメータを付ける。** 現状Direct（82%）に学会由来と再訪者が混在し、流入元を分離できない。
