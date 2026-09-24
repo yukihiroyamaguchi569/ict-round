@@ -10,12 +10,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+const VERSION_PATTERN = /^\d+(\.\d+)*$/;
+
 function parseRelease(value: unknown): Release | null {
   if (!isRecord(value)) return null;
   const { version, date, changes } = value;
   if (typeof version !== 'string' || typeof date !== 'string' || !Array.isArray(changes)) {
     return null;
   }
+  // A version that loadLastSeenVersion cannot read back would be recorded and then shown again forever.
+  if (!VERSION_PATTERN.test(version)) return null;
   return {
     version,
     date,
@@ -66,10 +70,14 @@ export function needsReleaseCheck(lastSeen: string | null, current: string): boo
   return compareVersions(lastSeen, current) < 0;
 }
 
-const VERSION_PATTERN = /^\d+(\.\d+)*$/;
-
 export function loadLastSeenVersion(): string | null {
-  const stored = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+  let stored: string | null;
+  try {
+    stored = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+  } catch {
+    // Storage is unavailable; behave as if nothing has been seen.
+    return null;
+  }
   // Treat a corrupted record as missing so it cannot compare as 0.0.0 and unlock the whole history.
   return stored !== null && VERSION_PATTERN.test(stored) ? stored : null;
 }

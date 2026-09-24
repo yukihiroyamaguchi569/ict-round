@@ -46,6 +46,14 @@ describe('parseReleases', () => {
     expect(versions(parseReleases(input))).toEqual(['1.3.0']);
   });
 
+  it.each(['1.15.0-beta', 'v1.15.0', ''])('drops an entry with non-numeric version %p', (version) => {
+    const input = [
+      { version, date: '2026-09-16', changes: ['bad version'] },
+      { version: '1.14.0', date: '2026-09-16', changes: ['ok'] },
+    ];
+    expect(versions(parseReleases(input))).toEqual(['1.14.0']);
+  });
+
   it('drops non-string items inside changes', () => {
     const input = [{ version: '1.0.0', date: '2026-09-16', changes: ['a', 1, null, { x: 1 }, 'b'] }];
     expect(parseReleases(input)[0].changes).toEqual(['a', 'b']);
@@ -203,6 +211,16 @@ describe('loadLastSeenVersion / markVersionSeen', () => {
     markVersionSeen('1.13.0');
     expect(setItem).not.toHaveBeenCalled();
     expect(loadLastSeenVersion()).toBe('1.14.0');
+  });
+
+  it('returns null without throwing when localStorage.getItem throws', () => {
+    localStorage.setItem(LAST_SEEN_VERSION_KEY, '1.13.0');
+    const getItem = vi.spyOn(localStorage, 'getItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+    expect(() => loadLastSeenVersion()).not.toThrow();
+    expect(loadLastSeenVersion()).toBeNull();
+    expect(getItem).toHaveBeenCalled();
   });
 
   it('does not throw when localStorage.setItem throws', () => {
