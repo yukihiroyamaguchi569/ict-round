@@ -10,12 +10,9 @@ export default function WhatsNewDialog({ releases, onClose }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Move focus into the dialog, then give it back to where it was when the dialog closes.
-    const previouslyFocused = document.activeElement;
+    // Move focus into the dialog. Focus is deliberately not restored on close:
+    // the start screen's name input has autoFocus, and refocusing it would pop up the soft keyboard on phones.
     panelRef.current?.focus();
-    return () => {
-      if (previouslyFocused instanceof HTMLElement) previouslyFocused.focus();
-    };
   }, []);
 
   useEffect(() => {
