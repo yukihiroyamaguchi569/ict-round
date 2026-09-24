@@ -257,17 +257,20 @@ function AppContent() {
   if (screen === 'start') {
     return (
       <>
-        <RoundStart
-          library={library}
-          activeId={activeId}
-          savedRoundsCount={savedRounds.length}
-          initialName={carriedInspectorName}
-          onStart={handleStartRound}
-          onSelectChecklist={handleSelectChecklist}
-          onAddChecklist={handleAddChecklist}
-          onDeleteChecklist={handleDeleteChecklist}
-          onViewSaved={() => setScreen('saved-rounds')}
-        />
+        {/* While the announcement is open, keep the start screen out of reach of typing, Enter and Tab */}
+        <div inert={unseenReleases.length > 0}>
+          <RoundStart
+            library={library}
+            activeId={activeId}
+            savedRoundsCount={savedRounds.length}
+            initialName={carriedInspectorName}
+            onStart={handleStartRound}
+            onSelectChecklist={handleSelectChecklist}
+            onAddChecklist={handleAddChecklist}
+            onDeleteChecklist={handleDeleteChecklist}
+            onViewSaved={() => setScreen('saved-rounds')}
+          />
+        </div>
         {unseenReleases.length > 0 && (
           <WhatsNewDialog releases={unseenReleases} onClose={handleCloseWhatsNew} />
         )}

@@ -16,13 +16,7 @@ export default function WhatsNewDialog({ releases, onClose }: Props) {
   }, [onClose]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-text/40 backdrop-blur-sm"
-      onClick={(e) => {
-        // Close only on backdrop clicks, not clicks inside the panel.
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-text/40 backdrop-blur-sm">
       <div
         role="dialog"
         aria-modal="true"
@@ -31,8 +25,8 @@ export default function WhatsNewDialog({ releases, onClose }: Props) {
       >
         <h2 id="whats-new-title" className="text-base font-bold text-text">新機能のお知らせ</h2>
         <div tabIndex={0} className="max-h-[70vh] overflow-y-auto space-y-4">
-          {releases.map((release) => (
-            <section key={release.version}>
+          {releases.map((release, i) => (
+            <section key={`${release.version}-${i}`}>
               <h3 className="text-sm font-bold text-text">
                 v{release.version}（{release.date}）
               </h3>
