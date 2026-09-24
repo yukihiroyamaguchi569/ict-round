@@ -24,7 +24,7 @@ const DOCUMENT_RELS_PATH = 'word/_rels/document.xml.rels';
 const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 
 export const MISSING_ROUND_EXPORT_MESSAGE =
-  'このWordファイルにはラウンドデータが入っていません。共有された元のファイルを選んでください（Wordで開いて保存し直すと失われることがあります）';
+  'このWordファイルにはラウンドデータが入っていません。めぐる君 v1.15.0 より前に作った報告書の場合は、担当者がアプリを更新し、保存済みラウンドを開いて報告書を出し直してください。Wordで開いて保存し直したファイルの場合は、共有された元のファイルを選んでください';
 
 /** CDATA を途中で閉じてしまう `]]>` を、CDATA を分割して無害化する */
 function escapeCdata(text: string): string {

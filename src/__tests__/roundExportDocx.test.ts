@@ -154,6 +154,10 @@ describe('embedRoundExport / extractRoundExport', () => {
     await expect(extractRoundExport(await makeDocx())).rejects.toThrow(
       /ラウンドデータが入っていません/
     );
+    // Reports made before embedding existed are the common cause; the message must say how to recover
+    await expect(extractRoundExport(await makeDocx())).rejects.toThrow(
+      /v1\.15\.0 より前.*保存済みラウンドを開いて報告書を出し直して/
+    );
   });
 
   it('.docx として読めないファイルは理由の分かるエラーになる', async () => {
