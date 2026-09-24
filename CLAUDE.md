@@ -71,6 +71,7 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
   3. Add photos either to a checklist item or as a general photo
   4. Write an overall evaluation
   5. Preview and export/share a `.docx` report
+- GA4 usage statistics are kept in a Claude Artifact named "めぐる君 利用状況", not in this repository. Its URL is intentionally not recorded here because this repository is public and the link is shared only with core users; open it from the Artifact list instead. The numbers there are hardcoded and refreshed by hand.
 
 ## Planning Policy
 - When asked for a plan, do not read the whole repository.
@@ -100,6 +101,59 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
 - Theme selection uses `localStorage`.
 - Round data itself is held in React state and is not persisted across reloads.
 - Speech input depends on `SpeechRecognition` / `webkitSpeechRecognition`.
+
+## File Structure
+One line per file describing its role. When a PR adds, removes, or renames a file listed here, update this section in the same PR.
+
+```text
+src/
+  main.tsx                 Entry point; initializes analytics and mounts App
+  App.tsx                  Screen state machine (start / main / photo-add / report / saved-rounds), round state owner, wraps ThemeProvider / IconProvider
+  types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound
+  checklistData.ts         Built-in default checklist (CHECKLIST_CATEGORIES) and item lookup helpers
+  checklistImport.ts       Parses user checklists from CSV / .xlsx
+  checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
+  roundDirty.ts            Unsaved-change detection via round snapshots
+  whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
+  themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
+  ThemeContext.tsx         React context providing the current theme
+  icons.ts                 App icon definitions (ran / meguru) and localStorage persistence
+  IconContext.tsx          React context providing the current icon
+  analytics.ts             GA4 initialization and trackEvent (never sends round input data)
+  usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
+  index.css                Tailwind entry, theme CSS variables, utility classes, animations
+  vite-env.d.ts            Vite type references
+  components/
+    RoundStart.tsx         Start screen: inspector / ward name, checklist select / import / delete, link to saved rounds
+    SavedRoundsList.tsx    List of saved rounds to reopen or delete
+    ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
+    ThemeSelector.tsx      Theme and icon picker (shown on the start screen)
+    InstallBanner.tsx      PWA install prompt banner
+    MainScreen.tsx         Main screen shell hosting the three tabs
+    BottomTabBar.tsx       Bottom tabs (checklist / photos / evaluation) and report button
+    ChecklistTab.tsx       Checklist tab: categories with rating controls
+    CategoryAccordion.tsx  One collapsible checklist category
+    RatingButtons.tsx      A / B / C rating buttons for one item
+    PhotoTab.tsx           Photo tab: item-linked and general photos
+    PhotoForm.tsx          Add-photo screen: capture, EXIF orientation fix, item link, comment
+    EvaluationTab.tsx      Overall evaluation free-text input
+    LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
+    WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
+    ReportPreview.tsx      Report preview, .docx generation, share / download
+  __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx)
+scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
+public/
+  sw.js                    Service Worker (offline support)
+  manifest.json            PWA manifest
+  about/                   Public landing page
+  updates/                 Update history page; releases.json is its data
+  round-checklist-template.xlsx  Downloadable checklist template
+docs/
+  technical-spec.md, user-guide.md, privacy-policy.md  Published under /docs/<slug>
+  other *.md               Internal notes (not published)
+  reference/               Original checklist source spreadsheets
+.github/workflows/         ci.yml (lint / test / build), deploy.yml (GitHub Pages), claude.yml
+```
 
 ## Task Routing
 - If the task is about screen flow, start in `src/App.tsx`.

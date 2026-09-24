@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ThemeProvider } from './ThemeContext';
 import { IconProvider } from './IconContext';
 import RoundStart from './components/RoundStart';
@@ -7,6 +7,7 @@ import PhotoForm from './components/PhotoForm';
 import ReportPreview from './components/ReportPreview';
 import SavedRoundsList from './components/SavedRoundsList';
 import LeaveRoundDialog from './components/LeaveRoundDialog';
+import WhatsNewDialog from './components/WhatsNewDialog';
 import type { Rating, Photo, RoundData, SavedChecklist, SavedRound } from './types';
 import {
   seedDefaultIfFirstRun,
@@ -19,6 +20,14 @@ import {
   deleteSavedRound,
 } from './checklistStorage';
 import { snapshotRound, hasUnsavedChanges } from './roundDirty';
+import {
+  fetchReleases,
+  pickUnseenReleases,
+  loadLastSeenVersion,
+  markVersionSeen,
+  needsReleaseCheck,
+  type Release,
+} from './whatsNew';
 
 type Screen = 'start' | 'main' | 'photo-add' | 'report' | 'saved-rounds';
 type MainTab = 'checklist' | 'photos' | 'evaluation';
@@ -53,6 +62,29 @@ function AppContent() {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [carriedInspectorName, setCarriedInspectorName] = useState('');
   const savedSnapshotRef = useRef('');
+  const [unseenReleases, setUnseenReleases] = useState<Release[]>([]);
+
+  useEffect(() => {
+    if (!needsReleaseCheck(loadLastSeenVersion(), __APP_VERSION__)) return;
+    let cancelled = false;
+    void fetchReleases(import.meta.env.BASE_URL).then((releases) => {
+      // On fetch failure, show nothing and keep the record so it is retried next launch.
+      if (cancelled || releases === null) return;
+      const unseen = pickUnseenReleases(releases, loadLastSeenVersion(), __APP_VERSION__);
+      // With no unseen entries, keep the record: releases.json may be a stale cache.
+      if (unseen.length > 0) setUnseenReleases(unseen);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleCloseWhatsNew = () => {
+    // unseenReleases is newest first; record the latest version actually shown.
+    const latestShown = unseenReleases[0];
+    setUnseenReleases([]);
+    if (latestShown) markVersionSeen(latestShown.version);
+  };
 
   const handleSelectChecklist = (id: string) => {
     setActiveId(id);
@@ -224,17 +256,25 @@ function AppContent() {
 
   if (screen === 'start') {
     return (
-      <RoundStart
-        library={library}
-        activeId={activeId}
-        savedRoundsCount={savedRounds.length}
-        initialName={carriedInspectorName}
-        onStart={handleStartRound}
-        onSelectChecklist={handleSelectChecklist}
-        onAddChecklist={handleAddChecklist}
-        onDeleteChecklist={handleDeleteChecklist}
-        onViewSaved={() => setScreen('saved-rounds')}
-      />
+      <>
+        {/* While the announcement is open, keep the start screen out of reach of typing, Enter and Tab */}
+        <div inert={unseenReleases.length > 0}>
+          <RoundStart
+            library={library}
+            activeId={activeId}
+            savedRoundsCount={savedRounds.length}
+            initialName={carriedInspectorName}
+            onStart={handleStartRound}
+            onSelectChecklist={handleSelectChecklist}
+            onAddChecklist={handleAddChecklist}
+            onDeleteChecklist={handleDeleteChecklist}
+            onViewSaved={() => setScreen('saved-rounds')}
+          />
+        </div>
+        {unseenReleases.length > 0 && (
+          <WhatsNewDialog releases={unseenReleases} onClose={handleCloseWhatsNew} />
+        )}
+      </>
     );
   }
 
