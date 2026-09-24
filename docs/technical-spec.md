@@ -258,7 +258,7 @@ interface SavedRound {
 - この引き継ぎ値は React state のみで保持し、単独では永続化しないため再読み込みで空に戻る。保存済みラウンドを開いても引き継ぎ値は変化しない
 - 開始時刻は `new Date().toLocaleString('ja-JP')` で生成
 - 選択中チェックリストに基づき `checklistResults` を初期化
-- アプリ更新後の初回表示時は、更新履歴（`/updates/releases.json` をビルド時に取り込み）のうち未確認のエントリを「新機能のお知らせ」ダイアログとして開始画面に重ねて表示する。確認済みのバージョンは `localStorage`（`icn-round:last-seen-version`）に記録し、閉じると現在のバージョンで更新する。記録がない端末では最新の 1 件のみ表示する（実装: `src/whatsNew.ts`、`src/components/WhatsNewDialog.tsx`）
+- アプリ更新後の初回表示時は、起動時に配信元ホストから取得した更新履歴（`/updates/releases.json`）のうち未確認のエントリを「新機能のお知らせ」ダイアログとして開始画面に重ねて表示する。確認済みのバージョンは `localStorage`（`icn-round:last-seen-version`）に記録し、閉じると現在のバージョンで更新する（記録が現在のバージョンより新しい場合は上書きしない）。記録がない端末では最新の 1 件のみ表示する。更新履歴の取得に失敗した場合（通信エラー、HTTP エラー、5 秒のタイムアウト、不正な JSON）はダイアログを表示せず、記録も更新しない（実装: `src/whatsNew.ts`、`src/components/WhatsNewDialog.tsx`）
 
 ### 6.2 チェックリスト評価
 
@@ -321,7 +321,7 @@ interface SavedRound {
 
 | 通信先 | 用途 | ラウンド入力データの送信 |
 |--------|------|------------------------|
-| 配信元ホスト | HTML / JS / CSS / 画像配信 | なし |
+| 配信元ホスト | HTML / JS / CSS / 画像配信、更新履歴データ（`/updates/releases.json`） | なし |
 | `fonts.googleapis.com` | Google Fonts CSS | なし |
 | `fonts.gstatic.com` | Google Fonts 本体 | なし |
 | `www.googletagmanager.com` | gtag.js の取得 | なし |
