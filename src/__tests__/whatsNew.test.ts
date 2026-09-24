@@ -24,9 +24,18 @@ describe('parseReleases', () => {
   it('keeps valid entries as-is', () => {
     const input = [
       { version: '1.13.0', date: '2026-09-16', changes: ['a', 'b'] },
-      { version: '1.12.0', date: '2026-07-29', changes: [] },
+      { version: '1.12.0', date: '2026-07-29', changes: ['c'] },
     ];
     expect(parseReleases(input)).toEqual(input);
+  });
+
+  it('drops an entry whose changes are empty or contain no text', () => {
+    const input = [
+      { version: '1.15.0', date: '2026-09-16', changes: [] },
+      { version: '1.14.1', date: '2026-09-16', changes: [null, 1] },
+      { version: '1.14.0', date: '2026-09-16', changes: ['ok'] },
+    ];
+    expect(versions(parseReleases(input))).toEqual(['1.14.0']);
   });
 
   it.each([null, undefined, { version: '1.0.0' }, 'text', 42])('returns [] for non-array input %p', (input) => {

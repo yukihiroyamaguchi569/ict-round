@@ -20,11 +20,10 @@ function parseRelease(value: unknown): Release | null {
   }
   // A version that loadLastSeenVersion cannot read back would be recorded and then shown again forever.
   if (!VERSION_PATTERN.test(version)) return null;
-  return {
-    version,
-    date,
-    changes: changes.filter((c): c is string => typeof c === 'string'),
-  };
+  const textChanges = changes.filter((c): c is string => typeof c === 'string');
+  // An entry with nothing to say would be shown empty and then recorded as seen.
+  if (textChanges.length === 0) return null;
+  return { version, date, changes: textChanges };
 }
 
 export function parseReleases(input: unknown): Release[] {
