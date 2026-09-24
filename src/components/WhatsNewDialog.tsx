@@ -12,6 +12,9 @@ export default function WhatsNewDialog({ releases, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="whats-new-title"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onClose();
+        }}
         className="bg-surface w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 space-y-4"
       >
         <h2 id="whats-new-title" className="text-base font-bold text-text">新機能のお知らせ</h2>
@@ -40,6 +43,7 @@ export default function WhatsNewDialog({ releases, onClose }: Props) {
           </a>
           <button
             type="button"
+            autoFocus
             onClick={onClose}
             className="btn-primary w-full py-2.5 text-sm font-bold"
           >
