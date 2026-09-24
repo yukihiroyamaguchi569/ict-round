@@ -61,6 +61,11 @@ export function pickUnseenReleases(
   return released.filter((r) => compareVersions(r.version, lastSeen) > 0);
 }
 
+export function needsReleaseCheck(lastSeen: string | null, current: string): boolean {
+  if (lastSeen === null) return true;
+  return compareVersions(lastSeen, current) < 0;
+}
+
 export function loadLastSeenVersion(): string | null {
   return localStorage.getItem(LAST_SEEN_VERSION_KEY);
 }

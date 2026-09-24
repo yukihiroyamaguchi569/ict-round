@@ -6,6 +6,7 @@ import {
   loadLastSeenVersion,
   markVersionSeen,
   fetchReleases,
+  needsReleaseCheck,
   type Release,
 } from '../whatsNew';
 
@@ -136,6 +137,24 @@ describe('pickUnseenReleases', () => {
   it('returns nothing for an empty list', () => {
     expect(pickUnseenReleases([], null, '1.13.0')).toEqual([]);
     expect(pickUnseenReleases([], '1.12.0', '1.13.0')).toEqual([]);
+  });
+});
+
+describe('needsReleaseCheck', () => {
+  it('returns true when nothing has been seen', () => {
+    expect(needsReleaseCheck(null, '1.14.0')).toBe(true);
+  });
+
+  it('returns true when the record is older than the current version', () => {
+    expect(needsReleaseCheck('1.13.0', '1.14.0')).toBe(true);
+  });
+
+  it('returns false when the record equals the current version', () => {
+    expect(needsReleaseCheck('1.14.0', '1.14.0')).toBe(false);
+  });
+
+  it('returns false when the record is newer than the current version', () => {
+    expect(needsReleaseCheck('1.15.0', '1.14.0')).toBe(false);
   });
 });
 
