@@ -114,6 +114,7 @@ src/
   checklistImport.ts       Parses user checklists from CSV / .xlsx
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
+  whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
   themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
   ThemeContext.tsx         React context providing the current theme
   icons.ts                 App icon definitions (ran / meguru) and localStorage persistence
@@ -137,6 +138,7 @@ src/
     PhotoForm.tsx          Add-photo screen: capture, EXIF orientation fix, item link, comment
     EvaluationTab.tsx      Overall evaluation free-text input
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
+    WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
     ReportPreview.tsx      Report preview, .docx generation, share / download
   __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx)
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
