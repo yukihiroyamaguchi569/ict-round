@@ -66,8 +66,12 @@ export function needsReleaseCheck(lastSeen: string | null, current: string): boo
   return compareVersions(lastSeen, current) < 0;
 }
 
+const VERSION_PATTERN = /^\d+(\.\d+)*$/;
+
 export function loadLastSeenVersion(): string | null {
-  return localStorage.getItem(LAST_SEEN_VERSION_KEY);
+  const stored = localStorage.getItem(LAST_SEEN_VERSION_KEY);
+  // Treat a corrupted record as missing so it cannot compare as 0.0.0 and unlock the whole history.
+  return stored !== null && VERSION_PATTERN.test(stored) ? stored : null;
 }
 
 export function markVersionSeen(current: string): void {

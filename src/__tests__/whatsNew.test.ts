@@ -167,6 +167,17 @@ describe('loadLastSeenVersion / markVersionSeen', () => {
     expect(loadLastSeenVersion()).toBeNull();
   });
 
+  it.each(['', 'undefined', 'null', '1.2.x', ' 1.13.0'])('treats a non-numeric record %p as missing', (stored) => {
+    localStorage.setItem(LAST_SEEN_VERSION_KEY, stored);
+    expect(loadLastSeenVersion()).toBeNull();
+  });
+
+  it('overwrites a corrupted record with the current version', () => {
+    localStorage.setItem(LAST_SEEN_VERSION_KEY, 'undefined');
+    markVersionSeen('1.13.0');
+    expect(loadLastSeenVersion()).toBe('1.13.0');
+  });
+
   it('saves the current version when nothing is stored', () => {
     markVersionSeen('1.13.0');
     expect(loadLastSeenVersion()).toBe('1.13.0');
