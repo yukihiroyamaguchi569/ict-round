@@ -179,6 +179,11 @@ docs/
 ## Versioning Policy
 - When creating a PR that includes a new feature or bug fix, always bump the version in `package.json` and `package-lock.json` as part of the same PR.
 - Use semantic versioning: new feature → minor (e.g. 1.1.0 → 1.2.0), bug fix → patch (e.g. 1.2.0 → 1.2.1).
+- Bump major (e.g. 1.x → 2.0.0) only when compatibility breaks. The number of minor releases alone is never a reason; 1.20 or 1.35 is fine. A major bump is warranted when any of these holds:
+  - Saved data in `localStorage` (saved rounds, checklist library) can no longer be read as-is and needs migration.
+  - The round data embedded in the exported `.docx` changes incompatibly, so reports from different versions cannot be merged and users must all update.
+  - A feature people use is removed.
+  - A premise the public docs promise changes, e.g. adding a server so round input data leaves the device. This forces hospitals to redo their security review.
 - Do not create a separate PR just for a version bump.
 
 ## Documentation Policy
