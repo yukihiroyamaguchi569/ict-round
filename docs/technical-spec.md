@@ -3,8 +3,8 @@
 **文書番号:** ICT-TS-001  
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
-**最終更新日:** 2026年9月23日  
-**対象バージョン:** 1.13.1
+**最終更新日:** 2026年9月24日  
+**対象バージョン:** 1.14.1
 
 ---
 
@@ -195,6 +195,7 @@ interface SavedRound {
 | `icn-round-icon` | アイコン設定 |
 | `pwa_install_tracked` | インストール計測の重複送信防止フラグ |
 | `pwa_banner_dismissed` | インストールバナーを閉じたかどうか |
+| `icn-round:last-seen-version` | 新機能のお知らせを最後に確認したアプリのバージョン |
 
 `IndexedDB`、`Cookie`、`sessionStorage` はアプリ本体では使用していません。Cookie は Google Analytics 4 が設定します（7.4 を参照）。
 
@@ -257,6 +258,7 @@ interface SavedRound {
 - この引き継ぎ値は React state のみで保持し、単独では永続化しないため再読み込みで空に戻る。保存済みラウンドを開いても引き継ぎ値は変化しない
 - 開始時刻は `new Date().toLocaleString('ja-JP')` で生成
 - 選択中チェックリストに基づき `checklistResults` を初期化
+- アプリ更新後の初回表示時は、未確認の更新内容を「新機能のお知らせ」ダイアログとして開始画面に重ねて表示する。確認済みのバージョンは `localStorage`（`icn-round:last-seen-version`）に記録し、記録が現在のバージョン以上なら更新履歴を取得しない。それ以外の場合は起動時に配信元ホストから `/updates/releases.json` を取得し、記録より新しい（現在のバージョン以下の）エントリを新しい順に表示する。記録がない端末では最新の 1 件のみ表示する。閉じると、表示した中で最新のバージョンを記録する。記録より古いバージョンで上書きはしない。取得に失敗した場合（通信エラー、HTTP エラー、5 秒のタイムアウト、不正な JSON）や未確認のエントリが 0 件の場合はダイアログを表示せず、記録も変更しない。オフライン時は Service Worker がキャッシュした更新履歴が使われることがある（実装: `src/whatsNew.ts`、`src/components/WhatsNewDialog.tsx`）
 
 ### 6.2 チェックリスト評価
 
@@ -319,7 +321,7 @@ interface SavedRound {
 
 | 通信先 | 用途 | ラウンド入力データの送信 |
 |--------|------|------------------------|
-| 配信元ホスト | HTML / JS / CSS / 画像配信 | なし |
+| 配信元ホスト | HTML / JS / CSS / 画像配信、更新履歴データ（`/updates/releases.json`） | なし |
 | `fonts.googleapis.com` | Google Fonts CSS | なし |
 | `fonts.gstatic.com` | Google Fonts 本体 | なし |
 | `www.googletagmanager.com` | gtag.js の取得 | なし |
