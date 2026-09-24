@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { Release } from '../whatsNew';
 
 interface Props {
@@ -6,19 +7,30 @@ interface Props {
 }
 
 export default function WhatsNewDialog({ releases, onClose }: Props) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-text/40 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-text/40 backdrop-blur-sm"
+      onClick={(e) => {
+        // Close only on backdrop clicks, not clicks inside the panel.
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="whats-new-title"
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') onClose();
-        }}
         className="bg-surface w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 space-y-4"
       >
         <h2 id="whats-new-title" className="text-base font-bold text-text">新機能のお知らせ</h2>
-        <div className="max-h-[70vh] overflow-y-auto space-y-4">
+        <div tabIndex={0} className="max-h-[70vh] overflow-y-auto space-y-4">
           {releases.map((release) => (
             <section key={release.version}>
               <h3 className="text-sm font-bold text-text">
