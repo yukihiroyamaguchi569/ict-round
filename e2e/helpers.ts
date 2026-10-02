@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { test as base, expect, type Page } from '@playwright/test';
 
-const appVersion = (JSON.parse(readFileSync('package.json', 'utf-8')) as { version: string }).version;
+const appVersion = (
+  JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf-8')) as { version: string }
+).version;
 
 // Every test starts from the same quiet state:
 // - the "what's new" dialog is suppressed (it makes the start screen inert),
