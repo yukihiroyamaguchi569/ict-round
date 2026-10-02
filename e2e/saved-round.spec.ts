@@ -7,8 +7,8 @@ test('保存したラウンドはトップに戻ってリロードした後も�
   await page.getByRole('button', { name: '総評', exact: true }).click();
   await page.getByRole('textbox').fill('・保存テスト用の総評です。');
 
-  await page.getByRole('button', { name: '保存' }).click();
-  await expect(page.getByText('保存済み')).toBeVisible();
+  // The "保存済み" feedback disappears after 2 seconds, so the save is checked by the count after reload instead.
+  await page.getByRole('button', { name: '保存', exact: true }).click();
 
   // Saved, so going home does not ask about unsaved changes.
   await page.getByRole('button', { name: 'トップ画面に戻る' }).click();
