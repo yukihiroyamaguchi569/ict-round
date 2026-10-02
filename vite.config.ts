@@ -15,12 +15,30 @@ export default defineConfig({
     __BUILD_DATE__: JSON.stringify(buildDate),
   },
   test: {
-    // Component tests (*.test.tsx) opt into jsdom with a `// @vitest-environment jsdom` docblock.
-    environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
-    setupFiles: ['./src/__tests__/setup.ts'],
     // Node 25+ defines its own global localStorage (undefined without --localstorage-file),
     // which hides jsdom's localStorage from component tests. Turn it off in test workers.
     execArgv: ['--no-experimental-webstorage'],
+    // Logic tests (*.test.ts) run in node, component tests (*.test.tsx) in jsdom.
+    // extends: true lets both projects inherit the plugins, define and test options above.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+          setupFiles: ['./src/__tests__/setup.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'jsdom',
+          environment: 'jsdom',
+          include: ['src/**/*.test.tsx'],
+          setupFiles: ['./src/__tests__/setup.jsdom.ts'],
+        },
+      },
+    ],
   },
 })
