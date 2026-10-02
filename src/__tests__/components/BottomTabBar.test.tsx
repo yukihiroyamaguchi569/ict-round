@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import BottomTabBar from '../../components/BottomTabBar';
 
@@ -74,14 +74,14 @@ describe('BottomTabBar', () => {
     expect(tab('総評')).toHaveTextContent(/^総評$/);
   });
 
-  it('shows the evaluation check mark only when an evaluation exists', () => {
-    const { unmount } = render(
-      <BottomTabBar activeTab="checklist" onTabChange={vi.fn()} onReport={vi.fn()} photoCount={0} hasEvaluation={false} />,
-    );
-    const iconCountWithout = tab('総評').querySelectorAll('svg').length;
-    unmount();
+  it('shows no evaluation check mark before an evaluation is written', () => {
+    setup({ hasEvaluation: false });
+    expect(within(tab('総評')).queryByRole('img', { name: '記入済み' })).not.toBeInTheDocument();
+  });
 
+  it('shows the evaluation check mark on the evaluation tab only', () => {
     setup({ hasEvaluation: true });
-    expect(tab('総評').querySelectorAll('svg')).toHaveLength(iconCountWithout + 1);
+    expect(within(tab('総評')).getByRole('img', { name: '記入済み' })).toBeInTheDocument();
+    expect(screen.getAllByRole('img', { name: '記入済み' })).toHaveLength(1);
   });
 });
