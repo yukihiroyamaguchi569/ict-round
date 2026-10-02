@@ -27,3 +27,9 @@ reports/
 
 # Claude Code
 .claude/
+
+# Environment files (keep the example tracked)
+.env
+.env.*
+!.env.example
+.dev.vars
