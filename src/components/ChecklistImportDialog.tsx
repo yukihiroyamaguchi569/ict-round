@@ -51,7 +51,8 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
 
   const handleSave = () => {
     if (!preview) return;
-    const id = crypto.randomUUID();
+    // eslint-disable-next-line sonarjs/pseudo-random -- local ID only, not security-sensitive
+    const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const useName = name.trim() || fileName.replace(/\.[^.]+$/, '') || '取込チェックリスト';
     onSave({
       id,

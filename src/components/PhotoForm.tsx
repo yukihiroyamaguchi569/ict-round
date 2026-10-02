@@ -62,7 +62,8 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
     e.preventDefault();
     if (!photoDataUrl) return;
     onAdd({
-      id: crypto.randomUUID(),
+      // eslint-disable-next-line sonarjs/pseudo-random -- local ID only, not security-sensitive
+      id: Math.random().toString(36).slice(2) + Date.now().toString(36),
       dataUrl: photoDataUrl,
       comment: comment.trim(),
       timestamp: new Date().toLocaleString('ja-JP'),
