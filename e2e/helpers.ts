@@ -36,9 +36,8 @@ const samplePhoto = {
 
 /** Selects the sample photo on the add-photo screen. */
 export async function pickGalleryPhoto(page: Page) {
-  // PhotoForm has two hidden file inputs: the first has capture="environment" (camera),
-  // the second is the gallery picker, which accepts a file without a camera.
-  await page.locator('input[type="file"]').nth(1).setInputFiles(samplePhoto);
+  // The gallery picker is the file input without the camera's capture attribute.
+  await page.locator('input[type="file"]:not([capture])').setInputFiles(samplePhoto);
 }
 
 /** Fills in the start screen and starts a round. */
