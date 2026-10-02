@@ -56,6 +56,7 @@ export default function BottomTabBar({ activeTab, onTabChange, onReport, photoCo
               key={tab.id}
               type="button"
               onClick={() => onTabChange(tab.id)}
+              aria-current={isActive ? 'page' : undefined}
               className="flex-1 flex flex-col items-center justify-center gap-1 relative transition-colors duration-150"
               style={{ color: isActive ? 'var(--t-primary)' : 'var(--t-text-faint)' }}
             >

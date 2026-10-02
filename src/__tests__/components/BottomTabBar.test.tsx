@@ -35,6 +35,22 @@ describe('BottomTabBar', () => {
     expect(props.onReport).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['checklist', 'チェック'],
+    ['photos', '写真'],
+    ['evaluation', '総評'],
+  ] as const)('marks only the %s tab as current', (activeTab, label) => {
+    setup({ activeTab });
+    for (const other of ['チェック', '写真', '総評']) {
+      if (other === label) {
+        expect(tab(other)).toHaveAttribute('aria-current', 'page');
+      } else {
+        expect(tab(other)).not.toHaveAttribute('aria-current');
+      }
+    }
+    expect(screen.getByRole('button', { name: 'レポート' })).not.toHaveAttribute('aria-current');
+  });
+
   it('calls only onReport when the report button is pressed', async () => {
     const { props, user } = setup();
     await user.click(screen.getByRole('button', { name: 'レポート' }));
