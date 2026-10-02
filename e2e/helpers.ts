@@ -51,7 +51,7 @@ export async function startRound(page: Page, name: string, wardName?: string) {
 
 /** The overall progress badge ("rated/total") in the main screen header. */
 export function overallProgress(page: Page) {
-  return page.getByLabel('評価済み項目数');
+  return page.getByRole('status');
 }
 
 /** Rating button of the first item in the first category, which is the only one open at round start. */

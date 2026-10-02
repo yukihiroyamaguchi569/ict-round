@@ -103,7 +103,7 @@ export default function MainScreen({
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span
-              aria-label="評価済み項目数"
+              role="status"
               className="text-xs font-bold px-2.5 py-1 rounded-full"
               style={
                 ratedCount === totalItems
