@@ -25,8 +25,29 @@ export default defineConfig({
     },
   },
   test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts'],
-    setupFiles: ['./src/__tests__/setup.ts'],
+    // Node's own global localStorage hides jsdom's; turn it off (flag exists since Node 22.4).
+    execArgv: ['--no-experimental-webstorage'],
+    // Logic tests (*.test.ts) run in node, component tests (*.test.tsx) in jsdom.
+    // extends: true lets both projects inherit the plugins, define and test options above.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['src/**/*.test.ts'],
+          setupFiles: ['./src/__tests__/setup.ts'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'jsdom',
+          environment: 'jsdom',
+          include: ['src/**/*.test.tsx'],
+          setupFiles: ['./src/__tests__/setup.jsdom.ts'],
+        },
+      },
+    ],
   },
 })

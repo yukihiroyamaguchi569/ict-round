@@ -583,7 +583,7 @@ npm run lint
 
 ### 10.2 本番ビルド
 
-- `tsc -b && vite build && node scripts/build-docs.mjs`
+- `tsc -b tsconfig.app.json tsconfig.node.json && vite build && node scripts/build-docs.mjs`（E2E の型チェックは本番ビルドに含めず、`npm run typecheck:e2e` で別に行う）
 - 出力先: `dist/`（`index.html` と `merge.html` の 2 エントリ、および公開文書の `dist/docs/<slug>/index.html`）
 
 ### 10.3 更新反映

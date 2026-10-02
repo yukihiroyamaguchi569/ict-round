@@ -51,6 +51,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
 
   const handleSave = () => {
     if (!preview) return;
+    // eslint-disable-next-line sonarjs/pseudo-random -- local ID only, not security-sensitive
     const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const useName = name.trim() || fileName.replace(/\.[^.]+$/, '') || '取込チェックリスト';
     onSave({
@@ -71,7 +72,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-line flex-shrink-0">
           <h2 className="text-sm font-extrabold text-text">チェックリストを取り込む</h2>
-          <button type="button" onClick={onCancel} className="text-text-muted hover:text-text">
+          <button type="button" onClick={onCancel} aria-label="閉じる" className="text-text-muted hover:text-text">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -90,6 +91,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
             </p>
             <div className="overflow-x-auto">
               <p className="text-[10px] text-text-faint mb-1">ファイル形式：A列＝カテゴリ名、B列＝点検項目（見出し行は不要）</p>
+              {/* eslint-disable-next-line sonarjs/table-header -- sample of the import file format, which has no header row by design */}
               <table className="w-full border-collapse text-left text-[10px]">
                 <tbody>
                   <tr>
@@ -170,7 +172,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
 
           {/* Error */}
           {error && (
-            <p className="text-xs text-red-600 font-bold bg-red-50 px-3 py-2 rounded">{error}</p>
+            <p role="alert" className="text-xs text-red-600 font-bold bg-red-50 px-3 py-2 rounded">{error}</p>
           )}
 
           {/* Loading */}

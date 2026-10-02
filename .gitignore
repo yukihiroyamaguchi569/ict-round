@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+/reports/
+/.stryker-tmp/
 *.local
 
 # Editor directories and files
@@ -23,5 +25,17 @@ dist-ssr
 *.sln
 *.sw?
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 # Claude Code
 .claude/
+
+# Environment files (keep the example tracked)
+.env
+.env.*
+!.env.example
+.dev.vars

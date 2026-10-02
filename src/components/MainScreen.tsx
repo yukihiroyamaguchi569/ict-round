@@ -26,6 +26,7 @@ interface Props {
   onHome: () => void;
 }
 
+// eslint-disable-next-line complexity -- JSX conditionals of header, progress and tabs in one component; split in Issue #106
 export default function MainScreen({
   roundData,
   categories,
@@ -103,6 +104,7 @@ export default function MainScreen({
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span
+              data-testid="overall-progress"
               className="text-xs font-bold px-2.5 py-1 rounded-full"
               style={
                 ratedCount === totalItems
