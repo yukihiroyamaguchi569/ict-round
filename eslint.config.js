@@ -29,11 +29,17 @@ export default defineConfig([
       // Provisional size limits: warn only, revisit after measuring.
       'max-lines': ['warn', { max: 400, skipBlankLines: true, skipComments: true }],
       'max-lines-per-function': ['warn', { max: 60, skipBlankLines: true, skipComments: true }],
+      // A TODO / FIXME comment alone should not fail CI.
+      'sonarjs/todo-tag': 'off',
+      'sonarjs/fixme-tag': 'off',
+      // Duplicates @typescript-eslint/no-unused-vars.
+      'sonarjs/no-unused-vars': 'off',
+      'sonarjs/unused-import': 'off',
     },
   },
   {
     // describe() callbacks grow with the number of cases; length is not a smell there.
-    files: ['src/__tests__/**/*.{ts,tsx}', 'e2e/**/*.ts'],
+    files: ['**/*.test.{ts,tsx}', 'e2e/**/*.ts'],
     rules: {
       'max-lines-per-function': 'off',
     },
