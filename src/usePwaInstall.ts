@@ -48,6 +48,7 @@ export function usePwaInstall() {
 
   const method: InstallMethod | null = deferredPrompt
     ? 'prompt'
+    // eslint-disable-next-line sonarjs/no-nested-conditional -- no tests cover this yet; rewrite as if/else once they do
     : isIosSafari()
       ? 'ios-manual'
       : null;

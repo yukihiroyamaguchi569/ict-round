@@ -62,6 +62,7 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
     e.preventDefault();
     if (!photoDataUrl) return;
     onAdd({
+      // eslint-disable-next-line sonarjs/pseudo-random -- local ID only, not security-sensitive
       id: Math.random().toString(36).slice(2) + Date.now().toString(36),
       dataUrl: photoDataUrl,
       comment: comment.trim(),
@@ -113,7 +114,7 @@ export default function PhotoForm({ linkedItemId, categories, onAdd, onCancel }:
               <img src={photoDataUrl} alt="撮影済み" className="w-full rounded-t max-h-60 object-cover" />
               <button
                 type="button"
-                onClick={() => { setPhotoDataUrl(''); if (cameraInputRef.current) cameraInputRef.current.value = ''; if (galleryInputRef.current) galleryInputRef.current.value = ''; }}
+                onClick={() => { setPhotoDataUrl(''); if (cameraInputRef.current) { cameraInputRef.current.value = ''; } if (galleryInputRef.current) { galleryInputRef.current.value = ''; } }}
                 className="absolute top-2.5 right-2.5 bg-text/50 backdrop-blur-sm text-white rounded-full w-8 h-8 flex items-center justify-center"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
