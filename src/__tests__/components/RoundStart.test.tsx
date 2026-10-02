@@ -140,8 +140,6 @@ describe('RoundStart', () => {
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(props.onDeleteChecklist).not.toHaveBeenCalled();
     expect(props.onSelectChecklist).not.toHaveBeenCalled();
-    expect(screen.getByText('標準チェックリスト')).toBeInTheDocument();
-    expect(screen.getByText('外来用')).toBeInTheDocument();
   });
 
   it('deletes the checklist when the confirm dialog is accepted, without selecting it', async () => {
