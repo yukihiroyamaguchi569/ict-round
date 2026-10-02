@@ -42,6 +42,7 @@ function headerCell(text: string, width: number, clr: DocxColors, center = false
 }
 
 /** 部署を列とする評価マトリクスの docx を作る */
+// eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- builds the whole merged report in one function; split into section builders in Issue #106
 export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
   const clr = getDocxColors();
   const { columns, categories } = merged;

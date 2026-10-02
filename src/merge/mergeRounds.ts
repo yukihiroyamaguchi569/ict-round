@@ -144,6 +144,7 @@ function fail(message: string): never {
 }
 
 /** ファイルの読み込み順がそのまま表の列順になる */
+// eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- validates and merges in one pass; split into per-report checks and column building in Issue #106
 export function mergeRounds(exports: RoundExport[]): MergeResult {
   const warnings: string[] = [];
 
@@ -189,6 +190,7 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
   const duplicateIdWarnings: string[] = [];
   const unknownIdWarnings: string[] = [];
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- per-report consistency checks inline; extract into a validator in Issue #106
   exports.forEach((exp, index) => {
     const wardName = exp.roundData.wardName.trim();
     const groupKey = wardName ? `ward:${wardName}` : `file:${index}`;

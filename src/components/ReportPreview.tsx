@@ -16,6 +16,7 @@ interface Props {
   onBack: () => void;
 }
 
+// eslint-disable-next-line complexity -- JSX conditionals of share / download buttons, error banners and preview in one component; split in Issue #106
 export default function ReportPreview({ roundData, categories, onBack }: Props) {
   const { theme } = useTheme();
   const reportRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     // ファイル名は半角英数のみ（日本語名だと iOS の AirDrop が失敗する）。
     // 複数人分が受信側で衝突しないよう末尾に乱数を付ける。
     const dateStr = new Date().toISOString().slice(0, 10);
+    // eslint-disable-next-line sonarjs/pseudo-random -- filename suffix only to avoid collisions, not security-sensitive
     const docxFilename = `ICTround_${dateStr}_${Math.random().toString(36).slice(2, 6)}.docx`;
 
     // 統合ページは localStorage を持たないためチェックリスト定義を同梱する。

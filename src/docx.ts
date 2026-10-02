@@ -126,6 +126,7 @@ export function buildPhotoTables(entries: PhotoEntry[], clr: DocxColors): (Parag
   return children;
 }
 
+// eslint-disable-next-line complexity -- builds the whole report in one function; split into section builders in Issue #106
 export async function buildDocxBlob(roundData: RoundData, categories: ChecklistCategory[]): Promise<Blob> {
   const clr = getDocxColors();
 
