@@ -11,7 +11,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:mutation": "stryker run"
+    "test:mutation": "stryker run",
+    "verify": "npm run lint && npm test && npm run build",
+    "verify:full": "npm run verify && npm run test:mutation"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
