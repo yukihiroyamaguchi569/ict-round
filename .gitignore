@@ -10,8 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-reports/
-.stryker-tmp/
+/reports/
+/.stryker-tmp/
 *.local
 
 # Editor directories and files
