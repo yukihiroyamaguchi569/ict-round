@@ -49,6 +49,12 @@ describe('parseCsv', () => {
     expect(result[0].items).toHaveLength(1);
   });
 
+  it('2行目以降の category 列が Category の行は見出しとして扱わず取り込む', () => {
+    const result = parseCsv('category,description\n手指衛生,項目1\nCategory,項目2');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'Category']);
+    expect(result[1].items[0].description).toBe('項目2');
+  });
+
   it('引用符で囲まれたカンマを列の区切りとして扱わない', () => {
     const result = parseCsv('手指衛生,"手洗い,手指消毒の両方"');
     expect(result[0].items).toHaveLength(1);
@@ -123,6 +129,16 @@ describe('parseXlsx', () => {
     ]);
     const result = await parseXlsx(new ArrayBuffer(0));
     expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
+  it('2行目以降の category 列が Category の行は見出しとして扱わず取り込む', async () => {
+    vi.mocked(readSheet).mockResolvedValueOnce([
+      ['category', 'description'],
+      ['手指衛生', '項目1'],
+      ['Category', '項目2'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'Category']);
   });
 
   it('空行・片側だけのセルを無視して有効な行のみ取り込む', async () => {
