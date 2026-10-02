@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist', 'reports', '.stryker-tmp']),
+  globalIgnores(['dist', 'playwright-report', 'test-results', 'reports', '.stryker-tmp']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,6 +18,20 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+  },
+  {
+    // Playwright tests run in Node.
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+  {
+    // The Playwright fixture callback `use` defined here is not a React hook.
+    files: ['e2e/helpers.ts'],
+    rules: {
+      'react-hooks/rules-of-hooks': 'off',
     },
   },
 ])
