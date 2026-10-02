@@ -143,6 +143,7 @@ src/
   __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts); fixtures/ holds sample .xlsx
 e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
 playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4317
+stryker.config.json        Stryker mutation testing config (targets the core logic modules; report in reports/mutation/)
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
   sw.js                    Service Worker (offline support)
@@ -154,7 +155,7 @@ docs/
   technical-spec.md, user-guide.md, privacy-policy.md  Published under /docs/<slug>
   other *.md               Internal notes (not published)
   reference/               Original checklist source spreadsheets
-.github/workflows/         ci.yml (lint / test / build, plus an e2e job), deploy.yml (GitHub Pages), claude.yml
+.github/workflows/         ci.yml (lint / test / build, plus an e2e job), deploy.yml (GitHub Pages), mutation.yml (manual Stryker run, uploads the report), claude.yml
 ```
 
 ## Task Routing

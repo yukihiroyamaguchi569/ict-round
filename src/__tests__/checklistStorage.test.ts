@@ -15,6 +15,7 @@ import {
 
 const LIBRARY_KEY = 'icn-round:checklist-library';
 const ROUNDS_KEY = 'icn-round:saved-rounds';
+const ACTIVE_ID_KEY = 'icn-round:active-checklist-id';
 
 function makeChecklist(id: string, name = id): SavedChecklist {
   return {
@@ -74,6 +75,13 @@ describe('チェックリストライブラリ', () => {
     expect(loadLibrary().map((c) => c.id)).toEqual(['a']);
   });
 
+  // Renaming the key would silently drop checklists saved by earlier versions.
+  it('既存の保存キーに保存されたチェックリストを読み込む', () => {
+    const list = [makeChecklist('a')];
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify(list));
+    expect(loadLibrary()).toEqual(list);
+  });
+
   it('壊れた JSON が保存されていても空配列を返す', () => {
     localStorage.setItem(LIBRARY_KEY, '{壊れたデータ');
     expect(loadLibrary()).toEqual([]);
@@ -87,6 +95,11 @@ describe('アクティブなチェックリストID', () => {
 
   it('設定した値を読み戻せる', () => {
     setActiveId('abc');
+    expect(getActiveId()).toBe('abc');
+  });
+
+  it('既存の保存キーに保存された値を読み込む', () => {
+    localStorage.setItem(ACTIVE_ID_KEY, 'abc');
     expect(getActiveId()).toBe('abc');
   });
 });
@@ -127,6 +140,12 @@ describe('保存済みラウンド', () => {
     expect(loadSavedRounds().map((r) => r.id)).toEqual(['r2']);
   });
 
+  it('既存の保存キーに保存されたラウンドを読み込む', () => {
+    const rounds = [makeRound('r1')];
+    localStorage.setItem(ROUNDS_KEY, JSON.stringify(rounds));
+    expect(loadSavedRounds()).toEqual(rounds);
+  });
+
   it('壊れた JSON が保存されていても空配列を返す', () => {
     localStorage.setItem(ROUNDS_KEY, 'not json');
     expect(loadSavedRounds()).toEqual([]);
@@ -139,6 +158,7 @@ describe('seedDefaultIfFirstRun', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('default');
+    expect(result[0].name).toBe('標準チェックリスト');
     expect(result[0].isDefault).toBe(true);
     expect(result[0].categories.length).toBeGreaterThan(0);
     expect(getActiveId()).toBe('default');
