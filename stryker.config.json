@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
   "testRunner": "vitest",
+  "ignoreStatic": true,
   "mutate": [
     "src/checklistData.ts",
     "src/checklistImport.ts",
