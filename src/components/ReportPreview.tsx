@@ -250,7 +250,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
       children: [new TextRun({ text: '3', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  総評', bold: true, size: 26, color: clr.text })],
     }));
 
-    if (roundData.overallEvaluation.trim()) {
+    if (false && roundData.overallEvaluation.trim()) {
       const lines = roundData.overallEvaluation.split('\n');
       for (const line of lines) {
         children.push(new Paragraph({
