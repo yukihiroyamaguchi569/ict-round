@@ -42,18 +42,9 @@ export async function startRound(page: Page, name: string, wardName?: string) {
   await page.getByRole('button', { name: 'ラウンド開始' }).click();
 }
 
-/**
- * The overall progress badge ("rated/total") in the main screen header.
- * The header has no landmark role, so it is the innermost element holding both the title and the save button;
- * that keeps the per-category badges below it out of scope.
- */
+/** The overall progress badge ("rated/total") in the main screen header. */
 export function overallProgress(page: Page) {
-  const header = page
-    .locator('div')
-    .filter({ has: page.getByRole('heading', { name: '感染対策ラウンド', exact: true }) })
-    .filter({ has: page.getByRole('button', { name: '保存', exact: true }) })
-    .last();
-  return header.getByText(/^\d+\/\d+$/);
+  return page.getByLabel('評価済み項目数');
 }
 
 /** Rating button of the first item in the first category, which is the only one open at round start. */
