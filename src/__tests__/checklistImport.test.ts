@@ -25,6 +25,17 @@ describe('parseCsv', () => {
     expect(result[0].items[0].id).toBe('手指衛生-1');
   });
 
+  it('英字カテゴリ名は小文字化し、空白をハイフンに、記号を除いて ID にする', () => {
+    const result = parseCsv('Hand  Hygiene!,item');
+    expect(result[0].items[0].id).toBe('hand-hygiene-1');
+  });
+
+  it('各列の前後の空白を取り除く', () => {
+    const result = parseCsv('手指衛生 , 項目1 ');
+    expect(result[0].category).toBe('手指衛生');
+    expect(result[0].items[0]).toEqual({ id: '手指衛生-1', category: '手指衛生', description: '項目1' });
+  });
+
   it('見出し行（1行目が category）をスキップする', () => {
     const result = parseCsv('category,description\n手指衛生,項目1');
     expect(result).toHaveLength(1);
@@ -53,8 +64,9 @@ describe('parseCsv', () => {
   });
 
   it('有効な行が1つも無ければエラーを投げる', () => {
-    expect(() => parseCsv('')).toThrow();
-    expect(() => parseCsv('列が1つだけ')).toThrow();
+    // The message is shown as-is in the import dialog.
+    expect(() => parseCsv('')).toThrow('有効な行が見つかりません');
+    expect(() => parseCsv('列が1つだけ')).toThrow('有効な行が見つかりません');
   });
 });
 
