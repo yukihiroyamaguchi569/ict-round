@@ -63,6 +63,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     return navigator.canShare?.({ files: [testFile] }) ?? false;
   })();
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- builds the whole report in one function; split into section builders later
   const buildDocxBlob = async (): Promise<Blob> => {
     const clr = {
       primary:    getCssHex('--t-primary'),
@@ -340,6 +341,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
           )}
+          {/* eslint-disable-next-line sonarjs/no-nested-conditional -- no tests cover this yet; rewrite as if/else once they do */}
           {!shareFile ? '準備中…' : canShare ? '共有' : 'Word出力'}
         </button>
       </div>

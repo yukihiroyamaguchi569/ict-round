@@ -51,6 +51,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
 
   const handleSave = () => {
     if (!preview) return;
+    // eslint-disable-next-line sonarjs/pseudo-random -- local ID only, not security-sensitive
     const id = Math.random().toString(36).slice(2) + Date.now().toString(36);
     const useName = name.trim() || fileName.replace(/\.[^.]+$/, '') || '取込チェックリスト';
     onSave({
@@ -90,6 +91,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
             </p>
             <div className="overflow-x-auto">
               <p className="text-[10px] text-text-faint mb-1">ファイル形式：A列＝カテゴリ名、B列＝点検項目（見出し行は不要）</p>
+              {/* eslint-disable-next-line sonarjs/table-header -- sample of the import file format, which has no header row by design */}
               <table className="w-full border-collapse text-left text-[10px]">
                 <tbody>
                   <tr>
