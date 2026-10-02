@@ -1,13 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { readSheet } from 'read-excel-file/browser';
+import type { SheetData } from 'read-excel-file/browser';
 import { parseCsv, parseXlsx } from '../checklistImport';
 
 // Keep the real reader for the fixture tests; individual tests can feed rows directly.
+const readSheetMock = vi.hoisted(() => vi.fn<(input: ArrayBuffer) => Promise<SheetData>>());
 vi.mock('read-excel-file/browser', async (importOriginal) => {
   const actual = await importOriginal<typeof import('read-excel-file/browser')>();
-  return { ...actual, readSheet: vi.fn(actual.readSheet) };
+  readSheetMock.mockImplementation((input) => actual.readSheet(input));
+  return { ...actual, readSheet: readSheetMock };
 });
 
 describe('parseCsv', () => {
@@ -123,7 +125,7 @@ describe('parseXlsx', () => {
   });
 
   it('前後に空白のある見出し行もスキップする', async () => {
-    vi.mocked(readSheet).mockResolvedValueOnce([
+    readSheetMock.mockResolvedValueOnce([
       [' category ', 'description'],
       ['手指衛生', '項目1'],
     ]);
@@ -132,7 +134,7 @@ describe('parseXlsx', () => {
   });
 
   it('2行目以降の category 列が Category の行は見出しとして扱わず取り込む', async () => {
-    vi.mocked(readSheet).mockResolvedValueOnce([
+    readSheetMock.mockResolvedValueOnce([
       ['category', 'description'],
       ['手指衛生', '項目1'],
       ['Category', '項目2'],
