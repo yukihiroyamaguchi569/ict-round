@@ -41,4 +41,22 @@ describe('checklistData', () => {
     expect(CHECKLIST_CATEGORIES.length).toBeGreaterThan(0);
     expect(getTotalItems(CHECKLIST_CATEGORIES)).toBeGreaterThan(0);
   });
+
+  // Item IDs key saved rounds and the merge page, so they must be unique and present.
+  it('標準チェックリストの項目 ID は空でなく重複しない', () => {
+    const ids = getAllItems(CHECKLIST_CATEGORIES).map((item) => item.id);
+    expect(ids.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('標準チェックリストの各カテゴリは名前と1件以上の項目を持ち、項目は所属カテゴリ名と説明文を持つ', () => {
+    for (const cat of CHECKLIST_CATEGORIES) {
+      expect(cat.category).not.toBe('');
+      expect(cat.items.length).toBeGreaterThan(0);
+      for (const item of cat.items) {
+        expect(item.category).toBe(cat.category);
+        expect(item.description).not.toBe('');
+      }
+    }
+  });
 });
