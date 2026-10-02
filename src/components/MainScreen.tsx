@@ -26,7 +26,7 @@ interface Props {
   onHome: () => void;
 }
 
-// eslint-disable-next-line complexity -- JSX conditionals of header, progress and tabs in one component; split later
+// eslint-disable-next-line complexity -- JSX conditionals of header, progress and tabs in one component; split in Issue #106
 export default function MainScreen({
   roundData,
   categories,

@@ -63,7 +63,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     return navigator.canShare?.({ files: [testFile] }) ?? false;
   })();
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- builds the whole report in one function; split into section builders later
+  // eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- builds the whole report in one function; split into section builders in Issue #106
   const buildDocxBlob = async (): Promise<Blob> => {
     const clr = {
       primary:    getCssHex('--t-primary'),
