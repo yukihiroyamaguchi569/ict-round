@@ -141,6 +141,8 @@ src/
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
     ReportPreview.tsx      Report preview, .docx generation, share / download
   __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx)
+e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
+playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4173
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
   sw.js                    Service Worker (offline support)
@@ -152,7 +154,7 @@ docs/
   technical-spec.md, user-guide.md, privacy-policy.md  Published under /docs/<slug>
   other *.md               Internal notes (not published)
   reference/               Original checklist source spreadsheets
-.github/workflows/         ci.yml (lint / test / build), deploy.yml (GitHub Pages), claude.yml
+.github/workflows/         ci.yml (lint / test / build, plus an e2e job), deploy.yml (GitHub Pages), claude.yml
 ```
 
 ## Task Routing
