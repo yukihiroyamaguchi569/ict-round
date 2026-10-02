@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import JSZip from 'jszip';
-import { test, expect, startRound, samplePhoto, overallProgress, firstItemRating } from './helpers';
+import { test, expect, startRound, pickGalleryPhoto, overallProgress, firstItemRating } from './helpers';
 
 const INSPECTOR = '山田 花子';
 const WARD = '3階東病棟';
@@ -22,8 +22,7 @@ test('開始から評価・写真・総評を経て Word 出力した docx に�
   await page.getByRole('button', { name: '写真', exact: true }).click();
   await expect(page.getByText('写真はまだありません')).toBeVisible();
   await page.getByRole('button', { name: '写真を追加' }).click();
-  // The second file input is the gallery one (the first has capture="environment").
-  await page.locator('input[type="file"]').nth(1).setInputFiles(samplePhoto);
+  await pickGalleryPhoto(page);
   const submit = page.getByRole('button', { name: '追加する' });
   await expect(submit).toBeEnabled();
   await page.getByLabel('コメント').fill(PHOTO_COMMENT);

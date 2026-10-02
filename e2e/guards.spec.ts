@@ -1,4 +1,4 @@
-import { test, expect, startRound, samplePhoto, overallProgress, firstItemRating } from './helpers';
+import { test, expect, startRound, pickGalleryPhoto, overallProgress, firstItemRating } from './helpers';
 
 test('参加者名が空または空白だけならラウンドを開始できない', async ({ page }) => {
   await page.goto('/');
@@ -24,7 +24,7 @@ test('写真を選ぶまで追加できず、選んでも追加せずに戻れ�
   await expect(submit).toBeDisabled();
 
   // Pick a photo and a comment, so the form is ready to add, then leave without adding.
-  await page.locator('input[type="file"]').nth(1).setInputFiles(samplePhoto);
+  await pickGalleryPhoto(page);
   await page.getByLabel('コメント').fill('追加しなかったコメント');
   await expect(submit).toBeEnabled();
 

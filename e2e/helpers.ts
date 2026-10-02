@@ -28,11 +28,18 @@ export { expect };
 const SAMPLE_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR4nGO4o6aGFTEMLQkAF/tKAS/fz4YAAAAASUVORK5CYII=';
 
-export const samplePhoto = {
+const samplePhoto = {
   name: 'sample.png',
   mimeType: 'image/png',
   buffer: Buffer.from(SAMPLE_PNG_BASE64, 'base64'),
 };
+
+/** Selects the sample photo on the add-photo screen. */
+export async function pickGalleryPhoto(page: Page) {
+  // PhotoForm has two hidden file inputs: the first has capture="environment" (camera),
+  // the second is the gallery picker, which accepts a file without a camera.
+  await page.locator('input[type="file"]').nth(1).setInputFiles(samplePhoto);
+}
 
 /** Fills in the start screen and starts a round. */
 export async function startRound(page: Page, name: string, wardName?: string) {
