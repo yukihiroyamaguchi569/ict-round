@@ -21,11 +21,15 @@ export default defineConfig([
     },
   },
   {
-    // Playwright tests run in Node; its fixture callback `use` is not a React hook.
+    // Playwright tests run in Node.
     files: ['e2e/**/*.ts', 'playwright.config.ts'],
     languageOptions: {
       globals: globals.node,
     },
+  },
+  {
+    // The Playwright fixture callback `use` defined here is not a React hook.
+    files: ['e2e/helpers.ts'],
     rules: {
       'react-hooks/rules-of-hooks': 'off',
     },
