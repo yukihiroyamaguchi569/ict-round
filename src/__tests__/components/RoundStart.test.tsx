@@ -156,4 +156,27 @@ describe('RoundStart', () => {
     setup({ library: LIBRARY.slice(0, 1) });
     expect(screen.queryByRole('button', { name: '削除' })).not.toBeInTheDocument();
   });
+
+  it('adds an imported checklist, then selects it and closes the dialog', async () => {
+    const { props, user } = setup();
+    await user.click(screen.getByRole('button', { name: '新しいチェックリストを追加する' }));
+    expect(screen.getByRole('heading', { name: 'チェックリストを取り込む' })).toBeInTheDocument();
+
+    const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!fileInput) throw new Error('file input not found');
+    await user.upload(fileInput, new File(['手指衛生,消毒剤がある'], 'ward.csv', { type: 'text/csv' }));
+    await screen.findByText('プレビュー');
+    await user.click(screen.getByRole('button', { name: '保存して適用' }));
+
+    expect(props.onAddChecklist).toHaveBeenCalledTimes(1);
+    const added: SavedChecklist = vi.mocked(props.onAddChecklist).mock.calls[0][0];
+    expect(added.name).toBe('ward');
+    expect(props.onSelectChecklist).toHaveBeenCalledTimes(1);
+    expect(props.onSelectChecklist).toHaveBeenCalledWith(added.id);
+    // The new checklist must exist in the library before it is selected
+    expect(vi.mocked(props.onAddChecklist).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(props.onSelectChecklist).mock.invocationCallOrder[0],
+    );
+    expect(screen.queryByRole('heading', { name: 'チェックリストを取り込む' })).not.toBeInTheDocument();
+  });
 });
