@@ -1,7 +1,20 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import type { SheetData } from 'read-excel-file/browser';
 import { parseCsv, parseXlsx } from '../checklistImport';
+
+// Fixture tests use the real reader; individual tests can feed rows directly.
+const readSheetMock = vi.hoisted(() => vi.fn<(input: ArrayBuffer) => Promise<SheetData>>());
+vi.mock('read-excel-file/browser', () => ({ readSheet: readSheetMock }));
+const { readSheet: actualReadSheet } =
+  await vi.importActual<typeof import('read-excel-file/browser')>('read-excel-file/browser');
+
+beforeEach(() => {
+  // Reset drops any queued mockResolvedValueOnce so it cannot leak into the next test.
+  readSheetMock.mockReset();
+  readSheetMock.mockImplementation((input) => actualReadSheet(input));
+});
 
 describe('parseCsv', () => {
   it('カテゴリごとに項目をグルーピングする', () => {
@@ -25,10 +38,37 @@ describe('parseCsv', () => {
     expect(result[0].items[0].id).toBe('手指衛生-1');
   });
 
+  it('英字カテゴリ名は小文字化し、空白をハイフンに、記号を除いて ID にする', () => {
+    const result = parseCsv('Hand  Hygiene!,item');
+    expect(result[0].items[0].id).toBe('hand-hygiene-1');
+  });
+
+  it('各列の前後の空白を取り除く', () => {
+    const result = parseCsv('手指衛生 , 項目1 ');
+    expect(result[0].category).toBe('手指衛生');
+    expect(result[0].items[0]).toEqual({ id: '手指衛生-1', category: '手指衛生', description: '項目1' });
+  });
+
   it('見出し行（1行目が category）をスキップする', () => {
     const result = parseCsv('category,description\n手指衛生,項目1');
     expect(result).toHaveLength(1);
     expect(result[0].items).toHaveLength(1);
+  });
+
+  it('カンマの前に空白がある見出し行もスキップする', () => {
+    const result = parseCsv('category ,description\n手指衛生,項目1');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
+  it('大文字で始まる見出し行（Category,Description）もスキップする', () => {
+    const result = parseCsv('Category,Description\n手指衛生,項目1');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
+  it('2行目以降の category 列が Category の行は見出しとして扱わず取り込む', () => {
+    const result = parseCsv('category,description\n手指衛生,項目1\nCategory,項目2');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'Category']);
+    expect(result[1].items[0].description).toBe('項目2');
   });
 
   it('引用符で囲まれたカンマを列の区切りとして扱わない', () => {
@@ -53,8 +93,9 @@ describe('parseCsv', () => {
   });
 
   it('有効な行が1つも無ければエラーを投げる', () => {
-    expect(() => parseCsv('')).toThrow();
-    expect(() => parseCsv('列が1つだけ')).toThrow();
+    // The message is shown as-is in the import dialog.
+    expect(() => parseCsv('')).toThrow('有効な行が見つかりません');
+    expect(() => parseCsv('列が1つだけ')).toThrow('有効な行が見つかりません');
   });
 });
 
@@ -95,6 +136,25 @@ describe('parseXlsx', () => {
     expect(countItems(result)).toBe(4);
     // 見出し行がカテゴリとして混入していないこと
     expect(result.some((c) => c.category === 'category')).toBe(false);
+  });
+
+  it('前後に空白のある見出し行もスキップする', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      [' category ', 'description'],
+      ['手指衛生', '項目1'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
+  it('2行目以降の category 列が Category の行は見出しとして扱わず取り込む', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      ['category', 'description'],
+      ['手指衛生', '項目1'],
+      ['Category', '項目2'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'Category']);
   });
 
   it('空行・片側だけのセルを無視して有効な行のみ取り込む', async () => {

@@ -12,7 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "typecheck:e2e": "tsc -b tsconfig.e2e.json"
+    "typecheck:e2e": "tsc -b tsconfig.e2e.json",
+    "test:mutation": "stryker run",
+    "verify": "npm run lint && npm test && npm run build",
+    "verify:full": "npm run verify && npm run typecheck:e2e && npm run test:e2e && npm run test:mutation"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -26,6 +29,8 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.63.0",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",

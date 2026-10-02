@@ -189,6 +189,11 @@ describe('loadLastSeenVersion / markVersionSeen', () => {
     expect(loadLastSeenVersion()).toBeNull();
   });
 
+  it('reads back a record whose major version has two digits', () => {
+    localStorage.setItem(LAST_SEEN_VERSION_KEY, '10.0.0');
+    expect(loadLastSeenVersion()).toBe('10.0.0');
+  });
+
   it('overwrites a corrupted record with the current version', () => {
     localStorage.setItem(LAST_SEEN_VERSION_KEY, 'undefined');
     markVersionSeen('1.13.0');
