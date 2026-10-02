@@ -1,7 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { readSheet } from 'read-excel-file/browser';
 import { parseCsv, parseXlsx } from '../checklistImport';
+
+// Keep the real reader for the fixture tests; individual tests can feed rows directly.
+vi.mock('read-excel-file/browser', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('read-excel-file/browser')>();
+  return { ...actual, readSheet: vi.fn(actual.readSheet) };
+});
 
 describe('parseCsv', () => {
   it('カテゴリごとに項目をグルーピングする', () => {
@@ -107,6 +114,15 @@ describe('parseXlsx', () => {
     expect(countItems(result)).toBe(4);
     // 見出し行がカテゴリとして混入していないこと
     expect(result.some((c) => c.category === 'category')).toBe(false);
+  });
+
+  it('前後に空白のある見出し行もスキップする', async () => {
+    vi.mocked(readSheet).mockResolvedValueOnce([
+      [' category ', 'description'],
+      ['手指衛生', '項目1'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
   });
 
   it('空行・片側だけのセルを無視して有効な行のみ取り込む', async () => {
