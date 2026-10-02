@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RoundStart from '../../components/RoundStart';
@@ -13,6 +13,12 @@ const LIBRARY: SavedChecklist[] = [
     createdAt: '2026-01-01T00:00:00.000Z',
     isDefault: true,
     categories: [{ category: '手指衛生', items: [{ id: 'h-1', category: '手指衛生', description: '消毒剤' }] }],
+  },
+  {
+    id: 'custom',
+    name: '外来用',
+    createdAt: '2026-02-01T00:00:00.000Z',
+    categories: [{ category: '環境', items: [{ id: 'e-1', category: '環境', description: '清掃' }] }],
   },
 ];
 
@@ -52,6 +58,10 @@ function nameInput() {
 function wardInput() {
   return screen.getByPlaceholderText('例: 3階東病棟');
 }
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('RoundStart', () => {
   it('disables start while the name is empty', () => {
@@ -113,5 +123,39 @@ describe('RoundStart', () => {
     await user.click(screen.getByRole('button', { name: /保存済みラウンドを開く/ }));
     expect(props.onViewSaved).toHaveBeenCalledTimes(1);
     expect(props.onStart).not.toHaveBeenCalled();
+  });
+
+  it('selects a checklist when its row is clicked', async () => {
+    const { props, user } = setup();
+    await user.click(screen.getByText('外来用'));
+    expect(props.onSelectChecklist).toHaveBeenCalledTimes(1);
+    expect(props.onSelectChecklist).toHaveBeenCalledWith('custom');
+    expect(props.onDeleteChecklist).not.toHaveBeenCalled();
+  });
+
+  it('keeps the checklist when deletion is cancelled in the confirm dialog', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { props, user } = setup();
+    await user.click(screen.getAllByRole('button', { name: '削除' })[1]);
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(props.onDeleteChecklist).not.toHaveBeenCalled();
+    expect(props.onSelectChecklist).not.toHaveBeenCalled();
+    expect(screen.getByText('標準チェックリスト')).toBeInTheDocument();
+    expect(screen.getByText('外来用')).toBeInTheDocument();
+  });
+
+  it('deletes the checklist when the confirm dialog is accepted, without selecting it', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { props, user } = setup();
+    await user.click(screen.getAllByRole('button', { name: '削除' })[1]);
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(props.onDeleteChecklist).toHaveBeenCalledTimes(1);
+    expect(props.onDeleteChecklist).toHaveBeenCalledWith('custom');
+    expect(props.onSelectChecklist).not.toHaveBeenCalled();
+  });
+
+  it('offers no delete button when only one checklist is left', () => {
+    setup({ library: LIBRARY.slice(0, 1) });
+    expect(screen.queryByRole('button', { name: '削除' })).not.toBeInTheDocument();
   });
 });
