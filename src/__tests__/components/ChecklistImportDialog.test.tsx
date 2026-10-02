@@ -35,6 +35,7 @@ describe('ChecklistImportDialog', () => {
     await user.upload(fileInput, new File([VALID_CSV], '3東専用.csv', { type: 'text/csv' }));
 
     expect(await screen.findByText('2カテゴリ・3項目')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByText('手指衛生（2項目）')).toBeInTheDocument();
     expect(screen.getByText('個人防護具（1項目）')).toBeInTheDocument();
 
@@ -64,7 +65,7 @@ describe('ChecklistImportDialog', () => {
     const { onSave, fileInput, user } = setup();
     await user.upload(fileInput, new File(['only-one-column\nanother'], 'bad.csv', { type: 'text/csv' }));
 
-    expect(await screen.findByText(/有効な行が見つかりません/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/有効な行が見つかりません/);
     expect(screen.queryByText('プレビュー')).not.toBeInTheDocument();
     expect(saveButton()).toBeDisabled();
     await user.click(saveButton());
@@ -75,7 +76,7 @@ describe('ChecklistImportDialog', () => {
     const { onSave, fileInput, user } = setup();
     await user.upload(fileInput, new File([''], 'empty.csv', { type: 'text/csv' }));
 
-    expect(await screen.findByText(/有効な行が見つかりません/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/有効な行が見つかりません/);
     expect(saveButton()).toBeDisabled();
     await user.click(saveButton());
     expect(onSave).not.toHaveBeenCalled();
@@ -90,8 +91,8 @@ describe('ChecklistImportDialog', () => {
       }),
     );
 
-    // The error text comes from the xlsx library, so only check that an error is shown
-    await vi.waitFor(() => expect(document.querySelector('.text-red-600')).not.toBeNull());
+    // The error text comes from read-excel-file, so only check that an error is shown
+    expect(await screen.findByRole('alert')).not.toBeEmptyDOMElement();
     expect(screen.queryByText('読み込み中...')).not.toBeInTheDocument();
     expect(screen.queryByText('プレビュー')).not.toBeInTheDocument();
     expect(saveButton()).toBeDisabled();
@@ -105,7 +106,7 @@ describe('ChecklistImportDialog', () => {
     await screen.findByText('2カテゴリ・3項目');
 
     await user.upload(fileInput, new File([''], 'empty.csv', { type: 'text/csv' }));
-    expect(await screen.findByText(/有効な行が見つかりません/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(/有効な行が見つかりません/);
     expect(screen.queryByText('2カテゴリ・3項目')).not.toBeInTheDocument();
     expect(saveButton()).toBeDisabled();
     await user.click(saveButton());

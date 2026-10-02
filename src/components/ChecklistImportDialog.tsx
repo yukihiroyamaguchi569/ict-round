@@ -170,7 +170,7 @@ export default function ChecklistImportDialog({ onSave, onCancel }: Props) {
 
           {/* Error */}
           {error && (
-            <p className="text-xs text-red-600 font-bold bg-red-50 px-3 py-2 rounded">{error}</p>
+            <p role="alert" className="text-xs text-red-600 font-bold bg-red-50 px-3 py-2 rounded">{error}</p>
           )}
 
           {/* Loading */}
