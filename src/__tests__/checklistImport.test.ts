@@ -6,10 +6,7 @@ import { parseCsv, parseXlsx } from '../checklistImport';
 
 // Fixture tests use the real reader; individual tests can feed rows directly.
 const readSheetMock = vi.hoisted(() => vi.fn<(input: ArrayBuffer) => Promise<SheetData>>());
-vi.mock('read-excel-file/browser', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('read-excel-file/browser')>()),
-  readSheet: readSheetMock,
-}));
+vi.mock('read-excel-file/browser', () => ({ readSheet: readSheetMock }));
 const { readSheet: actualReadSheet } =
   await vi.importActual<typeof import('read-excel-file/browser')>('read-excel-file/browser');
 
@@ -60,6 +57,11 @@ describe('parseCsv', () => {
 
   it('カンマの前に空白がある見出し行もスキップする', () => {
     const result = parseCsv('category ,description\n手指衛生,項目1');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
+  it('大文字で始まる見出し行（Category,Description）もスキップする', () => {
+    const result = parseCsv('Category,Description\n手指衛生,項目1');
     expect(result.map((c) => c.category)).toEqual(['手指衛生']);
   });
 
