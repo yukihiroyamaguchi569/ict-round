@@ -6,11 +6,6 @@ import { readFileSync } from 'fs'
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string };
 const now = new Date();
 const buildDate = String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
-// Node 25+ defines its own global localStorage (undefined without --localstorage-file),
-// which hides jsdom's localStorage from component tests. Turn it off in test workers;
-// older Node versions do not have it and may reject the flag.
-const nodeMajor = Number(process.versions.node.split('.')[0]);
-const testExecArgv = nodeMajor >= 25 ? ['--no-experimental-webstorage'] : [];
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -20,7 +15,8 @@ export default defineConfig({
     __BUILD_DATE__: JSON.stringify(buildDate),
   },
   test: {
-    execArgv: testExecArgv,
+    // Node's own global localStorage hides jsdom's; turn it off (flag exists since Node 22.4).
+    execArgv: ['--no-experimental-webstorage'],
     // Logic tests (*.test.ts) run in node, component tests (*.test.tsx) in jsdom.
     // extends: true lets both projects inherit the plugins, define and test options above.
     projects: [
