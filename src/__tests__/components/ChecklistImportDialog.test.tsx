@@ -119,4 +119,11 @@ describe('ChecklistImportDialog', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it('calls only onCancel when the close (x) button is pressed', async () => {
+    const { onSave, onCancel, user } = setup();
+    await user.click(screen.getByRole('button', { name: '閉じる' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onSave).not.toHaveBeenCalled();
+  });
 });
