@@ -15,8 +15,12 @@ export default defineConfig({
     __BUILD_DATE__: JSON.stringify(buildDate),
   },
   test: {
+    // Component tests (*.test.tsx) opt into jsdom with a `// @vitest-environment jsdom` docblock.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
     setupFiles: ['./src/__tests__/setup.ts'],
+    // Node 25+ defines its own global localStorage (undefined without --localstorage-file),
+    // which hides jsdom's localStorage from component tests. Turn it off in test workers.
+    execArgv: ['--no-experimental-webstorage'],
   },
 })
