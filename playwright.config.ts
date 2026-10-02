@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// Fixed port, separate from the dev server (5173) so `npm run dev` can keep running.
-const PORT = 4173;
+// Dedicated port, distinct from vite's dev (5173) and preview (4173) defaults,
+// so a server started by hand is never mistaken for the one under test.
+const PORT = 4317;
 const BASE_URL = `http://localhost:${PORT}`;
 const isCI = !!process.env.CI;
 
@@ -25,7 +26,8 @@ export default defineConfig({
   webServer: {
     command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
     url: BASE_URL,
-    reuseExistingServer: !isCI,
+    // Always build and serve fresh; reusing a server could test a stale build.
+    reuseExistingServer: false,
     timeout: 180_000,
   },
 });

@@ -142,7 +142,7 @@ src/
     ReportPreview.tsx      Report preview, .docx generation, share / download
   __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx)
 e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
-playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4173
+playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4317
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
   sw.js                    Service Worker (offline support)
