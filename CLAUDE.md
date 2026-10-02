@@ -141,6 +141,7 @@ src/
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
     ReportPreview.tsx      Report preview, .docx generation, share / download
   __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx)
+stryker.config.json        Stryker mutation testing config (targets the core logic modules; report in reports/mutation/)
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
   sw.js                    Service Worker (offline support)
@@ -152,7 +153,7 @@ docs/
   technical-spec.md, user-guide.md, privacy-policy.md  Published under /docs/<slug>
   other *.md               Internal notes (not published)
   reference/               Original checklist source spreadsheets
-.github/workflows/         ci.yml (lint / test / build), deploy.yml (GitHub Pages), claude.yml
+.github/workflows/         ci.yml (lint / test / build), deploy.yml (GitHub Pages), mutation.yml (manual Stryker run, uploads the report), claude.yml
 ```
 
 ## Task Routing
