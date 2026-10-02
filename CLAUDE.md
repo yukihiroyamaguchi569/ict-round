@@ -140,7 +140,7 @@ src/
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
     ReportPreview.tsx      Report preview, .docx generation, share / download
-  __tests__/               Vitest tests (setup.ts provides in-memory localStorage; fixtures/ holds sample .xlsx)
+  __tests__/               Vitest tests: logic *.test.ts in node, components/*.test.tsx in jsdom via Testing Library (setup.ts: in-memory localStorage for node, jest-dom, cleanup; fixtures/ holds sample .xlsx)
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
   sw.js                    Service Worker (offline support)
