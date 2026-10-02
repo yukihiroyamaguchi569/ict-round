@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RoundStart from '../../components/RoundStart';
@@ -52,27 +52,6 @@ function nameInput() {
 function wardInput() {
   return screen.getByPlaceholderText('例: 3階東病棟');
 }
-
-beforeEach(() => {
-  // jsdom has no matchMedia; usePwaInstall uses it to detect standalone mode
-  vi.stubGlobal(
-    'matchMedia',
-    vi.fn((query: string) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: vi.fn(),
-      removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-      dispatchEvent: vi.fn(),
-    })),
-  );
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe('RoundStart', () => {
   it('disables start while the name is empty', () => {
