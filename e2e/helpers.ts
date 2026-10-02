@@ -48,9 +48,13 @@ export async function startRound(page: Page, name: string, wardName?: string) {
   await page.getByRole('button', { name: 'ラウンド開始' }).click();
 }
 
-/** The overall progress badge ("rated/total") in the main screen header. */
+/**
+ * The overall progress badge ("rated/total") in the main screen header.
+ * A test id is used because the badge is plain text with no accessible role, and adding
+ * one (e.g. a live region) would change what screen readers announce.
+ */
 export function overallProgress(page: Page) {
-  return page.getByRole('status');
+  return page.getByTestId('overall-progress');
 }
 
 /** Rating button of the first item in the first category, which is the only one open at round start. */
