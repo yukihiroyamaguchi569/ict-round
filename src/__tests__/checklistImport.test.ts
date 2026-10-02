@@ -58,6 +58,11 @@ describe('parseCsv', () => {
     expect(result[0].items).toHaveLength(1);
   });
 
+  it('カンマの前に空白がある見出し行もスキップする', () => {
+    const result = parseCsv('category ,description\n手指衛生,項目1');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
   it('2行目以降の category 列が Category の行は見出しとして扱わず取り込む', () => {
     const result = parseCsv('category,description\n手指衛生,項目1\nCategory,項目2');
     expect(result.map((c) => c.category)).toEqual(['手指衛生', 'Category']);
