@@ -1,15 +1,22 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { SheetData } from 'read-excel-file/browser';
 import { parseCsv, parseXlsx } from '../checklistImport';
 
-// Keep the real reader for the fixture tests; individual tests can feed rows directly.
+// Fixture tests use the real reader; individual tests can feed rows directly.
 const readSheetMock = vi.hoisted(() => vi.fn<(input: ArrayBuffer) => Promise<SheetData>>());
-vi.mock('read-excel-file/browser', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('read-excel-file/browser')>();
-  readSheetMock.mockImplementation((input) => actual.readSheet(input));
-  return { ...actual, readSheet: readSheetMock };
+vi.mock('read-excel-file/browser', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('read-excel-file/browser')>()),
+  readSheet: readSheetMock,
+}));
+const { readSheet: actualReadSheet } =
+  await vi.importActual<typeof import('read-excel-file/browser')>('read-excel-file/browser');
+
+beforeEach(() => {
+  // Reset drops any queued mockResolvedValueOnce so it cannot leak into the next test.
+  readSheetMock.mockReset();
+  readSheetMock.mockImplementation((input) => actualReadSheet(input));
 });
 
 describe('parseCsv', () => {
