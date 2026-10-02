@@ -3,7 +3,7 @@
 **文書番号:** ICT-TS-001  
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
-**最終更新日:** 2026年9月24日  
+**最終更新日:** 2026年10月2日  
 **対象バージョン:** 1.14.1
 
 ---
@@ -510,7 +510,7 @@ npm run lint
 
 ### 10.2 本番ビルド
 
-- `tsc -b && vite build`
+- `tsc -b tsconfig.app.json tsconfig.node.json && vite build && node scripts/build-docs.mjs`（E2E の型チェックは本番ビルドに含めず、`npm run typecheck:e2e` で別に行う）
 - 出力先: `dist/`
 
 ### 10.3 更新反映
