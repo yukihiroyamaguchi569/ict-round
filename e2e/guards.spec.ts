@@ -1,4 +1,4 @@
-import { test, expect, startRound, pickGalleryPhoto, overallProgress, firstItemRating } from './helpers';
+import { test, expect, startRound, bottomTab, pickGalleryPhoto, overallProgress, firstItemRating } from './helpers';
 
 test('参加者名が空または空白だけならラウンドを開始できない', async ({ page }) => {
   await page.goto('/');
@@ -17,7 +17,7 @@ test('参加者名が空または空白だけならラウンドを開始でき�
 
 test('写真を選ぶまで追加できず、選んでも追加せずに戻れば写真は増えない', async ({ page }) => {
   await startRound(page, '山田 花子');
-  await page.getByRole('button', { name: '写真', exact: true }).click();
+  await bottomTab(page, '写真').click();
   await page.getByRole('button', { name: '写真を追加' }).click();
 
   const submit = page.getByRole('button', { name: '追加する' });

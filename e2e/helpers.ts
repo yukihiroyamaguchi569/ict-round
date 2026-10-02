@@ -61,3 +61,11 @@ export function overallProgress(page: Page) {
 export function firstItemRating(page: Page, rating: 'A' | 'B' | 'C') {
   return page.getByRole('button', { name: rating, exact: true }).first();
 }
+
+/**
+ * A bottom tab button. Matches on the end of the name because the tab's accessible name
+ * also carries its badge (e.g. "記入済み 総評", "1写真").
+ */
+export function bottomTab(page: Page, label: '写真' | '総評') {
+  return page.getByRole('button', { name: new RegExp(`${label}$`) });
+}

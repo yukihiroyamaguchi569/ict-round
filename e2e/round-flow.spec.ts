@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import JSZip from 'jszip';
-import { test, expect, startRound, pickGalleryPhoto, overallProgress, firstItemRating } from './helpers';
+import { test, expect, startRound, bottomTab, pickGalleryPhoto, overallProgress, firstItemRating } from './helpers';
 
 const INSPECTOR = '山田 花子';
 const WARD = '3階東病棟';
@@ -19,7 +19,7 @@ test('開始から評価・写真・総評を経て Word 出力した docx に�
   await expect(overallProgress(page)).toHaveText(/^1\/\d+$/);
 
   // Add one general photo with a comment.
-  await page.getByRole('button', { name: '写真', exact: true }).click();
+  await bottomTab(page, '写真').click();
   await expect(page.getByText('写真はまだありません')).toBeVisible();
   await page.getByRole('button', { name: '写真を追加' }).click();
   await pickGalleryPhoto(page);
@@ -31,7 +31,7 @@ test('開始から評価・写真・総評を経て Word 出力した docx に�
   await expect(page.getByText(PHOTO_COMMENT)).toBeVisible();
 
   // Write the overall evaluation.
-  await page.getByRole('button', { name: '総評', exact: true }).click();
+  await bottomTab(page, '総評').click();
   await page.getByRole('textbox').fill(EVALUATION);
 
   // The preview reflects the input.
