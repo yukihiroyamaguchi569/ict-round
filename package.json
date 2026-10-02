@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:mutation": "stryker run"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -23,6 +24,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^26.4.0",
     "@types/react": "^19.2.18",
