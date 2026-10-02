@@ -9,10 +9,7 @@ test('参加者名が空または空白だけならラウンドを開始でき�
 
   await nameInput.fill('   ');
   await expect(start).toBeDisabled();
-  // Submitting the form with Enter must not start a round either.
-  await nameInput.press('Enter');
-  await expect(start).toBeVisible();
-  await expect(page.getByRole('button', { name: 'レポート' })).toHaveCount(0);
+  // The submit handler's own guard is covered by the component test (fireEvent.submit, PR #98).
 
   await nameInput.fill('山田 花子');
   await expect(start).toBeEnabled();
