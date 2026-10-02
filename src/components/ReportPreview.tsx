@@ -317,6 +317,10 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     roundData.checklistResults.reduce((s, r) => s + r.photos.length, 0) +
     roundData.generalPhotos.length;
 
+  let exportButtonLabel = 'Word出力';
+  if (!shareFile) exportButtonLabel = '準備中…';
+  else if (canShare) exportButtonLabel = '共有';
+
   return (
     <div className="min-h-screen bg-base">
       {/* Header */}
@@ -341,8 +345,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
           )}
-          {/* eslint-disable-next-line sonarjs/no-nested-conditional -- no tests cover this yet; rewrite as if/else once they do */}
-          {!shareFile ? '準備中…' : canShare ? '共有' : 'Word出力'}
+          {exportButtonLabel}
         </button>
       </div>
 
