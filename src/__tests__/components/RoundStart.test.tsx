@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RoundStart from '../../components/RoundStart';
 import { ThemeProvider } from '../../ThemeContext';
@@ -61,8 +61,12 @@ describe('RoundStart', () => {
 
   it('keeps start disabled for a whitespace-only name and does not call onStart on submit', async () => {
     const { props, user } = setup();
-    await user.type(nameInput(), '   {Enter}');
+    await user.type(nameInput(), '   ');
     expect(startButton()).toBeDisabled();
+    // Submit the form directly so the guard in handleSubmit is exercised, not just the disabled button
+    const form = startButton().closest('form');
+    if (!form) throw new Error('form not found');
+    fireEvent.submit(form);
     expect(props.onStart).not.toHaveBeenCalled();
   });
 
