@@ -109,9 +109,19 @@ export function buildChecklist(
   const error = validate(name, categories);
   if (error) return { error };
 
+  // Reserve the first occurrence of each kept ID before generating any new one,
+  // so a generated ID can never take a kept ID that appears later in the draft
   const usedIds = new Set<string>();
-  const uniqueId = (id: string | undefined): string => {
-    let next = id && !usedIds.has(id) ? id : `item-${makeId()}`;
+  const keepsId = new Set<object>();
+  for (const item of categories.flatMap((cat) => cat.items)) {
+    if (item.id && !usedIds.has(item.id)) {
+      usedIds.add(item.id);
+      keepsId.add(item);
+    }
+  }
+  const idFor = (item: { id?: string }): string => {
+    if (item.id && keepsId.has(item)) return item.id;
+    let next = `item-${makeId()}`;
     while (usedIds.has(next)) next = `item-${makeId()}`;
     usedIds.add(next);
     return next;
@@ -120,7 +130,7 @@ export function buildChecklist(
   const built: ChecklistCategory[] = categories.map((cat) => ({
     category: cat.name,
     items: cat.items.map(
-      (item): ChecklistItemDef => ({ id: uniqueId(item.id), category: cat.name, description: item.description }),
+      (item): ChecklistItemDef => ({ id: idFor(item), category: cat.name, description: item.description }),
     ),
   }));
 

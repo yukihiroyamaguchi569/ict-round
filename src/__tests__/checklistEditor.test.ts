@@ -246,13 +246,13 @@ describe('buildChecklist', () => {
   });
 
   it('does not let a new ID collide with an existing one', () => {
-    // The generator first returns a value that collides with a kept ID
-    const ids = ['x', 'x', 'y', 'list'];
+    // The generator first returns a value that collides with a kept ID that comes later in the draft
+    const ids = ['x', 'y', 'list'];
     const makeId = () => ids.shift() ?? 'unexpected';
     const d = draft('x', [{ name: 'A', items: ['new', ['item-x', 'kept']] }]);
     const c = expectChecklist(buildChecklist(d, makeId));
-    // The first item takes item-x, so the kept item-x is now a duplicate and is reassigned
-    expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-x', 'item-y']);
+    // The kept item-x is reserved first, so the new item skips it and the order is unchanged
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-y', 'item-x']);
     expect(c.id).toBe('list');
   });
 
