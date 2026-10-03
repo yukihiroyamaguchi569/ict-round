@@ -3,8 +3,10 @@ import { useTheme } from '../ThemeContext';
 import { useIcon } from '../IconContext';
 import ThemeSelector from './ThemeSelector';
 import ChecklistImportDialog from './ChecklistImportDialog';
+import ChecklistEditor from './ChecklistEditor';
 import InstallBanner from './InstallBanner';
 import type { SavedChecklist } from '../types';
+import { draftFromChecklist, emptyDraft, type EditorDraft } from '../checklistEditor';
 
 interface Props {
   library: SavedChecklist[];
@@ -33,6 +35,8 @@ export default function RoundStart({
   const [name, setName] = useState(initialName);
   const [wardName, setWardName] = useState('');
   const [showImport, setShowImport] = useState(false);
+  const [showAddOptions, setShowAddOptions] = useState(false);
+  const [editor, setEditor] = useState<{ draft: EditorDraft; source: 'new' | 'copy' } | null>(null);
   const { theme } = useTheme();
   const { icon } = useIcon();
 
@@ -45,6 +49,26 @@ export default function RoundStart({
     onAddChecklist(c);
     onSelectChecklist(c.id);
     setShowImport(false);
+  };
+
+  const handleSaveEditor = (c: SavedChecklist) => {
+    onAddChecklist(c);
+    onSelectChecklist(c.id);
+    setEditor(null);
+  };
+
+  const openImport = () => {
+    setShowAddOptions(false);
+    setShowImport(true);
+  };
+
+  const openNewEditor = () => {
+    setShowAddOptions(false);
+    setEditor({ draft: emptyDraft(), source: 'new' });
+  };
+
+  const openCopyEditor = (c: SavedChecklist) => {
+    setEditor({ draft: draftFromChecklist(c, `${c.name}のコピー`), source: 'copy' });
   };
 
   const handleDelete = (id: string) => {
@@ -106,6 +130,16 @@ export default function RoundStart({
                   {c.isDefault && <span className="ml-1 text-primary font-bold">（標準）</span>}
                 </p>
               </div>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); openCopyEditor(c); }}
+                className="text-text-faint hover:text-primary transition-colors p-1"
+                aria-label="複製して編集"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
               {library.length > 1 && (
                 <button
                   type="button"
@@ -123,7 +157,8 @@ export default function RoundStart({
 
           <button
             type="button"
-            onClick={() => setShowImport(true)}
+            onClick={() => setShowAddOptions((v) => !v)}
+            aria-expanded={showAddOptions}
             className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold border-2 rounded-t transition-colors"
             style={{ borderColor: 'var(--t-primary)', color: 'var(--t-primary)' }}
           >
@@ -132,6 +167,25 @@ export default function RoundStart({
             </svg>
             新しいチェックリストを追加する
           </button>
+
+          {showAddOptions && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={openNewEditor}
+                className="py-2.5 text-xs font-bold border-2 border-line rounded-t text-text-muted hover:text-primary hover:border-primary transition-colors"
+              >
+                画面で作成する
+              </button>
+              <button
+                type="button"
+                onClick={openImport}
+                className="py-2.5 text-xs font-bold border-2 border-line rounded-t text-text-muted hover:text-primary hover:border-primary transition-colors"
+              >
+                ファイルから取り込む
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Form */}
@@ -196,6 +250,15 @@ export default function RoundStart({
         <ChecklistImportDialog
           onSave={handleSaveImport}
           onCancel={() => setShowImport(false)}
+        />
+      )}
+
+      {editor && (
+        <ChecklistEditor
+          initialDraft={editor.draft}
+          source={editor.source}
+          onSave={handleSaveEditor}
+          onCancel={() => setEditor(null)}
         />
       )}
     </div>
