@@ -285,6 +285,19 @@ describe('buildChecklist', () => {
     expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-fresh']);
   });
 
+  it('does not give a new item the source ID of a copied item that was blanked out', () => {
+    const ids = ['h-1', 'e-1', 'fresh', 'list'];
+    const makeId = () => ids.shift() ?? 'unexpected';
+    const d = draft('x', [
+      { name: 'A', items: [['item-h-1', ''], 'new'] },
+      // A category left without items is dropped, but its source IDs stay reserved
+      { name: 'B', items: [['item-e-1', ' ']] },
+    ]);
+    const c = expectChecklist(buildChecklist(d, makeId));
+    expect(c.categories).toHaveLength(1);
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-fresh']);
+  });
+
   it('keeps a duplicate source ID on the first item that is unchanged', () => {
     const d = draft('x', [{ name: 'A', items: [['dup', 'changed'], ['dup', 'same']] }]);
     d.categories[0].items[0].source = { id: 'dup', category: 'A', description: 'original' };

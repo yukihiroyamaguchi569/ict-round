@@ -100,6 +100,24 @@ function validate(name: string, categories: ReturnType<typeof trimmedCategories>
   return null;
 }
 
+/** The copied items whose category name and description are unchanged; of those sharing an ID, only the first. */
+function itemsKeepingSourceId(categories: ReturnType<typeof trimmedCategories>): Set<object> {
+  const keptIds = new Set<string>();
+  const keepsId = new Set<object>();
+  for (const cat of categories) {
+    for (const item of cat.items) {
+      const { source } = item;
+      if (!source) continue;
+      const unchanged = source.category.trim() === cat.name && source.description.trim() === item.description;
+      if (unchanged && !keptIds.has(source.id)) {
+        keptIds.add(source.id);
+        keepsId.add(item);
+      }
+    }
+  }
+  return keepsId;
+}
+
 /**
  * Converts the editor draft into a new checklist, or returns a user-facing error.
  * A copied item keeps its source ID only when its trimmed category name and description both
@@ -115,24 +133,14 @@ export function buildChecklist(
   const error = validate(name, categories);
   if (error) return { error };
 
-  // Reserve every source ID before generating any new one, so a generated ID can never take
-  // a kept ID that appears later in the draft, nor reuse the ID of an item whose text changed.
-  // Of the unchanged items sharing an ID, only the first keeps it
+  // Reserve every source ID in the draft, blanked items included, before generating any new one,
+  // so a generated ID can never take a kept ID that appears later in the draft, nor reuse the ID
+  // of an item whose text changed
   const usedIds = new Set<string>();
-  const keptIds = new Set<string>();
-  const keepsId = new Set<object>();
-  for (const cat of categories) {
-    for (const item of cat.items) {
-      const { source } = item;
-      if (!source) continue;
-      usedIds.add(source.id);
-      const unchanged = source.category.trim() === cat.name && source.description.trim() === item.description;
-      if (unchanged && !keptIds.has(source.id)) {
-        keptIds.add(source.id);
-        keepsId.add(item);
-      }
-    }
+  for (const item of draft.categories.flatMap((cat) => cat.items)) {
+    if (item.source) usedIds.add(item.source.id);
   }
+  const keepsId = itemsKeepingSourceId(categories);
   const idFor = (item: { source?: { id: string } }): string => {
     if (item.source && keepsId.has(item)) return item.source.id;
     let next = `item-${makeId()}`;
