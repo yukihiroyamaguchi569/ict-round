@@ -160,6 +160,7 @@ describe('RoundStart', () => {
   it('adds an imported checklist, then selects it and closes the dialog', async () => {
     const { props, user } = setup();
     await user.click(screen.getByRole('button', { name: '新しいチェックリストを追加する' }));
+    await user.click(screen.getByRole('button', { name: 'ファイルから取り込む' }));
     expect(screen.getByRole('heading', { name: 'チェックリストを取り込む' })).toBeInTheDocument();
 
     const fileInput = document.querySelector<HTMLInputElement>('input[type="file"]');
@@ -178,5 +179,82 @@ describe('RoundStart', () => {
       vi.mocked(props.onSelectChecklist).mock.invocationCallOrder[0],
     );
     expect(screen.queryByRole('heading', { name: 'チェックリストを取り込む' })).not.toBeInTheDocument();
+  });
+
+  it('offers to create on screen or import a file, without opening either yet', async () => {
+    const { user } = setup();
+    const addButton = screen.getByRole('button', { name: '新しいチェックリストを追加する' });
+    expect(screen.queryByRole('button', { name: '画面で作成する' })).not.toBeInTheDocument();
+
+    await user.click(addButton);
+    expect(addButton).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: '画面で作成する' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'ファイルから取り込む' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'チェックリストを取り込む' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'チェックリストを作成' })).not.toBeInTheDocument();
+
+    // A second click closes the options again
+    await user.click(addButton);
+    expect(screen.queryByRole('button', { name: '画面で作成する' })).not.toBeInTheDocument();
+  });
+
+  it('creates a checklist on screen, then adds and selects it and closes the editor', async () => {
+    const { props, user } = setup();
+    await user.click(screen.getByRole('button', { name: '新しいチェックリストを追加する' }));
+    await user.click(screen.getByRole('button', { name: '画面で作成する' }));
+    expect(screen.getByRole('heading', { name: 'チェックリストを作成' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'チェックリストの名前' })).toHaveValue('');
+
+    await user.type(screen.getByRole('textbox', { name: 'チェックリストの名前' }), '医療安全');
+    await user.type(screen.getByRole('textbox', { name: 'カテゴリ1の名前' }), '転倒');
+    await user.type(screen.getByRole('textbox', { name: 'カテゴリ1の項目1' }), '柵が上がっている');
+    await user.click(screen.getByRole('button', { name: '保存して適用' }));
+
+    expect(props.onAddChecklist).toHaveBeenCalledTimes(1);
+    const added: SavedChecklist = vi.mocked(props.onAddChecklist).mock.calls[0][0];
+    expect(added.name).toBe('医療安全');
+    expect(props.onSelectChecklist).toHaveBeenCalledWith(added.id);
+    expect(vi.mocked(props.onAddChecklist).mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(props.onSelectChecklist).mock.invocationCallOrder[0],
+    );
+    expect(screen.queryByRole('heading', { name: 'チェックリストを作成' })).not.toBeInTheDocument();
+  });
+
+  it('opens the editor with a copy of the checklist without selecting the row', async () => {
+    const { props, user } = setup();
+    await user.click(screen.getAllByRole('button', { name: '複製して編集' })[1]);
+    expect(props.onSelectChecklist).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'チェックリストを複製して編集' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'チェックリストの名前' })).toHaveValue('外来用のコピー');
+    expect(screen.getByRole('textbox', { name: 'カテゴリ1の名前' })).toHaveValue('環境');
+    expect(screen.getByRole('textbox', { name: 'カテゴリ1の項目1' })).toHaveValue('清掃');
+  });
+
+  it('adds the copy as a new checklist and leaves the original untouched', async () => {
+    const { props, user } = setup();
+    await user.click(screen.getAllByRole('button', { name: '複製して編集' })[0]);
+    await user.click(screen.getByRole('button', { name: '保存して適用' }));
+
+    const added: SavedChecklist = vi.mocked(props.onAddChecklist).mock.calls[0][0];
+    expect(added.id).not.toBe('default');
+    expect(added.isDefault).toBeUndefined();
+    expect(added.name).toBe('標準チェックリストのコピー');
+    expect(added.categories).toEqual(LIBRARY[0].categories);
+    expect(props.onDeleteChecklist).not.toHaveBeenCalled();
+    expect(props.onSelectChecklist).toHaveBeenCalledWith(added.id);
+  });
+
+  it('offers copy even when only one checklist is left', () => {
+    setup({ library: LIBRARY.slice(0, 1) });
+    expect(screen.getByRole('button', { name: '複製して編集' })).toBeInTheDocument();
+  });
+
+  it('closes the editor on cancel without adding anything', async () => {
+    const { props, user } = setup();
+    await user.click(screen.getAllByRole('button', { name: '複製して編集' })[0]);
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }));
+    expect(screen.queryByRole('heading', { name: 'チェックリストを複製して編集' })).not.toBeInTheDocument();
+    expect(props.onAddChecklist).not.toHaveBeenCalled();
+    expect(props.onSelectChecklist).not.toHaveBeenCalled();
   });
 });
