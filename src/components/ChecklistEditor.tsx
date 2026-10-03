@@ -55,15 +55,24 @@ interface CategoryCardProps {
   category: DraftCategory;
   index: number;
   count: number;
+  focusName: boolean;
   onChange: (next: DraftCategory) => void;
   onMove: (delta: number) => void;
   onDelete: () => void;
 }
 
-function CategoryCard({ category, index, count, onChange, onMove, onDelete }: CategoryCardProps) {
+function CategoryCard({ category, index, count, focusName, onChange, onMove, onDelete }: CategoryCardProps) {
   const label = `カテゴリ${index + 1}`;
   const items = category.items;
   const setItems = (next: typeof items) => onChange({ ...category, items: next });
+  // Key of the item added last; autoFocus only fires on mount, so other edits never move focus.
+  const [addedItemKey, setAddedItemKey] = useState<string | null>(null);
+
+  const addItem = () => {
+    const item = emptyItem();
+    setAddedItemKey(item.key);
+    setItems([...items, item]);
+  };
 
   return (
     <div className="card p-3 space-y-2">
@@ -74,6 +83,7 @@ function CategoryCard({ category, index, count, onChange, onMove, onDelete }: Ca
           onChange={(e) => onChange({ ...category, name: e.target.value })}
           placeholder="カテゴリ名（例: 手指衛生）"
           aria-label={`${label}の名前`}
+          autoFocus={focusName}
           className="flex-1 min-w-0 bg-base border-2 border-line rounded-t px-3 py-2 text-sm font-bold text-text placeholder:text-text-faint placeholder:font-normal"
         />
         <IconButton label={`${label}を上へ移動`} path={ARROW_UP} onClick={() => onMove(-1)} disabled={index === 0} />
@@ -92,6 +102,7 @@ function CategoryCard({ category, index, count, onChange, onMove, onDelete }: Ca
                 onChange={(e) => setItems(items.map((it, j) => (j === i ? { ...it, description: e.target.value } : it)))}
                 placeholder="点検項目"
                 aria-label={itemLabel}
+                autoFocus={item.key === addedItemKey}
                 className="flex-1 min-w-0 bg-base border-2 border-line rounded-t px-3 py-2 text-sm text-text placeholder:text-text-faint"
               />
               <IconButton label={`${itemLabel}を上へ移動`} path={ARROW_UP} onClick={() => setItems(moveItem(items, i, -1))} disabled={i === 0} />
@@ -104,7 +115,7 @@ function CategoryCard({ category, index, count, onChange, onMove, onDelete }: Ca
 
       <button
         type="button"
-        onClick={() => setItems([...items, emptyItem()])}
+        onClick={addItem}
         aria-label={`${label}に項目を追加`}
         className="w-full flex items-center justify-center gap-1 py-2 text-xs font-bold text-primary border-2 border-dashed border-line rounded-t hover:border-primary transition-colors"
       >
@@ -149,6 +160,7 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
   const [draft, setDraft] = useState(initialDraft);
   const [error, setError] = useState('');
   const initialJson = useRef(JSON.stringify(initialDraft));
+  const [addedCategoryKey, setAddedCategoryKey] = useState<string | null>(null);
 
   useEffect(() => {
     trackEvent('checklist_editor_open', { source });
@@ -161,6 +173,12 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
     const hasText = categories[index].items.some((item) => item.description.trim() !== '');
     if (hasText && !confirm('このカテゴリと中の項目を削除しますか？')) return;
     setCategories(categories.filter((_, i) => i !== index));
+  };
+
+  const handleAddCategory = () => {
+    const category = emptyCategory();
+    setAddedCategoryKey(category.key);
+    setCategories([...categories, category]);
   };
 
   const handleCancel = () => {
@@ -218,6 +236,7 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
               category={cat}
               index={i}
               count={categories.length}
+              focusName={cat.key === addedCategoryKey}
               onChange={(next) => setCategories(categories.map((c, j) => (j === i ? next : c)))}
               onMove={(delta) => setCategories(moveItem(categories, i, delta))}
               onDelete={() => handleDeleteCategory(i)}
@@ -226,7 +245,7 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
 
           <button
             type="button"
-            onClick={() => setCategories([...categories, emptyCategory()])}
+            onClick={handleAddCategory}
             className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-bold border-2 rounded-t transition-colors"
             style={{ borderColor: 'var(--t-primary)', color: 'var(--t-primary)' }}
           >

@@ -82,6 +82,30 @@ describe('ChecklistEditor', () => {
     expect(c.categories.flatMap((cat) => cat.items.map((i) => i.id))).toEqual(['h-1', 'h-2', 'e-1']);
   });
 
+  it('does not move focus to an input when the editor opens', () => {
+    setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  it('focuses the new item input after adding an item', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1に項目を追加'));
+    expect(textbox('カテゴリ1の項目3')).toHaveFocus();
+  });
+
+  it('focuses the new category name input after adding a category', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリを追加'));
+    expect(textbox('カテゴリ3の名前')).toHaveFocus();
+  });
+
+  it('does not steal focus when moving a newly added item', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1に項目を追加'));
+    await user.click(button('カテゴリ1の項目3を上へ移動'));
+    expect(button('カテゴリ1の項目2を上へ移動')).toHaveFocus();
+  });
+
   it('reorders items and categories with the arrow buttons', async () => {
     const { onSave, user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
     expect(button('カテゴリ1の項目1を上へ移動')).toBeDisabled();
