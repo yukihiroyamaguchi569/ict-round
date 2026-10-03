@@ -112,6 +112,7 @@ src/
   types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound
   checklistData.ts         Built-in default checklist (CHECKLIST_CATEGORIES) and item lookup helpers
   checklistImport.ts       Parses user checklists from CSV / .xlsx
+  checklistEditor.ts       Editor draft model and conversion of a draft into a new checklist (validation, item IDs)
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
@@ -124,9 +125,10 @@ src/
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
-    RoundStart.tsx         Start screen: inspector / ward name, checklist select / import / delete, link to saved rounds
+    RoundStart.tsx         Start screen: inspector / ward name, checklist select / create / copy / import / delete, link to saved rounds
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
+    ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen
     ThemeSelector.tsx      Theme and icon picker (shown on the start screen)
     InstallBanner.tsx      PWA install prompt banner
     MainScreen.tsx         Main screen shell hosting the three tabs
