@@ -104,6 +104,8 @@ describe('moveItem', () => {
   it('moves an element up and down', () => {
     expect(moveItem(arr, 1, -1)).toEqual(['b', 'a', 'c']);
     expect(moveItem(arr, 1, 1)).toEqual(['a', 'c', 'b']);
+    expect(moveItem(arr, 0, 1)).toEqual(['b', 'a', 'c']);
+    expect(moveItem(arr, 2, -1)).toEqual(['a', 'c', 'b']);
     expect(arr).toEqual(['a', 'b', 'c']);
   });
 
@@ -180,6 +182,10 @@ describe('buildChecklist', () => {
     expect(expectError(buildChecklist(draft('x', [{ name: '  ', items: ['b'] }])))).toBe(
       '項目のあるカテゴリには名前を入力してください。',
     );
+    // Also when another category is named
+    expect(
+      expectError(buildChecklist(draft('x', [{ name: 'A', items: ['a'] }, { name: '', items: ['b'] }]))),
+    ).toBe('項目のあるカテゴリには名前を入力してください。');
   });
 
   it('rejects two categories with the same name after trimming', () => {
