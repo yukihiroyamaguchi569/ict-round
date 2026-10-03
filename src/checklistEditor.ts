@@ -2,8 +2,9 @@ import type { ChecklistCategory, ChecklistItemDef, SavedChecklist } from './type
 
 export interface DraftItem {
   key: string;
-  // Kept from the source checklist when copying, so saved rounds can still match items by ID
-  id?: string;
+  // The item this one was copied from. Its ID is kept only while the category name and
+  // description still match, so the same ID never stands for different text
+  source?: { id: string; category: string; description: string };
   description: string;
 }
 
@@ -52,7 +53,11 @@ export function draftFromChecklist(c: SavedChecklist, name: string): EditorDraft
     categories: c.categories.map((cat) => ({
       key: newKey(),
       name: cat.category,
-      items: cat.items.map((item) => ({ key: newKey(), id: item.id, description: item.description })),
+      items: cat.items.map((item) => ({
+        key: newKey(),
+        source: { id: item.id, category: cat.category, description: item.description },
+        description: item.description,
+      })),
     })),
   };
 }
@@ -71,7 +76,7 @@ function trimmedCategories(draft: EditorDraft) {
     .map((cat) => ({
       name: cat.name.trim(),
       items: cat.items
-        .map((item) => ({ id: item.id, description: item.description.trim() }))
+        .map((item) => ({ source: item.source, description: item.description.trim() }))
         .filter((item) => item.description !== ''),
     }))
     .filter((cat) => cat.items.length > 0);
@@ -97,7 +102,8 @@ function validate(name: string, categories: ReturnType<typeof trimmedCategories>
 
 /**
  * Converts the editor draft into a new checklist, or returns a user-facing error.
- * Item IDs from a copied checklist are kept; new items and duplicate IDs get fresh ones.
+ * A copied item keeps its source ID only when its trimmed category name and description both
+ * match the source; changed items, new items and duplicate IDs get fresh ones.
  */
 export function buildChecklist(
   draft: EditorDraft,
@@ -109,18 +115,26 @@ export function buildChecklist(
   const error = validate(name, categories);
   if (error) return { error };
 
-  // Reserve the first occurrence of each kept ID before generating any new one,
-  // so a generated ID can never take a kept ID that appears later in the draft
+  // Reserve every source ID before generating any new one, so a generated ID can never take
+  // a kept ID that appears later in the draft, nor reuse the ID of an item whose text changed.
+  // Of the unchanged items sharing an ID, only the first keeps it
   const usedIds = new Set<string>();
+  const keptIds = new Set<string>();
   const keepsId = new Set<object>();
-  for (const item of categories.flatMap((cat) => cat.items)) {
-    if (item.id && !usedIds.has(item.id)) {
-      usedIds.add(item.id);
-      keepsId.add(item);
+  for (const cat of categories) {
+    for (const item of cat.items) {
+      const { source } = item;
+      if (!source) continue;
+      usedIds.add(source.id);
+      const unchanged = source.category.trim() === cat.name && source.description.trim() === item.description;
+      if (unchanged && !keptIds.has(source.id)) {
+        keptIds.add(source.id);
+        keepsId.add(item);
+      }
     }
   }
-  const idFor = (item: { id?: string }): string => {
-    if (item.id && keepsId.has(item)) return item.id;
+  const idFor = (item: { source?: { id: string } }): string => {
+    if (item.source && keepsId.has(item)) return item.source.id;
     let next = `item-${makeId()}`;
     while (usedIds.has(next)) next = `item-${makeId()}`;
     usedIds.add(next);

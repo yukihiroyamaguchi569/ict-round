@@ -36,7 +36,10 @@ function sequentialIds() {
 
 const FIXED_NOW = () => new Date('2026-10-03T00:00:00.000Z');
 
-function draft(name: string, categories: { name: string; items: (string | [string, string])[] }[]): EditorDraft {
+// An item is either new (a string) or copied: [source ID, description, source category (defaults to its own)]
+type DraftSpec = string | [string, string] | [string, string, string];
+
+function draft(name: string, categories: { name: string; items: DraftSpec[] }[]): EditorDraft {
   return {
     name,
     categories: categories.map((cat, ci) => ({
@@ -45,7 +48,11 @@ function draft(name: string, categories: { name: string; items: (string | [strin
       items: cat.items.map((item, ii) =>
         typeof item === 'string'
           ? { key: `c${ci}i${ii}`, description: item }
-          : { key: `c${ci}i${ii}`, id: item[0], description: item[1] },
+          : {
+              key: `c${ci}i${ii}`,
+              source: { id: item[0], category: item[2] ?? cat.name, description: item[1] },
+              description: item[1],
+            },
       ),
     })),
   };
@@ -79,13 +86,13 @@ describe('emptyDraft', () => {
 });
 
 describe('draftFromChecklist', () => {
-  it('copies categories, descriptions and item IDs under the given name', () => {
+  it('copies categories and descriptions under the given name and remembers each item source', () => {
     const d = draftFromChecklist(SOURCE, '標準チェックリストのコピー');
     expect(d.name).toBe('標準チェックリストのコピー');
     expect(d.categories.map((c) => c.name)).toEqual(['手指衛生', '環境']);
-    expect(d.categories[0].items.map((i) => [i.id, i.description])).toEqual([
-      ['h-1', '消毒剤がある'],
-      ['h-2', '掲示がある'],
+    expect(d.categories[0].items.map((i) => [i.source, i.description])).toEqual([
+      [{ id: 'h-1', category: '手指衛生', description: '消毒剤がある' }, '消毒剤がある'],
+      [{ id: 'h-2', category: '手指衛生', description: '掲示がある' }, '掲示がある'],
     ]);
     const keys = d.categories.flatMap((c) => [c.key, ...c.items.map((i) => i.key)]);
     expect(new Set(keys).size).toBe(keys.length);
@@ -213,27 +220,76 @@ describe('buildChecklist', () => {
     expect(c.categories).toHaveLength(1);
   });
 
-  it('keeps item IDs from a copied checklist and sets category to the renamed category', () => {
+  it('keeps the IDs of copied items whose category name and description are unchanged', () => {
+    const c = expectChecklist(buildChecklist(draftFromChecklist(SOURCE, 'コピー'), sequentialIds()));
+    expect(c.categories.flatMap((cat) => cat.items)).toEqual(SOURCE.categories.flatMap((cat) => cat.items));
+  });
+
+  it('gives a new ID to a copied item whose description changed', () => {
+    const d = draftFromChecklist(SOURCE, 'コピー');
+    d.categories[0].items[1].description = '掲示がある（ポスター）';
+    const c = expectChecklist(buildChecklist(d, sequentialIds()));
+    expect(c.categories[0].items).toEqual([
+      { id: 'h-1', category: '手指衛生', description: '消毒剤がある' },
+      { id: 'item-id1', category: '手指衛生', description: '掲示がある（ポスター）' },
+    ]);
+    expect(c.categories[1].items[0].id).toBe('e-1');
+  });
+
+  it('gives new IDs to the items of a renamed category and sets category to the new name', () => {
     const d = draftFromChecklist(SOURCE, 'コピー');
     d.categories[0].name = '手洗い';
     const c = expectChecklist(buildChecklist(d, sequentialIds()));
     expect(c.categories[0]).toEqual({
       category: '手洗い',
       items: [
-        { id: 'h-1', category: '手洗い', description: '消毒剤がある' },
-        { id: 'h-2', category: '手洗い', description: '掲示がある' },
+        { id: 'item-id1', category: '手洗い', description: '消毒剤がある' },
+        { id: 'item-id2', category: '手洗い', description: '掲示がある' },
       ],
     });
     expect(c.categories[1].items[0]).toEqual({ id: 'e-1', category: '環境', description: '清掃されている' });
   });
 
-  it('keeps the ID of a copied item that moved to another category', () => {
+  it('keeps the ID when the category name or description differs only by surrounding spaces', () => {
+    const d = draftFromChecklist(SOURCE, 'コピー');
+    d.categories[0].name = ' 手指衛生　';
+    d.categories[0].items[0].description = '  消毒剤がある ';
+    d.categories[1].items[0].description = '清掃されている\t';
+    const c = expectChecklist(buildChecklist(d, sequentialIds()));
+    expect(c.categories.flatMap((cat) => cat.items.map((i) => i.id))).toEqual(['h-1', 'h-2', 'e-1']);
+  });
+
+  it('compares with the trimmed source text', () => {
+    const d = draft('x', [{ name: 'A', items: [['h-1', 'one'], ['h-2', 'two']] }]);
+    d.categories[0].items[0].source = { id: 'h-1', category: ' A ', description: ' one ' };
+    const c = expectChecklist(buildChecklist(d, sequentialIds()));
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['h-1', 'h-2']);
+  });
+
+  it('gives a new ID to a copied item placed under another category', () => {
     const d = draft('x', [
       { name: 'A', items: [] },
-      { name: 'B', items: [['h-1', '消毒剤がある']] },
+      { name: 'B', items: [['h-1', '消毒剤がある', 'A']] },
     ]);
-    const c = expectChecklist(buildChecklist(d));
-    expect(c.categories[0].items[0]).toEqual({ id: 'h-1', category: 'B', description: '消毒剤がある' });
+    const c = expectChecklist(buildChecklist(d, sequentialIds()));
+    expect(c.categories[0].items[0]).toEqual({ id: 'item-id1', category: 'B', description: '消毒剤がある' });
+  });
+
+  it('does not give a new item the source ID of a copied item whose text changed', () => {
+    // Reusing that ID for different text would make it look like the same item as the source
+    const ids = ['h-1', 'fresh', 'list'];
+    const makeId = () => ids.shift() ?? 'unexpected';
+    const d = draft('x', [{ name: 'A', items: [['item-h-1', 'changed', 'A']] }]);
+    d.categories[0].items[0].source = { id: 'item-h-1', category: 'A', description: 'original' };
+    const c = expectChecklist(buildChecklist(d, makeId));
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-fresh']);
+  });
+
+  it('keeps a duplicate source ID on the first item that is unchanged', () => {
+    const d = draft('x', [{ name: 'A', items: [['dup', 'changed'], ['dup', 'same']] }]);
+    d.categories[0].items[0].source = { id: 'dup', category: 'A', description: 'original' };
+    const c = expectChecklist(buildChecklist(d, sequentialIds()));
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-id1', 'dup']);
   });
 
   it('reassigns the second and later occurrences of a duplicate ID', () => {
