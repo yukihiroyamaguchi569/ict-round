@@ -256,6 +256,14 @@ describe('buildChecklist', () => {
     expect(c.id).toBe('list');
   });
 
+  it('does not let two new IDs collide with each other', () => {
+    const ids = ['a', 'a', 'b', 'list'];
+    const makeId = () => ids.shift() ?? 'unexpected';
+    const c = expectChecklist(buildChecklist(draft('x', [{ name: 'A', items: ['p', 'q'] }]), makeId));
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-a', 'item-b']);
+    expect(c.id).toBe('list');
+  });
+
   it('gives every new item a unique ID with the default generator', () => {
     const items = Array.from({ length: 200 }, (_, i) => `項目${i}`);
     const c = expectChecklist(buildChecklist(draft('x', [{ name: 'A', items }])));
