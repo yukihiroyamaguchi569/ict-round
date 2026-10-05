@@ -233,13 +233,49 @@ describe('MergeApp', () => {
 
     await user.click(screen.getByRole('button', { name: 'Word出力' }));
 
-    expect(await screen.findByText(/Word出力に失敗しました: docx broke/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Word出力に失敗しました: docx broke');
+    // An export failure is not a file that could not be loaded
+    expect(screen.queryByText('読み込めなかったファイル')).not.toBeInTheDocument();
     expect(buildMergedDocxBlob).toHaveBeenCalledTimes(1);
     expect(saveAs).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalled();
     // The loaded report stays and the button can be pressed again
     expect(screen.getByRole('heading', { name: /読み込んだ報告書（1件）/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Word出力' })).toBeEnabled();
+  });
+
+  it('clears the export error once a retried export succeeds', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(buildMergedDocxBlob).mockRejectedValueOnce(new Error('docx broke'));
+    const { fileInput, user } = setup();
+    await user.upload(fileInput, await makeRoundDocxFile('a.docx', { wardName: 'A病棟' }));
+    await findLoadedList(1);
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('docx broke');
+
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+
+    await waitFor(() => expect(saveAs).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Word出力に失敗しました/)).not.toBeInTheDocument();
+  });
+
+  it('keeps load errors and the export error apart', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(buildMergedDocxBlob).mockRejectedValueOnce(new Error('docx broke'));
+    const { fileInput, user } = setup();
+    await user.upload(fileInput, [
+      await makeRoundDocxFile('ok.docx', { wardName: 'A病棟' }),
+      new File(['ただのテキスト'], 'memo.txt'),
+    ]);
+    await findLoadedList(1);
+
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Word出力に失敗しました: docx broke');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('memo.txt');
+    const loadErrors = within(screen.getByText('読み込めなかったファイル').parentElement ?? document.body).getAllByRole('listitem');
+    expect(loadErrors.map((li) => li.textContent)).toEqual([expect.stringContaining('memo.txt:')]);
   });
 
   it('loads a report dropped onto the drop zone', async () => {

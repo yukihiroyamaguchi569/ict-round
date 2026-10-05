@@ -31,9 +31,17 @@ function sharesWard(files: LoadedFile[], file: LoadedFile): boolean {
   return files.filter((f) => f.data.roundData.wardName.trim() === ward).length > 1;
 }
 
+/** Why the last export failed, shown under the export button; nothing while there is no failure */
+function ExportError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return <p role="alert" className="text-xs font-bold text-danger mb-3">{message}</p>;
+}
+
 export default function MergeApp() {
   const [files, setFiles] = useState<LoadedFile[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  // Kept apart from load errors: those are listed under "読み込めなかったファイル"
+  const [exportError, setExportError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [building, setBuilding] = useState(false);
 
@@ -73,12 +81,13 @@ export default function MergeApp() {
   const handleExport = async () => {
     if (!merged) return;
     setBuilding(true);
+    setExportError(null);
     try {
       const blob = await buildMergedDocxBlob(merged);
       saveAs(blob, `ICTround_merged_${localDateString()}.docx`);
     } catch (err) {
       console.error('統合DOCX生成エラー:', err);
-      setErrors([`Word出力に失敗しました: ${err instanceof Error ? err.message : String(err)}`]);
+      setExportError(`Word出力に失敗しました: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setBuilding(false);
     }
@@ -193,6 +202,7 @@ export default function MergeApp() {
                 {building ? '生成中…' : 'Word出力'}
               </button>
             </div>
+            <ExportError message={exportError} />
 
             <div className="overflow-x-auto">
               <table className="text-xs border-collapse w-full">
