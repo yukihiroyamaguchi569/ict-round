@@ -8,6 +8,16 @@ const WARD_1 = '3階東病棟';
 const WARD_2 = '5階西病棟';
 const MERGED_DOCX_NAME = /^ICTround_merged_\d{4}-\d{2}-\d{2}\.docx$/;
 
+/** Text of each cell in the first table of document.xml, row by row (the first category's rating table). */
+function firstTableCells(documentXml: string): string[][] {
+  const table = /<w:tbl>(.*?)<\/w:tbl>/.exec(documentXml)?.[1] ?? '';
+  return [...table.matchAll(/<w:tr>(.*?)<\/w:tr>/g)].map(([, row]) =>
+    [...row.matchAll(/<w:tc>(.*?)<\/w:tc>/g)].map(([, cell]) =>
+      [...cell.matchAll(/<w:t(?:\s[^>]*)?>(.*?)<\/w:t>/g)].map(([, text]) => text).join('')
+    )
+  );
+}
+
 /** Rates the first item, opens the report and returns the exported .docx (with the round data embedded). */
 async function exportRatedRound(page: Page, rating: 'A' | 'C') {
   await firstItemRating(page, rating).click();
@@ -46,6 +56,11 @@ test('2 病棟の報告書を統合ページで読み込むと、両病棟の入
   await expect(page.getByRole('columnheader', { name: WARD_1 })).toBeVisible();
   await expect(page.getByRole('columnheader', { name: WARD_2 })).toBeVisible();
 
+  // Preview rows: the first category's heading row, then its items. Columns follow the load order.
+  const firstItemCells = page.getByRole('table').locator('tbody tr').nth(1).locator('td');
+  await expect(firstItemCells).toHaveText([/\S/, 'A', 'C']);
+  const firstItemDescription = await firstItemCells.first().textContent();
+
   const exportButton = page.getByRole('button', { name: 'Word出力' });
   await expect(exportButton).toBeEnabled();
   const [download] = await Promise.all([page.waitForEvent('download'), exportButton.click()]);
@@ -54,8 +69,10 @@ test('2 病棟の報告書を統合ページで読み込むと、両病棟の入
   const zip = await JSZip.loadAsync(readFileSync(await download.path()));
   const documentXml = await zip.file('word/document.xml')?.async('string');
   expect(documentXml).toBeDefined();
-  expect(documentXml).toContain(WARD_1);
-  expect(documentXml).toContain(WARD_2);
+  // The first table is the first category: a header row of ward columns in load order, then one row per item.
+  const [header, firstItemRow] = firstTableCells(documentXml ?? '');
+  expect(header).toEqual(['チェック項目', WARD_1, WARD_2]);
+  expect(firstItemRow).toEqual([firstItemDescription, 'A', 'C']);
 });
 
 test('開始画面のリンクから統合ページが新しいタブで開く', async ({ page, context }) => {
