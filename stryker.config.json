@@ -5,7 +5,11 @@
     "src/checklistImport.ts",
     "src/checklistStorage.ts",
     "src/roundDirty.ts",
-    "src/whatsNew.ts"
+    "src/whatsNew.ts",
+    "src/merge/mergeRounds.ts",
+    "src/merge/loadRoundFile.ts",
+    "src/merge/mergedDocx.ts",
+    "src/roundExportDocx.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
