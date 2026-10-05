@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { saveAs } from 'file-saver';
 import MergeApp from '../../merge/MergeApp';
 import { buildMergedDocxBlob } from '../../merge/mergedDocx';
+import { loadRoundFile } from '../../merge/loadRoundFile';
 import { makeEmptyDocx, makeRoundDocxFile } from '../fixtures/roundDocx';
 
 vi.mock('file-saver', () => ({ saveAs: vi.fn() }));
@@ -12,6 +13,12 @@ vi.mock('file-saver', () => ({ saveAs: vi.fn() }));
 vi.mock('../../merge/mergedDocx', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../merge/mergedDocx')>();
   return { ...actual, buildMergedDocxBlob: vi.fn(actual.buildMergedDocxBlob) };
+});
+
+// Keep the real loader by default; individual tests make it fail once.
+vi.mock('../../merge/loadRoundFile', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../merge/loadRoundFile')>();
+  return { ...actual, loadRoundFile: vi.fn(actual.loadRoundFile) };
 });
 
 afterEach(() => {
@@ -55,6 +62,16 @@ function ratingsOf(description: string) {
 }
 
 describe('MergeApp', () => {
+  it('shows only the drop zone before anything is loaded', () => {
+    setup();
+
+    expect(screen.getByText('ここに報告書の .docx ファイルをドラッグ&ドロップ')).toBeInTheDocument();
+    expect(screen.queryByText('読み込めなかったファイル')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /読み込んだ報告書/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('確認してください')).not.toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
+
   it('shows two departments as two columns with their ratings', async () => {
     const { fileInput, user } = setup();
     await user.upload(fileInput, [
@@ -141,6 +158,33 @@ describe('MergeApp', () => {
     expect(screen.queryByText('読み込めなかったファイル')).not.toBeInTheDocument();
   });
 
+  it('keeps the loaded reports and load errors when the file picker is cancelled', async () => {
+    const { fileInput, user } = setup();
+    await user.upload(fileInput, [
+      await makeRoundDocxFile('ok.docx', { wardName: '3階東病棟' }),
+      new File(['ただのテキスト'], 'memo.txt'),
+    ]);
+    await findLoadedList(1);
+
+    // Cancelling the picker fires change with an empty selection
+    fireEvent.change(fileInput, { target: { files: [] } });
+
+    await findLoadedList(1);
+    expect(screen.getByText('読み込めなかったファイル')).toBeInTheDocument();
+    expect(screen.getByText(/memo\.txt:/)).toBeInTheDocument();
+  });
+
+  it('reports a generic reason when loading fails with something other than an Error', async () => {
+    vi.mocked(loadRoundFile).mockRejectedValueOnce('not an Error');
+    const { fileInput, user } = setup();
+    await user.upload(fileInput, new File(['x'], 'weird.docx'));
+
+    const errorTitle = await screen.findByText('読み込めなかったファイル');
+    const errors = within(errorTitle.parentElement ?? document.body).getAllByRole('listitem');
+    expect(errors.map((li) => li.textContent)).toEqual(['・weird.docx: 読み込みに失敗しました']);
+    expect(screen.queryByRole('heading', { name: /読み込んだ報告書/ })).not.toBeInTheDocument();
+  });
+
   it('loads the readable files of a mixed selection and reports the rest', async () => {
     const { fileInput, user } = setup();
     await user.upload(fileInput, [
@@ -222,6 +266,25 @@ describe('MergeApp', () => {
     expect(vi.mocked(buildMergedDocxBlob).mock.calls[0][0].columns.map((c) => c.label)).toEqual(['A病棟', 'B病棟']);
     expect(await screen.findByRole('button', { name: 'Word出力' })).toBeEnabled();
     expect(screen.queryByText(/Word出力に失敗しました/)).not.toBeInTheDocument();
+  });
+
+  it('disables the export button while the Word file is being built', async () => {
+    let finish: (blob: Blob) => void = () => {};
+    vi.mocked(buildMergedDocxBlob).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { fileInput, user } = setup();
+    await user.upload(fileInput, await makeRoundDocxFile('a.docx', { wardName: 'A病棟' }));
+    await findLoadedList(1);
+
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+
+    expect(await screen.findByRole('button', { name: '生成中…' })).toBeDisabled();
+    expect(saveAs).not.toHaveBeenCalled();
+
+    finish(new Blob(['docx']));
+
+    await waitFor(() => expect(saveAs).toHaveBeenCalledTimes(1));
+    expect(await screen.findByRole('button', { name: 'Word出力' })).toBeEnabled();
+    expect(buildMergedDocxBlob).toHaveBeenCalledTimes(1);
   });
 
   it('shows an error and saves nothing when building the Word file fails', async () => {

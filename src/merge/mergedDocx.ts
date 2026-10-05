@@ -7,6 +7,7 @@ import {
   RATING_HEX, getDocxColors, buildPhotoTables, collectPhotoEntries,
   type DocxColors,
 } from '../docx';
+import type { ChecklistCategory } from '../types';
 import { itemRowKey, type MergeResult, type DeptColumn } from './mergeRounds';
 
 // A4横（16838 twips）から左右余白 1440×2 を引いた本文幅
@@ -41,190 +42,175 @@ function headerCell(text: string, width: number, clr: DocxColors, center = false
   });
 }
 
-/** 部署を列とする評価マトリクスの docx を作る */
-// eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- builds the whole merged report in one function; split into section builders in Issue #106
-export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
-  const clr = getDocxColors();
-  const { columns, categories } = merged;
-  const { itemColW, deptColW } = computeColumnWidths(columns.length);
-  const columnWidths = [itemColW, ...columns.map(() => deptColW)];
-
-  const children: (Paragraph | Table)[] = [];
-
-  // ===== Title =====
-  children.push(new Paragraph({
-    heading: HeadingLevel.HEADING_1,
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 160 },
-    children: [new TextRun({ text: '感染対策ラウンド報告書（統合）', bold: true, size: 32, color: clr.text })],
-  }));
-
-  const earliest = columns.map((c) => c.startTime).sort()[0] ?? '';
-  children.push(new Paragraph({
-    spacing: { after: 80 },
-    children: [
-      new TextRun({ text: '実施日時: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: earliest, color: clr.text }),
-    ],
-  }));
-  children.push(new Paragraph({
-    spacing: { after: 80 },
-    children: [
-      new TextRun({ text: '対象部署: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: columns.map((c) => c.label).join('、'), color: clr.text }),
-    ],
-  }));
-  children.push(new Paragraph({
-    spacing: { after: 80 },
-    children: [
-      new TextRun({ text: '担当者: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: [...new Set(columns.flatMap((c) => c.sources.map((s) => s.inspectorName.trim())).filter(Boolean))].join('、'), color: clr.text }),
-    ],
-  }));
-
-  children.push(new Paragraph({
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: clr.primary } },
-    spacing: { after: 300 },
-    children: [],
-  }));
-
-  // ===== Section 1: 部署別チェックリスト =====
-  children.push(new Paragraph({
+/** 番号付きの節見出し */
+function sectionHeading(num: string, title: string, clr: DocxColors): Paragraph {
+  return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 200, after: 160 },
     children: [
-      new TextRun({ text: '1', bold: true, size: 26, color: clr.primary }),
-      new TextRun({ text: '  チェックリスト（部署別）', bold: true, size: 26, color: clr.text }),
+      new TextRun({ text: num, bold: true, size: 26, color: clr.primary }),
+      new TextRun({ text: `  ${title}`, bold: true, size: 26, color: clr.text }),
     ],
-  }));
+  });
+}
 
-  for (const cat of categories) {
-    if (cat.items.length === 0) continue;
-
-    children.push(new Paragraph({
-      spacing: { before: 160, after: 80 },
-      children: [new TextRun({ text: `【${cat.category}】`, bold: true, size: 22, color: clr.primary })],
-    }));
-
-    const rows: TableRow[] = [
-      new TableRow({
-        tableHeader: true,
-        children: [
-          headerCell('チェック項目', itemColW, clr),
-          ...columns.map((col) => headerCell(col.label, deptColW, clr, true)),
-        ],
-      }),
-    ];
-
-    for (const item of cat.items) {
-      rows.push(new TableRow({
-        children: [
-          new TableCell({
-            width: { size: itemColW, type: WidthType.DXA },
-            shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
-            children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18, color: clr.text })] })],
-          }),
-          ...columns.map((col) => {
-            const rating = col.ratings.get(itemRowKey(cat.category, item)) ?? null;
-            const text = rating ?? '—';
-            const color = rating ? RATING_HEX[rating] : clr.textFaint;
-            return new TableCell({
-              width: { size: deptColW, type: WidthType.DXA },
-              shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
-              children: [new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [new TextRun({ text, bold: true, size: 22, color })],
-              })],
-            });
-          }),
-        ],
-      }));
-    }
-
-    children.push(new Table({
-      width: { size: CONTENT_W, type: WidthType.DXA },
-      columnWidths,
-      layout: TableLayoutType.FIXED,
-      rows,
-    }));
-  }
-
-  // ===== Section 2: 部署別の総評 =====
-  children.push(new Paragraph({
+/** 節の前に引く区切り線 */
+function sectionDivider(clr: DocxColors): Paragraph {
+  return new Paragraph({
     border: { top: { style: BorderStyle.SINGLE, size: 2, color: clr.line } },
     spacing: { before: 300 },
     children: [],
-  }));
-  children.push(new Paragraph({
-    heading: HeadingLevel.HEADING_2,
-    spacing: { before: 200, after: 160 },
+  });
+}
+
+/** 表紙の「ラベル: 値」の1行 */
+function coverLine(label: string, value: string, clr: DocxColors): Paragraph {
+  return new Paragraph({
+    spacing: { after: 80 },
     children: [
-      new TextRun({ text: '2', bold: true, size: 26, color: clr.primary }),
-      new TextRun({ text: '  総評（部署別）', bold: true, size: 26, color: clr.text }),
+      new TextRun({ text: label, bold: true, color: clr.textMuted }),
+      new TextRun({ text: value, color: clr.text }),
+    ],
+  });
+}
+
+/** 表題と、実施日時・対象部署・担当者 */
+function buildCoverSection(columns: DeptColumn[], clr: DocxColors): Paragraph[] {
+  const earliest = columns.map((c) => c.startTime).sort()[0] ?? '';
+  const inspectors = [...new Set(columns.flatMap((c) => c.sources.map((s) => s.inspectorName.trim())).filter(Boolean))];
+  return [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 160 },
+      children: [new TextRun({ text: '感染対策ラウンド報告書（統合）', bold: true, size: 32, color: clr.text })],
+    }),
+    coverLine('実施日時: ', earliest, clr),
+    coverLine('対象部署: ', columns.map((c) => c.label).join('、'), clr),
+    coverLine('担当者: ', inspectors.join('、'), clr),
+    new Paragraph({
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: clr.primary } },
+      spacing: { after: 300 },
+      children: [],
+    }),
+  ];
+}
+
+function ratingCell(col: DeptColumn, rowKey: string, deptColW: number, clr: DocxColors): TableCell {
+  const rating = col.ratings.get(rowKey) ?? null;
+  const text = rating ?? '—';
+  const color = rating ? RATING_HEX[rating] : clr.textFaint;
+  return new TableCell({
+    width: { size: deptColW, type: WidthType.DXA },
+    shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
+    children: [new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [new TextRun({ text, bold: true, size: 22, color })],
+    })],
+  });
+}
+
+/** 1カテゴリ分の評価マトリクス（行 = チェック項目、列 = 部署） */
+function buildCategoryTable(cat: ChecklistCategory, columns: DeptColumn[], clr: DocxColors): Table {
+  const { itemColW, deptColW } = computeColumnWidths(columns.length);
+  const header = new TableRow({
+    tableHeader: true,
+    children: [
+      headerCell('チェック項目', itemColW, clr),
+      ...columns.map((col) => headerCell(col.label, deptColW, clr, true)),
+    ],
+  });
+  const itemRows = cat.items.map((item) => new TableRow({
+    children: [
+      new TableCell({
+        width: { size: itemColW, type: WidthType.DXA },
+        shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
+        children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18, color: clr.text })] })],
+      }),
+      ...columns.map((col) => ratingCell(col, itemRowKey(cat.category, item), deptColW, clr)),
     ],
   }));
+  return new Table({
+    width: { size: CONTENT_W, type: WidthType.DXA },
+    columnWidths: [itemColW, ...columns.map(() => deptColW)],
+    layout: TableLayoutType.FIXED,
+    rows: [header, ...itemRows],
+  });
+}
 
-  for (const col of columns) {
-    children.push(deptHeading(col, clr));
-    // 総評は記載のある担当者の分だけ出す
-    const written = col.sources.filter((s) => s.roundData.overallEvaluation.trim() !== '');
-    if (written.length === 0) {
-      // 誰も記載していない病棟は、出力後に Word で書き込めるよう空の段落を1つ置く
-      children.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
-      continue;
-    }
-    for (const source of written) {
-      // 複数名で分担した病棟は、どの担当者の総評か分かるよう名前を添える
-      // （担当者が1人のときは見出しに名前が入るので繰り返さない）
-      const inspector = source.inspectorName.trim();
-      const prefix = col.sources.length > 1 && inspector ? `${inspector}：` : '';
-      // 未記載かどうかは上流で判定済みなので、本文は入力どおりに出す（単独報告書と揃える）
-      const lines = source.roundData.overallEvaluation.split('\n');
-      lines.forEach((line, i) => {
-        children.push(new Paragraph({
-          spacing: { after: 80 },
-          children: [new TextRun({
-            text: i === 0 ? `${prefix}${line}` : line,
-            size: 22,
-            color: clr.text,
-          })],
-        }));
-      });
-    }
+/** 節1: 部署別チェックリスト。項目の無いカテゴリは出さない */
+function buildChecklistSection(merged: MergeResult, clr: DocxColors): (Paragraph | Table)[] {
+  return [
+    sectionHeading('1', 'チェックリスト（部署別）', clr),
+    ...merged.categories.filter((cat) => cat.items.length > 0).flatMap((cat) => [
+      new Paragraph({
+        spacing: { before: 160, after: 80 },
+        children: [new TextRun({ text: `【${cat.category}】`, bold: true, size: 22, color: clr.primary })],
+      }),
+      buildCategoryTable(cat, merged.columns, clr),
+    ]),
+  ];
+}
+
+/** 1部署分の総評。総評は記載のある担当者の分だけ出す */
+function deptEvaluationParagraphs(col: DeptColumn, clr: DocxColors): Paragraph[] {
+  const written = col.sources.filter((s) => s.roundData.overallEvaluation.trim() !== '');
+  if (written.length === 0) {
+    // 誰も記載していない病棟は、出力後に Word で書き込めるよう空の段落を1つ置く
+    return [new Paragraph({ spacing: { after: 80 }, children: [] })];
   }
+  return written.flatMap((source) => {
+    // 複数名で分担した病棟は、どの担当者の総評か分かるよう名前を添える
+    // （担当者が1人のときは見出しに名前が入るので繰り返さない）
+    const inspector = source.inspectorName.trim();
+    const prefix = col.sources.length > 1 && inspector ? `${inspector}：` : '';
+    // 未記載かどうかは上流で判定済みなので、本文は入力どおりに出す（単独報告書と揃える）
+    return source.roundData.overallEvaluation.split('\n').map((line, i) => new Paragraph({
+      spacing: { after: 80 },
+      children: [new TextRun({
+        text: i === 0 ? `${prefix}${line}` : line,
+        size: 22,
+        color: clr.text,
+      })],
+    }));
+  });
+}
 
-  // ===== Section 3: 部署別の写真 =====
-  // 同じ病棟の写真は担当者をまたいで1つの節に集める
+/** 節2: 部署別の総評 */
+function buildEvaluationSection(columns: DeptColumn[], clr: DocxColors): Paragraph[] {
+  return [
+    sectionDivider(clr),
+    sectionHeading('2', '総評（部署別）', clr),
+    ...columns.flatMap((col) => [deptHeading(col, clr), ...deptEvaluationParagraphs(col, clr)]),
+  ];
+}
+
+/** 節3: 部署別の写真。同じ病棟の写真は担当者をまたいで1つの節に集める。写真が1枚も無ければ節ごと出さない */
+function buildPhotoSection(columns: DeptColumn[], clr: DocxColors): (Paragraph | Table)[] {
   const photosByDept = columns.map((col) => ({
     col,
     entries: col.sources.flatMap((s) => collectPhotoEntries(s.roundData, s.categories)),
   })).filter((d) => d.entries.length > 0);
+  if (photosByDept.length === 0) return [];
+  return [
+    sectionDivider(clr),
+    sectionHeading('3', '写真記録とICTコメント（部署別）', clr),
+    ...photosByDept.flatMap(({ col, entries }) => [deptHeading(col, clr), ...buildPhotoTables(entries, clr)]),
+  ];
+}
 
-  if (photosByDept.length > 0) {
-    children.push(new Paragraph({
-      border: { top: { style: BorderStyle.SINGLE, size: 2, color: clr.line } },
-      spacing: { before: 300 },
-      children: [],
-    }));
-    children.push(new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 160 },
-      children: [
-        new TextRun({ text: '3', bold: true, size: 26, color: clr.primary }),
-        new TextRun({ text: '  写真記録とICTコメント（部署別）', bold: true, size: 26, color: clr.text }),
-      ],
-    }));
-
-    for (const { col, entries } of photosByDept) {
-      children.push(deptHeading(col, clr));
-      children.push(...buildPhotoTables(entries, clr));
-    }
-  }
-
+/** 部署を列とする評価マトリクスの docx を作る */
+export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
+  const clr = getDocxColors();
   const doc = new Document({
     sections: [{
       properties: { page: { size: { orientation: PageOrientation.LANDSCAPE } } },
-      children,
+      children: [
+        ...buildCoverSection(merged.columns, clr),
+        ...buildChecklistSection(merged, clr),
+        ...buildEvaluationSection(merged.columns, clr),
+        ...buildPhotoSection(merged.columns, clr),
+      ],
     }],
   });
   return Packer.toBlob(doc);
