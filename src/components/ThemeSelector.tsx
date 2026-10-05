@@ -15,6 +15,7 @@ const themeColors: Record<ThemeName, { bg: string; accent: string }> = {
   medical: { bg: '#F7F9FC', accent: '#0C6B8A' },
 };
 
+// eslint-disable-next-line max-lines-per-function -- mostly JSX markup for the bottom sheet; theme and icon storage live in their contexts
 export default function ThemeSelector() {
   const { themeName, setTheme } = useTheme();
   const { iconName, setIcon } = useIcon();
