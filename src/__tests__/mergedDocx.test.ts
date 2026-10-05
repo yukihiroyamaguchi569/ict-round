@@ -89,8 +89,12 @@ describe('buildMergedDocxBlob', () => {
     const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
 
     // w:t の中身を除くと、タグの間に文字列は残らないはず（Word はそうした文字列を本文として扱わない）
-    const outsideTexts = xml.replace(/<w:t(?:\s[^>]*)?>.*?<\/w:t>/g, '').match(/>[^<]+</g);
-    expect(outsideTexts).toBeNull();
+    const outsideTexts = xml
+      .replace(/<w:t(?:\s[^>]*)?>.*?<\/w:t>/g, '')
+      .split('>')
+      .map((chunk) => chunk.split('<')[0])
+      .filter((text) => text !== '');
+    expect(outsideTexts).toEqual([]);
   });
 
   it('報告書が0件の統合結果でも例外にせず、実施日時・対象部署・担当者を空欄にして出す', async () => {
