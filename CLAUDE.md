@@ -111,10 +111,12 @@ src/
   App.tsx                  Top-level screen switch (start / saved-rounds / round in progress); wires the hooks below to the screens, wraps ThemeProvider / IconProvider
   types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound, RoundExport
   checklistData.ts         Built-in default checklist (CHECKLIST_CATEGORIES) and item lookup helpers
-  checklistImport.ts       Parses user checklists from CSV / .xlsx
+  checklistImport.ts       Parses user checklists from CSV / .xlsx; file type by extension, default name, SavedChecklist building
+  localId.ts               newLocalId: local ID for photos and imported checklists (random + time, base 36)
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
-  roundData.ts             Pure round updates (start, rating, photos, evaluation, participant name), SavedRound building and the save-error message
+  roundData.ts             Pure round updates (start, rating, photos, evaluation, participant name), Photo and SavedRound building and the save-error message
+  photoImage.ts            Photo file size limit, scaled size, and canvas shrinking with the EXIF orientation applied (compressImage)
   localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
   docx.ts                  Builds the report .docx from per-section builders (cover, checklist table, photos, evaluation) and shared docx helpers
@@ -125,11 +127,14 @@ src/
   IconContext.tsx          React context providing the current icon
   analytics.ts             GA4 initialization and trackEvent (never sends round input data)
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
+  useInstallBanner.ts      Hook for the install banner: prompt vs iOS steps, hiding after acceptance or dismissal, and the analytics events
   useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download; buildRoundExport and reportFileName pure helpers
   useRound.ts              Hook for the round in progress: round data and its updates, start / resume / save, unsaved-change check, participant name carried to the next start
   useSavedRounds.ts        Hook for saved rounds in localStorage: list, save (upsert), delete
   useChecklistLibrary.ts   Hook for the checklist library and the active checklist, synced with localStorage
   useWhatsNew.ts           Hook fetching unseen release notes once at launch and recording them as seen on close
+  usePhotoDraft.ts         Hook for the photo being added: pick, shrink, comment, and hand the built Photo to onAdd
+  useChecklistImport.ts    Hook reading a chosen CSV / .xlsx into a preview and saving it as a new checklist
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
@@ -147,7 +152,7 @@ src/
     CategoryAccordion.tsx  One collapsible checklist category
     RatingButtons.tsx      A / B / C rating buttons for one item
     PhotoTab.tsx           Photo tab: item-linked and general photos
-    PhotoForm.tsx          Add-photo screen: capture, EXIF orientation fix, item link, comment
+    PhotoForm.tsx          Add-photo screen: capture / gallery buttons, preview, linked item, comment (logic in usePhotoDraft)
     EvaluationTab.tsx      Overall evaluation free-text input
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
