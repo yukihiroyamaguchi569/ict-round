@@ -1,48 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { mergeRounds } from '../merge/mergeRounds';
 import type { ChecklistCategory, RoundExport } from '../types';
+import { ROUND_CATEGORIES, makeRoundExport } from './fixtures/roundDocx';
 
-const HYGIENE_2: ChecklistCategory = {
-  category: '手指衛生',
-  items: [
-    { id: 'shushi-1', category: '手指衛生', description: '擦式消毒薬がある' },
-    { id: 'shushi-2', category: '手指衛生', description: '手袋を適切に外している' },
-  ],
-};
-const HYGIENE: ChecklistCategory = { category: '手指衛生', items: [HYGIENE_2.items[0]] };
-
-/** 全項目を A で評価した1部署分のエクスポート */
-function makeExport(wardName: string, categories: ChecklistCategory[]): RoundExport {
-  return {
-    format: 'meguru-round',
-    version: 1,
-    exportedAt: '2026-09-19T00:00:00.000Z',
-    checklistName: '標準チェックリスト',
-    categories,
-    roundData: {
-      inspectorName: '山口',
-      wardName,
-      startTime: '2026-09-19 10:00',
-      checklistResults: categories.flatMap((cat) =>
-        cat.items.map((item) => ({ itemId: item.id, rating: 'A' as const, photos: [] }))
-      ),
-      generalPhotos: [],
-      overallEvaluation: '',
-    },
-  };
-}
-
-/** 担当者名と項目ごとの評価を指定した1件分のエクスポート（指定のない項目は未評価） */
-function makeShared(wardName: string, inspectorName: string, ratings: Record<string, 'A' | 'B' | 'C'>): RoundExport {
-  const roundExport = makeExport(wardName, [HYGIENE_2]);
-  roundExport.roundData.inspectorName = inspectorName;
-  roundExport.roundData.checklistResults = HYGIENE_2.items.map((item) => ({
-    itemId: item.id,
-    rating: ratings[item.id] ?? null,
-    photos: [],
-  }));
-  return roundExport;
-}
+const [HYGIENE] = ROUND_CATEGORIES;
 
 const splitWarnings = (warnings: string[]) => warnings.filter((w) => w.includes('担当者間で評価が分かれました'));
 const duplicateIdWarnings = (warnings: string[]) => warnings.filter((w) => w.includes('複数のチェック項目に使われています'));
@@ -51,36 +12,35 @@ const unknownIdWarnings = (warnings: string[]) => warnings.filter((w) => w.inclu
 describe('mergeRounds（警告の文言）', () => {
   it('評価が分かれた警告は担当者を「 / 」、項目を「、」で区切り、担当者名が空なら「担当者名なし」と書く', () => {
     const merged = mergeRounds([
-      makeShared('1病棟', ' 山田 ', { 'shushi-1': 'A', 'shushi-2': 'A' }),
-      makeShared('1病棟', ' ', { 'shushi-1': 'B', 'shushi-2': 'C' }),
+      makeRoundExport({ wardName: '1病棟', inspectorName: ' 山田 ', ratings: { h1: 'A', h2: 'A' } }),
+      makeRoundExport({ wardName: '1病棟', inspectorName: ' ', ratings: { h1: 'B', h2: 'C' } }),
     ]);
 
     expect(splitWarnings(merged.warnings)).toEqual([
-      '「1病棟」は担当者間で評価が分かれました: 「擦式消毒薬がある」（山田: A / 担当者名なし: B）、「手袋を適切に外している」（山田: A / 担当者名なし: C）。厳しい方の評価（C＞B＞A）を採用しています。',
+      '「1病棟」は担当者間で評価が分かれました: 「手指消毒剤が配置されている」（山田: A / 担当者名なし: B）、「5つのタイミングが掲示されている」（山田: A / 担当者名なし: C）。厳しい方の評価（C＞B＞A）を採用しています。',
     ]);
   });
 
   it('不整合の警告は該当する項目IDを「、」で区切ってすべて挙げる', () => {
-    const stale = makeExport('3階東病棟', [HYGIENE_2]);
+    const stale = makeRoundExport({ wardName: '3階東病棟' });
     stale.roundData.checklistResults.push(
       { itemId: 'kankyo-8', rating: 'B', photos: [] },
       { itemId: 'kankyo-9', rating: 'C', photos: [] }
     );
     const duplicated: ChecklistCategory = {
       category: '手指衛生',
-      items: [...HYGIENE_2.items, ...HYGIENE_2.items.map((item) => ({ ...item, description: `${item.description}（再掲）` }))],
+      items: [...HYGIENE.items, ...HYGIENE.items.map((item) => ({ ...item, description: `${item.description}（再掲）` }))],
     };
 
-    const merged = mergeRounds([stale, makeExport('4階西病棟', [duplicated])]);
+    const merged = mergeRounds([stale, makeRoundExport({ wardName: '4階西病棟', categories: [duplicated] })]);
 
     expect(unknownIdWarnings(merged.warnings)[0]).toContain('（kankyo-8、kankyo-9）');
-    expect(duplicateIdWarnings(merged.warnings)[0]).toContain('（shushi-1、shushi-2）');
+    expect(duplicateIdWarnings(merged.warnings)[0]).toContain('（h1、h2）');
   });
 
   it('警告で報告書を示すときは、病棟名と担当者名のうち分かる方を前後の空白を落として使う', () => {
     const withResult = (wardName: string, inspectorName: string): RoundExport => {
-      const roundExport = makeExport(wardName, [HYGIENE]);
-      roundExport.roundData.inspectorName = inspectorName;
+      const roundExport = makeRoundExport({ wardName, inspectorName });
       roundExport.roundData.checklistResults.push({ itemId: 'kankyo-9', rating: 'C', photos: [] });
       return roundExport;
     };
@@ -105,7 +65,7 @@ describe('mergeRounds（警告の文言）', () => {
 
 describe('mergeRounds（チェックリスト名）', () => {
   const named = (checklistName: string) => {
-    const roundExport = makeExport('3階東病棟', [HYGIENE]);
+    const roundExport = makeRoundExport({ wardName: '3階東病棟' });
     roundExport.checklistName = checklistName;
     return roundExport;
   };

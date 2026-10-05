@@ -4,50 +4,26 @@ import { fileURLToPath } from 'node:url';
 import JSZip from 'jszip';
 import { buildMergedDocxBlob } from '../merge/mergedDocx';
 import { mergeRounds } from '../merge/mergeRounds';
-import type { ChecklistCategory, RoundExport } from '../types';
+import type { ChecklistCategory, Rating, RoundExport } from '../types';
+import { HYGIENE_ONLY, makeRoundExport } from './fixtures/roundDocx';
 
 // getDocxColors は CSS 変数を読むため、environment: 'node' では最小限の stub を置く
 vi.stubGlobal('document', { documentElement: {} });
 vi.stubGlobal('getComputedStyle', () => ({ getPropertyValue: () => '' }));
 
-const HYGIENE_2: ChecklistCategory = {
-  category: '手指衛生',
-  items: [
-    { id: 'shushi-1', category: '手指衛生', description: '擦式消毒薬がある' },
-    { id: 'shushi-2', category: '手指衛生', description: '手袋を適切に外している' },
-  ],
-};
-
 const PIXEL_JPEG = readFileSync(
   fileURLToPath(new URL('./fixtures/pixel.jpg', import.meta.url))
 ).toString('base64');
 
-/** 担当者名と項目ごとの評価を指定した1件分のエクスポート（総評は担当者名入り） */
-function makeShared(
-  wardName: string,
-  inspectorName: string,
-  ratings: Record<string, 'A' | 'B' | 'C'>
-): RoundExport {
-  return {
-    format: 'meguru-round',
-    version: 1,
-    exportedAt: '2026-09-19T00:00:00.000Z',
-    checklistName: '標準チェックリスト',
-    categories: [HYGIENE_2],
-    roundData: {
-      inspectorName,
-      wardName,
-      startTime: '2026-09-19 10:00',
-      checklistResults: HYGIENE_2.items.map((item) => ({ itemId: item.id, rating: ratings[item.id] ?? null, photos: [] })),
-      generalPhotos: [],
-      overallEvaluation: `${inspectorName}の所見`,
-    },
-  };
-}
-
-function withoutEvaluation(roundExport: RoundExport): RoundExport {
-  roundExport.roundData.overallEvaluation = '';
-  return roundExport;
+/** One report with a single checklist table; the overall evaluation names the inspector */
+function makeShared(wardName: string, inspectorName: string, ratings: Record<string, Rating>): RoundExport {
+  return makeRoundExport({
+    wardName,
+    inspectorName,
+    ratings,
+    categories: HYGIENE_ONLY,
+    overallEvaluation: `${inspectorName}の所見`,
+  });
 }
 
 function withGeneralPhoto(roundExport: RoundExport, comment: string): RoundExport {
@@ -125,17 +101,36 @@ describe('buildMergedDocxBlob（報告書の書式）', () => {
   const EMPTY: ChecklistCategory = { category: '項目の無いカテゴリ', items: [] };
 
   function makeLayoutInput() {
-    const yamada = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
-    yamada.categories = [HYGIENE_2, EMPTY];
-    yamada.roundData.overallEvaluation = '良好\n二行目';
-    yamada.roundData.startTime = '2026-09-19 10:00';
-    const tanaka = withoutEvaluation(makeShared('1病棟', '田中', { 'shushi-2': 'C' }));
-    tanaka.roundData.startTime = '2026-09-19 11:00';
+    const yamada = makeRoundExport({
+      wardName: '1病棟',
+      inspectorName: '山田',
+      ratings: { h1: 'A' },
+      categories: [...HYGIENE_ONLY, EMPTY],
+      startTime: '2026-09-19 10:00',
+      overallEvaluation: '良好\n二行目',
+    });
+    const tanaka = makeRoundExport({
+      wardName: '1病棟',
+      inspectorName: '田中',
+      ratings: { h2: 'C' },
+      categories: HYGIENE_ONLY,
+      startTime: '2026-09-19 11:00',
+    });
     // 読み込み順は後でも実施日時が最も早い
-    const sato = withoutEvaluation(makeShared('2病棟', '佐藤', { 'shushi-1': 'B' }));
-    sato.roundData.startTime = '2026-09-19 09:00';
-    const unnamed = makeShared('3病棟', '', { 'shushi-1': 'A' });
-    unnamed.roundData.overallEvaluation = '3病棟の所見';
+    const sato = makeRoundExport({
+      wardName: '2病棟',
+      inspectorName: '佐藤',
+      ratings: { h1: 'B' },
+      categories: HYGIENE_ONLY,
+      startTime: '2026-09-19 09:00',
+    });
+    const unnamed = makeRoundExport({
+      wardName: '3病棟',
+      inspectorName: '',
+      ratings: { h1: 'A' },
+      categories: HYGIENE_ONLY,
+      overallEvaluation: '3病棟の所見',
+    });
     return mergeRounds([yamada, tanaka, sato, unnamed]);
   }
 
@@ -171,8 +166,8 @@ describe('buildMergedDocxBlob（報告書の書式）', () => {
     // getDocxColors は stub 環境では既定色（CCCCCC）になるため、見出しの塗りは白との違いで確かめる
     expect(tableLayout(xml, 0)).toEqual([
       ['CCCCCC [left] | *チェック項目(18)', 'CCCCCC [center] | *1病棟(18)', 'CCCCCC [center] | *2病棟(18)', 'CCCCCC [center] | *3病棟(18)'],
-      ['FFFFFF [] | 擦式消毒薬がある(18)', 'FFFFFF [center] | *A(22)', 'FFFFFF [center] | *B(22)', 'FFFFFF [center] | *A(22)'],
-      ['FFFFFF [] | 手袋を適切に外している(18)', 'FFFFFF [center] | *C(22)', 'FFFFFF [center] | *—(22)', 'FFFFFF [center] | *—(22)'],
+      ['FFFFFF [] | 手指消毒剤が配置されている(18)', 'FFFFFF [center] | *A(22)', 'FFFFFF [center] | *B(22)', 'FFFFFF [center] | *A(22)'],
+      ['FFFFFF [] | 5つのタイミングが掲示されている(18)', 'FFFFFF [center] | *C(22)', 'FFFFFF [center] | *—(22)', 'FFFFFF [center] | *—(22)'],
     ]);
     expect(xml.match(/<w:trPr>.*?<\/w:trPr>/g)).toEqual(['<w:trPr><w:tblHeader/></w:trPr>']);
   });
@@ -185,8 +180,8 @@ describe('buildMergedDocxBlob（報告書の書式）', () => {
 
   it('写真がある部署だけ、写真の節を見出し付きで出す', async () => {
     const merged = mergeRounds([
-      withGeneralPhoto(makeShared('1病棟', '山田', { 'shushi-1': 'A' }), '山田の写真'),
-      makeShared('2病棟', '田中', { 'shushi-1': 'C' }),
+      withGeneralPhoto(makeShared('1病棟', '山田', { h1: 'A' }), '山田の写真'),
+      makeShared('2病棟', '田中', { h1: 'C' }),
     ]);
 
     const layout = bodyLayout(await readDocumentXml(await buildMergedDocxBlob(merged)));
@@ -200,8 +195,8 @@ describe('buildMergedDocxBlob（報告書の書式）', () => {
   });
 
   it('担当者名の前後の空白は、節見出しと総評に添える名前から落とす', async () => {
-    const single = makeShared('1病棟', ' 山田 ', { 'shushi-1': 'A' });
-    const shared = [makeShared('2病棟', ' 田中 ', { 'shushi-1': 'A' }), makeShared('2病棟', '佐藤', { 'shushi-2': 'B' })];
+    const single = makeShared('1病棟', ' 山田 ', { h1: 'A' });
+    const shared = [makeShared('2病棟', ' 田中 ', { h1: 'A' }), makeShared('2病棟', '佐藤', { h2: 'B' })];
 
     const xml = await readDocumentXml(await buildMergedDocxBlob(mergeRounds([single, ...shared])));
 

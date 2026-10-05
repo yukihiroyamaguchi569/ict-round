@@ -1,31 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { parseRoundExport } from '../merge/mergeRounds';
-import type { RoundExport } from '../types';
-
-/** 検証を通る最小のエクスポート */
-function makeExport(): RoundExport {
-  return {
-    format: 'meguru-round',
-    version: 1,
-    exportedAt: '2026-09-19T00:00:00.000Z',
-    checklistName: '標準チェックリスト',
-    categories: [
-      { category: '手指衛生', items: [{ id: 'shushi-1', category: '手指衛生', description: '擦式消毒薬がある' }] },
-    ],
-    roundData: {
-      inspectorName: '山口',
-      wardName: '3階東病棟',
-      startTime: '2026-09-19 10:00',
-      checklistResults: [{ itemId: 'shushi-1', rating: 'A', photos: [] }],
-      generalPhotos: [],
-      overallEvaluation: '',
-    },
-  };
-}
+import { makeRoundExport } from './fixtures/roundDocx';
 
 /** 妥当な RoundExport を JSON にしてから、一部を書き換えた文字列 */
 function brokenJson(patch: (value: Record<string, unknown> & { roundData: Record<string, unknown> }) => void): string {
-  const value = JSON.parse(JSON.stringify(makeExport()));
+  const value = JSON.parse(JSON.stringify(makeRoundExport({ wardName: '3階東病棟', ratings: { h1: 'A' } })));
   patch(value);
   return JSON.stringify(value);
 }

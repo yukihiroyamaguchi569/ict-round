@@ -17,29 +17,43 @@ export const ROUND_CATEGORIES: RoundExport['categories'] = [
   },
 ];
 
+/** The first category of ROUND_CATEGORIES alone: one table, two items */
+export const HYGIENE_ONLY: RoundExport['categories'] = [ROUND_CATEGORIES[0]];
+
 interface RoundOptions {
   wardName: string;
   inspectorName?: string;
   /** Rating per item ID; items not listed stay unrated */
   ratings?: Record<string, Rating>;
+  /** Checklist definition; one unrated-or-rated result is made per item */
+  categories?: RoundExport['categories'];
+  startTime?: string;
+  overallEvaluation?: string;
 }
 
-export function makeRoundExport({ wardName, inspectorName = '田中', ratings = {} }: RoundOptions): RoundExport {
+export function makeRoundExport({
+  wardName,
+  inspectorName = '田中',
+  ratings = {},
+  categories = ROUND_CATEGORIES,
+  startTime = '2026-09-19 14:00',
+  overallEvaluation = '',
+}: RoundOptions): RoundExport {
   return {
     format: 'meguru-round',
     version: 1,
     exportedAt: '2026-09-19T00:00:00.000Z',
     checklistName: '標準チェックリスト',
-    categories: ROUND_CATEGORIES,
+    categories,
     roundData: {
       inspectorName,
       wardName,
-      startTime: '2026-09-19 14:00',
-      checklistResults: ROUND_CATEGORIES.flatMap((cat) =>
+      startTime,
+      checklistResults: categories.flatMap((cat) =>
         cat.items.map((item) => ({ itemId: item.id, rating: ratings[item.id] ?? null, photos: [] }))
       ),
       generalPhotos: [],
-      overallEvaluation: '',
+      overallEvaluation,
     },
   };
 }
