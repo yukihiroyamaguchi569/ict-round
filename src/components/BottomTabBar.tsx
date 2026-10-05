@@ -39,6 +39,7 @@ const TABS: { id: MainTab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
+// eslint-disable-next-line max-lines-per-function -- mostly JSX markup for the tabs and report button; no logic to extract
 export default function BottomTabBar({ activeTab, onTabChange, onReport, photoCount, hasEvaluation }: Props) {
   return (
     <div

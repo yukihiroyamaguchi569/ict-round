@@ -47,6 +47,7 @@ function PhotoCard({
   );
 }
 
+// eslint-disable-next-line max-lines-per-function -- mostly JSX markup for the photo lists; only a photo count
 export default function PhotoTab({
   categories,
   checklistResults,
