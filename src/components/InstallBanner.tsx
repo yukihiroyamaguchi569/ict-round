@@ -3,7 +3,6 @@ import { useIcon } from '../IconContext';
 import { usePwaInstall } from '../usePwaInstall';
 import { trackEvent } from '../analytics';
 
-// eslint-disable-next-line max-lines-per-function -- mostly JSX markup for the banner and the static iOS guide; handlers only forward to usePwaInstall
 export default function InstallBanner() {
   const { canShowBanner, method, dismiss, promptInstall } = usePwaInstall();
   const { icon } = useIcon();
