@@ -143,70 +143,161 @@ function fail(message: string): never {
   throw new Error(message);
 }
 
-/** ファイルの読み込み順がそのまま表の列順になる */
-// eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- validates and merges in one pass; split into per-report checks and column building in Issue #106
-export function mergeRounds(exports: RoundExport[]): MergeResult {
-  const warnings: string[] = [];
+/** 先頭ファイルを基準にした行の並び（項目の和集合）と、同じIDに違う項目が割り当てられた警告 */
+interface RowsBuild {
+  categories: ChecklistCategory[];
+  /** 行は itemRowKey（ID＋カテゴリ名＋文言）で識別する */
+  rowKeys: Set<string>;
+  /** 項目IDごとに最初に見つかった項目。違う項目が同じIDを使っていないかの判定に使う */
+  seenItems: Map<string, { category: string; description: string }>;
+  /** 項目ID -> 警告文。同じIDで何度食い違っても警告は1件にまとめる */
+  itemConflicts: Map<string, string>;
+}
 
-  // ---- 行の並び: 先頭ファイルを基準にした項目の和集合 ----
-  const categories: ChecklistCategory[] = [];
-  // 行は itemRowKey（ID＋カテゴリ名＋文言）で識別する。同じIDに違う文言が割り当てられて
-  // いる場合は別の行として出力し、どの部署の評価も正しい文言の行に載るようにする。
-  const rowKeys = new Set<string>();
-  const seenItems = new Map<string, { category: string; description: string }>();
-  const itemConflicts = new Map<string, string>();
+function itemConflictWarning(
+  id: string,
+  seen: { category: string; description: string },
+  category: string,
+  description: string
+): string {
+  return `同じ項目ID（${id}）に違うチェック項目が割り当てられています（「${seen.category}：${seen.description}」と「${category}：${description}」）。別々に作ったチェックリストが混ざっていると起こります。評価が混ざらないよう、文言ごとに別の行に分けて出力します。同じ項目のつもりでも行が分かれるため、表の内容をご確認ください。`;
+}
+
+/** 1つのカテゴリの項目を行の並びに足す（同じ行キーの項目は1行にまとめる） */
+function addCategoryRows(rows: RowsBuild, cat: ChecklistCategory): void {
+  let target = rows.categories.find((c) => c.category === cat.category);
+  if (!target) {
+    target = { category: cat.category, items: [] };
+    rows.categories.push(target);
+  }
+  for (const item of cat.items) {
+    const seen = rows.seenItems.get(item.id);
+    if (seen && (seen.category !== cat.category || seen.description !== item.description)) {
+      rows.itemConflicts.set(item.id, itemConflictWarning(item.id, seen, cat.category, item.description));
+    }
+    const key = itemRowKey(cat.category, item);
+    if (rows.rowKeys.has(key)) continue;
+    rows.rowKeys.add(key);
+    if (!seen) rows.seenItems.set(item.id, { category: cat.category, description: item.description });
+    target.items.push(item);
+  }
+}
+
+/**
+ * 行の並びを決める。同じIDに違う文言が割り当てられている場合は別の行として出力し、
+ * どの部署の評価も正しい文言の行に載るようにする。
+ */
+function buildRows(exports: RoundExport[]): RowsBuild {
+  const rows: RowsBuild = { categories: [], rowKeys: new Set(), seenItems: new Map(), itemConflicts: new Map() };
   for (const exp of exports) {
-    for (const cat of exp.categories) {
-      let target = categories.find((c) => c.category === cat.category);
-      if (!target) {
-        target = { category: cat.category, items: [] };
-        categories.push(target);
-      }
-      for (const item of cat.items) {
-        const seen = seenItems.get(item.id);
-        if (seen && (seen.category !== cat.category || seen.description !== item.description)) {
-          itemConflicts.set(
-            item.id,
-            `同じ項目ID（${item.id}）に違うチェック項目が割り当てられています（「${seen.category}：${seen.description}」と「${cat.category}：${item.description}」）。別々に作ったチェックリストが混ざっていると起こります。評価が混ざらないよう、文言ごとに別の行に分けて出力します。同じ項目のつもりでも行が分かれるため、表の内容をご確認ください。`
-          );
-        }
-        const key = itemRowKey(cat.category, item);
-        if (rowKeys.has(key)) continue;
-        rowKeys.add(key);
-        if (!seen) seenItems.set(item.id, { category: cat.category, description: item.description });
-        target.items.push(item);
-      }
+    for (const cat of exp.categories) addCategoryRows(rows, cat);
+  }
+  return rows;
+}
+
+/** 構築中の1列と、担当者間の食い違いを判定するための項目ごとの評価 */
+interface ColumnBuild {
+  column: DeptColumn;
+  votes: Map<string, ItemVotes>;
+}
+
+/** 報告書の行き先の列を返す。まだ無ければ作って一覧に足す */
+function findOrCreateColumn(
+  byGroup: Map<string, ColumnBuild>,
+  builds: ColumnBuild[],
+  exp: RoundExport,
+  index: number
+): ColumnBuild {
+  const wardName = exp.roundData.wardName.trim();
+  // 病棟名が空の報告書は誰のどの記録か区別できないため、まとめずに1件1列とする
+  const groupKey = wardName ? `ward:${wardName}` : `file:${index}`;
+  const existing = byGroup.get(groupKey);
+  if (existing) return existing;
+  const build: ColumnBuild = {
+    column: {
+      label: wardName || exp.roundData.inspectorName.trim() || '（名称未設定）',
+      wardName,
+      sources: [],
+      startTime: exp.roundData.startTime,
+      ratings: new Map(),
+    },
+    votes: new Map(),
+  };
+  builds.push(build);
+  byGroup.set(groupKey, build);
+  return build;
+}
+
+/** 項目ID -> 載せる行。同じIDが複数の項目に使われていると、評価をどの行に載せるべきか決められない */
+type RowByItemId = Map<string, { key: string; description: string }>;
+
+/**
+ * 「その部署にある項目」はチェック結果ではなくチェックリスト定義で決める。
+ * 定義の全項目を未評価として列に登録する。
+ * （定義にあるのに結果が無い項目を「項目がありません」と誤警告しないため）
+ */
+function registerDefinedItems(
+  column: DeptColumn,
+  categories: ChecklistCategory[]
+): { rowByItemId: RowByItemId; duplicateIds: Set<string> } {
+  const rowByItemId: RowByItemId = new Map();
+  const duplicateIds = new Set<string>();
+  for (const cat of categories) {
+    for (const item of cat.items) {
+      const key = itemRowKey(cat.category, item);
+      if (rowByItemId.has(item.id)) duplicateIds.add(item.id);
+      else rowByItemId.set(item.id, { key, description: item.description });
+      if (!column.ratings.has(key)) column.ratings.set(key, null);
     }
   }
+  return { rowByItemId, duplicateIds };
+}
 
-  // ---- 列: 病棟名が同じ報告書は1列にまとめる ----
-  // 1つの病棟をチェック項目で分担して複数名で回る使い方があるため、病棟名が一致する
-  // 報告書は同じ列に集約する（病棟名は前後の空白だけ落として比較し、表記ゆれは揃えない）。
-  // 病棟名が空の報告書は誰のどの記録か区別できないため、まとめずに1件1列とする。
-  const columns: DeptColumn[] = [];
-  const columnByWard = new Map<string, DeptColumn>();
-  const votesByColumn = new Map<DeptColumn, Map<string, ItemVotes>>();
-  // 1つの報告書の中で整合していない点は、その報告書を特定できる文言で警告にまとめる
+/** チェック結果の評価を列に重ねる。載せる行の無い評価の項目IDを返す */
+function applyRatings({ column, votes }: ColumnBuild, exp: RoundExport, rowByItemId: RowByItemId): Set<string> {
+  const unknownIds = new Set<string>();
+  for (const result of exp.roundData.checklistResults) {
+    const row = rowByItemId.get(result.itemId);
+    if (!row) {
+      // 定義に無いIDの評価は載せる行が無いので、黙って捨てずに知らせる
+      // （未評価なら失われるものが無いため警告しない）
+      if (result.rating !== null) unknownIds.add(result.itemId);
+      continue;
+    }
+    const current = column.ratings.get(row.key) ?? null;
+    if (result.rating === null) continue;
+    if (current === null || RATING_SEVERITY[result.rating] > RATING_SEVERITY[current]) {
+      column.ratings.set(row.key, result.rating);
+    }
+    const itemVotes = votes.get(row.key) ?? { description: row.description, votes: [] };
+    itemVotes.votes.push({ inspectorName: exp.roundData.inspectorName, rating: result.rating });
+    votes.set(row.key, itemVotes);
+  }
+  return unknownIds;
+}
+
+function duplicateIdWarning(exp: RoundExport, ids: Set<string>): string {
+  return `${describeExport(exp)}の報告書では、同じ項目ID（${[...ids].join('、')}）が複数のチェック項目に使われています。評価と写真は項目IDで記録するため、一部の評価が本来の行に載らない可能性があります。写真も重複したり別の項目名の下に出ることがあります。該当する項目の評価と写真をご確認ください。`;
+}
+
+function unknownIdWarning(exp: RoundExport, ids: Set<string>): string {
+  return `${describeExport(exp)}の報告書には、チェックリストに無い項目ID（${[...ids].join('、')}）の評価が含まれています。載せる行が無いため表には反映されません。チェックリストを編集した前後の報告書が混ざっていると起こります。`;
+}
+
+/**
+ * 列を作る。1つの病棟をチェック項目で分担して複数名で回る使い方があるため、病棟名が一致する
+ * 報告書は同じ列に集約する（病棟名は前後の空白だけ落として比較し、表記ゆれは揃えない）。
+ * 1つの報告書の中で整合していない点は、その報告書を特定できる文言で警告にまとめる。
+ */
+function buildColumns(exports: RoundExport[]): { builds: ColumnBuild[]; reportWarnings: string[] } {
+  const builds: ColumnBuild[] = [];
+  const byGroup = new Map<string, ColumnBuild>();
   const duplicateIdWarnings: string[] = [];
   const unknownIdWarnings: string[] = [];
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity, complexity -- per-report consistency checks inline; extract into a validator in Issue #106
   exports.forEach((exp, index) => {
-    const wardName = exp.roundData.wardName.trim();
-    const groupKey = wardName ? `ward:${wardName}` : `file:${index}`;
-    let column = columnByWard.get(groupKey);
-    if (!column) {
-      column = {
-        label: wardName || exp.roundData.inspectorName.trim() || '（名称未設定）',
-        wardName,
-        sources: [],
-        startTime: exp.roundData.startTime,
-        ratings: new Map(),
-      };
-      columns.push(column);
-      columnByWard.set(groupKey, column);
-      votesByColumn.set(column, new Map());
-    }
+    const build = findOrCreateColumn(byGroup, builds, exp, index);
+    const { column } = build;
     column.sources.push({
       inspectorName: exp.roundData.inspectorName,
       roundData: exp.roundData,
@@ -214,53 +305,20 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
     });
     if (exp.roundData.startTime < column.startTime) column.startTime = exp.roundData.startTime;
 
-    // 「その部署にある項目」はチェック結果ではなくチェックリスト定義で決める。
-    // まず定義の全項目を未評価として登録し、あとからチェック結果の評価を重ねる。
-    // （定義にあるのに結果が無い項目を「項目がありません」と誤警告しないため）
-    const rowByItemId = new Map<string, { key: string; description: string }>();
-    const duplicateIds = new Set<string>();
-    for (const cat of exp.categories) {
-      for (const item of cat.items) {
-        const key = itemRowKey(cat.category, item);
-        // 同じIDが複数の項目に使われていると、評価をどの行に載せるべきか決められない
-        if (rowByItemId.has(item.id)) duplicateIds.add(item.id);
-        else rowByItemId.set(item.id, { key, description: item.description });
-        if (!column.ratings.has(key)) column.ratings.set(key, null);
-      }
-    }
-    if (duplicateIds.size > 0) {
-      duplicateIdWarnings.push(
-        `${describeExport(exp)}の報告書では、同じ項目ID（${[...duplicateIds].join('、')}）が複数のチェック項目に使われています。評価と写真は項目IDで記録するため、一部の評価が本来の行に載らない可能性があります。写真も重複したり別の項目名の下に出ることがあります。該当する項目の評価と写真をご確認ください。`
-      );
-    }
-    const unknownIds = new Set<string>();
-    const votes = votesByColumn.get(column)!;
-    for (const result of exp.roundData.checklistResults) {
-      const row = rowByItemId.get(result.itemId);
-      if (!row) {
-        // 定義に無いIDの評価は載せる行が無いので、黙って捨てずに知らせる
-        // （未評価なら失われるものが無いため警告しない）
-        if (result.rating !== null) unknownIds.add(result.itemId);
-        continue;
-      }
-      const current = column.ratings.get(row.key) ?? null;
-      if (result.rating === null) continue;
-      if (current === null || RATING_SEVERITY[result.rating] > RATING_SEVERITY[current]) {
-        column.ratings.set(row.key, result.rating);
-      }
-      const itemVotes = votes.get(row.key) ?? { description: row.description, votes: [] };
-      itemVotes.votes.push({ inspectorName: exp.roundData.inspectorName, rating: result.rating });
-      votes.set(row.key, itemVotes);
-    }
-    if (unknownIds.size > 0) {
-      unknownIdWarnings.push(
-        `${describeExport(exp)}の報告書には、チェックリストに無い項目ID（${[...unknownIds].join('、')}）の評価が含まれています。載せる行が無いため表には反映されません。チェックリストを編集した前後の報告書が混ざっていると起こります。`
-      );
-    }
+    const { rowByItemId, duplicateIds } = registerDefinedItems(column, exp.categories);
+    if (duplicateIds.size > 0) duplicateIdWarnings.push(duplicateIdWarning(exp, duplicateIds));
+    const unknownIds = applyRatings(build, exp, rowByItemId);
+    if (unknownIds.size > 0) unknownIdWarnings.push(unknownIdWarning(exp, unknownIds));
   });
 
-  // 病棟名が同じ報告書は1列にまとまるため見出しは基本的に重ならないが、
-  // 病棟名のない報告書が担当者名で並ぶと重なり得るので連番で区別する
+  return { builds, reportWarnings: [...duplicateIdWarnings, ...unknownIdWarnings] };
+}
+
+/**
+ * 病棟名が同じ報告書は1列にまとまるため見出しは基本的に重ならないが、
+ * 病棟名のない報告書が担当者名で並ぶと重なり得るので連番で区別する
+ */
+function assignUniqueLabels(columns: DeptColumn[]): void {
   const usedLabels = new Set<string>();
   for (const col of columns) {
     let label = col.label;
@@ -269,46 +327,57 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
     col.label = label;
     usedLabels.add(label);
   }
+}
 
-  // ---- 警告 ----
-  warnings.push(...itemConflicts.values());
-  warnings.push(...duplicateIdWarnings, ...unknownIdWarnings);
+/**
+ * 同じ病棟の中で評価が分かれたのは担当者間の食い違いなので、厳しい方を採用したうえで知らせる。
+ * （病棟が違う場合の評価の違いは食い違いではなく別々の結果なので、この判定は1列の中に閉じている）
+ */
+function splitRatingWarnings({ column, votes }: ColumnBuild): string[] {
+  const split = [...votes.values()].filter((item) => new Set(item.votes.map((v) => v.rating)).size > 1);
+  if (split.length === 0) return [];
+  const detail = split
+    .map((item) => {
+      const itemVotes = item.votes
+        .map((v) => `${v.inspectorName.trim() || '担当者名なし'}: ${v.rating}`)
+        .join(' / ');
+      return `「${item.description}」（${itemVotes}）`;
+    })
+    .join('、');
+  return [`「${column.label}」は担当者間で評価が分かれました: ${detail}。厳しい方の評価（C＞B＞A）を採用しています。`];
+}
 
-  // 同じ病棟の中で評価が分かれたのは担当者間の食い違いなので、厳しい方を採用したうえで知らせる。
-  // （病棟が違う場合の評価の違いは食い違いではなく別々の結果なので、この判定は1列の中に閉じている）
-  for (const col of columns) {
-    // Stryker disable next-line OptionalChaining,ArrayDeclaration: every column is registered in votesByColumn when it is created, so the fallback is unreachable
-    const split = [...(votesByColumn.get(col)?.values() ?? [])].filter(
-      (item) => new Set(item.votes.map((v) => v.rating)).size > 1
-    );
-    if (split.length === 0) continue;
-    const detail = split
-      .map((item) => {
-        const votes = item.votes
-          .map((v) => `${v.inspectorName.trim() || '担当者名なし'}: ${v.rating}`)
-          .join(' / ');
-        return `「${item.description}」（${votes}）`;
-      })
-      .join('、');
-    warnings.push(`「${col.label}」は担当者間で評価が分かれました: ${detail}。厳しい方の評価（C＞B＞A）を採用しています。`);
-  }
+function missingItemsWarnings(column: DeptColumn, rowKeys: Set<string>): string[] {
+  const missing = [...rowKeys].filter((key) => !column.ratings.has(key)).length;
+  if (missing === 0) return [];
+  return [`「${column.label}」には他のファイルにある ${missing} 項目がありません（チェックリストの版が違う可能性があります）。該当セルは「—」になります。`];
+}
 
-  const allRowKeys = [...rowKeys];
-  for (const col of columns) {
-    const missing = allRowKeys.filter((key) => !col.ratings.has(key)).length;
-    if (missing > 0) {
-      warnings.push(`「${col.label}」には他のファイルにある ${missing} 項目がありません（チェックリストの版が違う可能性があります）。該当セルは「—」になります。`);
-    }
-  }
-
+function checklistNameWarnings(exports: RoundExport[]): string[] {
   const checklistNames = [...new Set(exports.map((e) => e.checklistName).filter(Boolean))];
-  if (checklistNames.length > 1) {
-    warnings.push(`チェックリスト名が混在しています: ${checklistNames.join(' / ')}`);
-  }
+  if (checklistNames.length <= 1) return [];
+  return [`チェックリスト名が混在しています: ${checklistNames.join(' / ')}`];
+}
 
-  if (columns.length > READABLE_DEPT_MAX) {
-    warnings.push(`部署が ${columns.length} 件あります。Wordの表は用紙幅に収めますが、${READABLE_DEPT_MAX} 件を超えると部署の列が狭くなり読みにくくなります。`);
-  }
+function deptCountWarnings(deptCount: number): string[] {
+  if (deptCount <= READABLE_DEPT_MAX) return [];
+  return [`部署が ${deptCount} 件あります。Wordの表は用紙幅に収めますが、${READABLE_DEPT_MAX} 件を超えると部署の列が狭くなり読みにくくなります。`];
+}
 
-  return { columns, categories, warnings };
+/** ファイルの読み込み順がそのまま表の列順になる */
+export function mergeRounds(exports: RoundExport[]): MergeResult {
+  const rows = buildRows(exports);
+  const { builds, reportWarnings } = buildColumns(exports);
+  const columns = builds.map((b) => b.column);
+  assignUniqueLabels(columns);
+
+  const warnings = [
+    ...rows.itemConflicts.values(),
+    ...reportWarnings,
+    ...builds.flatMap(splitRatingWarnings),
+    ...columns.flatMap((col) => missingItemsWarnings(col, rows.rowKeys)),
+    ...checklistNameWarnings(exports),
+    ...deptCountWarnings(columns.length),
+  ];
+  return { columns, categories: rows.categories, warnings };
 }
