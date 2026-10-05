@@ -108,7 +108,8 @@ function itemsKeepingSourceId(categories: ReturnType<typeof trimmedCategories>):
     for (const item of cat.items) {
       const { source } = item;
       if (!source) continue;
-      const unchanged = source.category.trim() === cat.name && source.description.trim() === item.description;
+      // Compared as-is, like the merge's row key, so a source with surrounding spaces gets a new ID
+      const unchanged = source.category === cat.name && source.description === item.description;
       if (unchanged && !keptIds.has(source.id)) {
         keptIds.add(source.id);
         keepsId.add(item);
@@ -120,8 +121,8 @@ function itemsKeepingSourceId(categories: ReturnType<typeof trimmedCategories>):
 
 /**
  * Converts the editor draft into a new checklist, or returns a user-facing error.
- * A copied item keeps its source ID only when its trimmed category name and description both
- * match the source; changed items, new items and duplicate IDs get fresh ones.
+ * A copied item keeps its source ID only when the saved (trimmed) category name and description
+ * equal the source's exactly; changed items, new items and duplicate IDs get fresh ones.
  */
 export function buildChecklist(
   draft: EditorDraft,

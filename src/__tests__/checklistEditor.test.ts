@@ -259,11 +259,20 @@ describe('buildChecklist', () => {
     expect(c.categories.flatMap((cat) => cat.items.map((i) => i.id))).toEqual(['h-1', 'h-2', 'e-1']);
   });
 
-  it('compares with the trimmed source text', () => {
+  // The merge identifies a row by [id, category, description] compared as-is, so a source with
+  // surrounding spaces no longer matches the trimmed result and must not hand over its ID
+  it('gives a new ID when the source category name has surrounding spaces', () => {
     const d = draft('x', [{ name: 'A', items: [['h-1', 'one'], ['h-2', 'two']] }]);
-    d.categories[0].items[0].source = { id: 'h-1', category: ' A ', description: ' one ' };
+    d.categories[0].items[0].source = { id: 'h-1', category: ' A ', description: 'one' };
     const c = expectChecklist(buildChecklist(d, sequentialIds()));
-    expect(c.categories[0].items.map((i) => i.id)).toEqual(['h-1', 'h-2']);
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['item-id1', 'h-2']);
+  });
+
+  it('gives a new ID when the source description has surrounding spaces', () => {
+    const d = draft('x', [{ name: 'A', items: [['h-1', 'one'], ['h-2', 'two']] }]);
+    d.categories[0].items[1].source = { id: 'h-2', category: 'A', description: 'two\u3000' };
+    const c = expectChecklist(buildChecklist(d, sequentialIds()));
+    expect(c.categories[0].items.map((i) => i.id)).toEqual(['h-1', 'item-id1']);
   });
 
   it('gives a new ID to a copied item placed under another category', () => {
