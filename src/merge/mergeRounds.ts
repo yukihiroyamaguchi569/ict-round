@@ -277,6 +277,7 @@ export function mergeRounds(exports: RoundExport[]): MergeResult {
   // 同じ病棟の中で評価が分かれたのは担当者間の食い違いなので、厳しい方を採用したうえで知らせる。
   // （病棟が違う場合の評価の違いは食い違いではなく別々の結果なので、この判定は1列の中に閉じている）
   for (const col of columns) {
+    // Stryker disable next-line OptionalChaining,ArrayDeclaration: every column is registered in votesByColumn when it is created, so the fallback is unreachable
     const split = [...(votesByColumn.get(col)?.values() ?? [])].filter(
       (item) => new Set(item.votes.map((v) => v.rating)).size > 1
     );
