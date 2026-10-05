@@ -127,6 +127,19 @@ describe('buildMergedDocxBlob', () => {
       expect(Math.min(...gridWidths)).toBeGreaterThan(0);
     }
   });
+
+  it('警告なしで出せる部署数の上限までは部署列が読める幅を保つ', async () => {
+    /** mergedDocx.ts の DEPT_COL_MIN と揃えている */
+    const DEPT_COL_MIN = 700;
+    const deptColWidth = async (deptCount: number) => {
+      const merged = mergeRounds(Array.from({ length: deptCount }, (_, i) => makeExport(`${i + 1}階病棟`, 'A')));
+      const [gridWidths] = tableGridWidths(await readDocumentXml(await buildMergedDocxBlob(merged)));
+      return gridWidths[1];
+    };
+
+    expect(await deptColWidth(READABLE_DEPT_MAX)).toBeGreaterThanOrEqual(DEPT_COL_MIN);
+    expect(await deptColWidth(READABLE_DEPT_MAX + 1)).toBeLessThan(DEPT_COL_MIN);
+  });
 });
 
 /** 1つの病棟を2人で分担するため、項目が2つあるカテゴリを使う */
