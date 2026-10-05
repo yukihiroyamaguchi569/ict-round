@@ -11,7 +11,8 @@
     "src/merge/mergedDocx.ts",
     "src/merge/useMergeFiles.ts",
     "src/roundExportDocx.ts",
-    "src/docx.ts"
+    "src/docx.ts",
+    "src/roundData.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
