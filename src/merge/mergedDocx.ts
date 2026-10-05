@@ -78,7 +78,7 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
     spacing: { after: 80 },
     children: [
       new TextRun({ text: '担当者: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: [...new Set(columns.flatMap((c) => c.sources.map((s) => s.inspectorName)).filter(Boolean))].join('、'), color: clr.text }),
+      new TextRun({ text: [...new Set(columns.flatMap((c) => c.sources.map((s) => s.inspectorName.trim())).filter(Boolean))].join('、'), color: clr.text }),
     ],
   }));
 
