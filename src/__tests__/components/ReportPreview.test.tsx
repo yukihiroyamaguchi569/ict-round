@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { saveAs } from 'file-saver';
 import ReportPreview from '../../components/ReportPreview';
+import { buildDocxBlob } from '../../docx';
+import { embedRoundExport } from '../../roundExportDocx';
+import { trackEvent } from '../../analytics';
 import { ThemeProvider } from '../../ThemeContext';
 import type { ChecklistCategory, RoundData } from '../../types';
 
@@ -67,6 +70,7 @@ afterEach(() => {
   Reflect.deleteProperty(navigator, 'share');
   Reflect.deleteProperty(navigator, 'canShare');
   vi.clearAllMocks();
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllEnvs();
 });
@@ -119,5 +123,146 @@ describe('ReportPreview file name and share text', () => {
     expect(navigator.share).not.toHaveBeenCalled();
     const fileName = vi.mocked(saveAs).mock.calls[0][1];
     expect(fileName?.match(FILE_NAME)?.[1]).toBe('2026-10-06');
+  });
+});
+
+describe('ReportPreview building the report file', () => {
+  it('shows the pending label with the buttons disabled until the file is built', async () => {
+    let finish: (blob: Blob) => void = () => {};
+    vi.mocked(buildDocxBlob).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    stubShare();
+    renderPreview();
+
+    expect(screen.getByRole('button', { name: '準備中…' })).toBeDisabled();
+
+    finish(new Blob(['docx']));
+    expect(await screen.findByRole('button', { name: '共有' })).toBeEnabled();
+  });
+
+  it('embeds the round data with its checklist into the report built from the same round', async () => {
+    renderPreview();
+    await screen.findByRole('button', { name: 'Word出力' });
+
+    expect(buildDocxBlob).toHaveBeenCalledWith(roundData, categories);
+    expect(embedRoundExport).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(embedRoundExport).mock.calls[0][1]).toEqual({
+      format: 'meguru-round',
+      version: 1,
+      exportedAt: '2026-10-05T22:00:00.000Z',
+      checklistName: '',
+      categories,
+      roundData,
+    });
+  });
+
+  it('keeps the checklist name of the round in the embedded data', async () => {
+    render(
+      <ThemeProvider>
+        <ReportPreview roundData={{ ...roundData, checklistName: '標準' }} categories={categories} onBack={() => {}} />
+      </ThemeProvider>,
+    );
+    await screen.findByRole('button', { name: 'Word出力' });
+
+    expect(vi.mocked(embedRoundExport).mock.calls[0][1].checklistName).toBe('標準');
+  });
+
+  it('builds the file only once while the preview stays open', async () => {
+    const { rerender } = render(
+      <ThemeProvider>
+        <ReportPreview roundData={roundData} categories={categories} onBack={() => {}} />
+      </ThemeProvider>,
+    );
+    await screen.findByRole('button', { name: 'Word出力' });
+
+    rerender(
+      <ThemeProvider>
+        <ReportPreview roundData={roundData} categories={categories} onBack={() => {}} />
+      </ThemeProvider>,
+    );
+
+    expect(buildDocxBlob).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains the failure and keeps both actions unavailable when the file cannot be built', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(buildDocxBlob).mockRejectedValueOnce(new Error('画像が大きすぎます'));
+    stubShare();
+    renderPreview();
+
+    expect(await screen.findByText(/報告書ファイルを作成できませんでした（画像が大きすぎます）/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '作成できません' })).toBeDisabled();
+    expect(navigator.share).not.toHaveBeenCalled();
+  });
+
+  it('shows a non-Error rejection as text in the failure message', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(embedRoundExport).mockRejectedValueOnce('zip broken');
+    renderPreview();
+
+    expect(await screen.findByText(/報告書ファイルを作成できませんでした（zip broken）/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '作成できません' })).toBeDisabled();
+  });
+});
+
+describe('ReportPreview sharing and downloading', () => {
+  it('counts a completed share as an export', async () => {
+    const share = stubShare();
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: '共有' }));
+
+    expect(share.mock.calls[0][0].title).toBe('感染対策ラウンド報告書');
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'share' }));
+    expect(screen.getByRole('button', { name: '共有' })).toBeEnabled();
+  });
+
+  it('disables the share button while the share sheet is open', async () => {
+    const share = stubShare();
+    share.mockImplementation(() => new Promise(() => {}));
+    const user = renderPreview();
+    const button = await screen.findByRole('button', { name: '共有' });
+
+    await user.click(button);
+    await user.click(button);
+
+    expect(button).toBeDisabled();
+    expect(share).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a cancelled share sheet as neither an export nor a failure', async () => {
+    const share = stubShare();
+    share.mockRejectedValueOnce(new DOMException('cancelled', 'AbortError'));
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: '共有' }));
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '共有' })).toBeEnabled());
+    expect(trackEvent).not.toHaveBeenCalled();
+    expect(screen.queryByText(/共有できませんでした/)).not.toBeInTheDocument();
+  });
+
+  it('switches to download with an explanation when sharing fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const share = stubShare();
+    share.mockRejectedValueOnce(new DOMException('denied', 'NotAllowedError'));
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: '共有' }));
+
+    expect(await screen.findByText(/共有できませんでした。/)).toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+    expect(saveAs).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download' });
+  });
+
+  it('counts a download as an export', async () => {
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: 'Word出力' }));
+
+    const [file] = vi.mocked(saveAs).mock.calls[0];
+    expect(file).toBeInstanceOf(File);
+    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download' });
   });
 });
