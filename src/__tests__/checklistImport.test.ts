@@ -2,7 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { SheetData } from 'read-excel-file/browser';
-import { parseCsv, parseXlsx } from '../checklistImport';
+import {
+  parseCsv,
+  parseXlsx,
+  checklistFileType,
+  readChecklistFile,
+  importedChecklistName,
+  buildImportedChecklist,
+} from '../checklistImport';
 
 // Fixture tests use the real reader; individual tests can feed rows directly.
 const readSheetMock = vi.hoisted(() => vi.fn<(input: ArrayBuffer) => Promise<SheetData>>());
@@ -167,5 +174,73 @@ describe('parseXlsx', () => {
     expect(
       result.flatMap((c) => c.items).some((i) => i.description === '項目だけの行')
     ).toBe(false);
+  });
+});
+
+describe('checklistFileType', () => {
+  it('treats a name ending in .xlsx as xlsx', () => {
+    expect(checklistFileType('list.xlsx')).toBe('xlsx');
+    expect(checklistFileType('.xlsx')).toBe('xlsx');
+  });
+
+  it('treats everything else as CSV, including other spreadsheet extensions and upper case', () => {
+    expect(checklistFileType('list.csv')).toBe('csv');
+    expect(checklistFileType('list.xls')).toBe('csv');
+    expect(checklistFileType('list.XLSX')).toBe('csv');
+    expect(checklistFileType('list.xlsx.txt')).toBe('csv');
+    expect(checklistFileType('')).toBe('csv');
+  });
+});
+
+describe('readChecklistFile', () => {
+  it('reads an xlsx file through the spreadsheet reader', async () => {
+    readSheetMock.mockResolvedValueOnce([['手指衛生', '項目1']]);
+    const file = new File(['ignored'], 'a.xlsx');
+    const result = await readChecklistFile(file, 'xlsx');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+    expect(readSheetMock).toHaveBeenCalledTimes(1);
+    expect(readSheetMock.mock.calls[0][0]).toBeInstanceOf(ArrayBuffer);
+  });
+
+  it('reads a CSV file as text without the spreadsheet reader', async () => {
+    const result = await readChecklistFile(new File(['水回り,項目1'], 'a.csv'), 'csv');
+    expect(result.map((c) => c.category)).toEqual(['水回り']);
+    expect(readSheetMock).not.toHaveBeenCalled();
+  });
+
+  it('follows the given type rather than the file name', async () => {
+    const result = await readChecklistFile(new File(['水回り,項目1'], 'a.xlsx'), 'csv');
+    expect(result[0].items[0].description).toBe('項目1');
+  });
+
+  it('passes on a parse failure', async () => {
+    await expect(readChecklistFile(new File([''], 'a.csv'), 'csv')).rejects.toThrow('有効な行が見つかりません');
+  });
+});
+
+describe('importedChecklistName', () => {
+  it('uses the typed name, trimmed', () => {
+    expect(importedChecklistName('  外来用 ', 'list.csv')).toBe('外来用');
+  });
+
+  it('falls back to the file name without its last extension', () => {
+    expect(importedChecklistName('', 'list.csv')).toBe('list');
+    expect(importedChecklistName('   ', '3東.v2.xlsx')).toBe('3東.v2');
+    expect(importedChecklistName('', 'noext')).toBe('noext');
+  });
+
+  it('falls back to 取込チェックリスト when the file name has no stem', () => {
+    expect(importedChecklistName('', '.csv')).toBe('取込チェックリスト');
+    expect(importedChecklistName('', '')).toBe('取込チェックリスト');
+  });
+});
+
+describe('buildImportedChecklist', () => {
+  it('builds the checklist with the given ID, name and time, fields in a fixed order', () => {
+    const categories = parseCsv('手指衛生,項目1');
+    const result = buildImportedChecklist({ typedName: '', fileName: 'a.csv', categories }, 'id1', '2026-10-06T00:00:00.000Z');
+    expect(result).toStrictEqual({ id: 'id1', name: 'a', createdAt: '2026-10-06T00:00:00.000Z', categories });
+    expect(Object.keys(result)).toEqual(['id', 'name', 'createdAt', 'categories']);
+    expect(result.categories).toBe(categories);
   });
 });
