@@ -116,7 +116,7 @@ src/
   roundDirty.ts            Unsaved-change detection via round snapshots
   localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
-  docx.ts                  Builds the report .docx (checklist table, photos, evaluation) and shared docx helpers
+  docx.ts                  Builds the report .docx from per-section builders (cover, checklist table, photos, evaluation) and shared docx helpers
   roundExportDocx.ts       Embeds / extracts round data (RoundExport) as a customXml part of the report .docx
   themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
   ThemeContext.tsx         React context providing the current theme
@@ -124,6 +124,7 @@ src/
   IconContext.tsx          React context providing the current icon
   analytics.ts             GA4 initialization and trackEvent (never sends round input data)
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
+  useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download; buildRoundExport and reportFileName pure helpers
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
@@ -142,7 +143,9 @@ src/
     EvaluationTab.tsx      Overall evaluation free-text input
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
-    ReportPreview.tsx      Report preview; builds the .docx with embedded round data, share / download
+    ReportPreview.tsx      Report screen shell: back button, export button and notices, preview; composes the parts below
+    ReportExport.tsx       Share / Word export button and the build-failure / share-failure notices
+    ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
     MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
