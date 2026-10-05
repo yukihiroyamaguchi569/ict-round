@@ -145,7 +145,11 @@ src/
     ReportPreview.tsx      Report preview; builds the .docx with embedded round data, share / download
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
-    MergeApp.tsx           File drop / select, merge preview, warnings, merged .docx download
+    MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
+    useMergeFiles.ts       Hook for loaded reports (load / reorder / remove), load errors, merge result and merged .docx download; moveItem pure helper
+    DropZone.tsx           Drop area and file picker for report .docx files
+    LoadedFileList.tsx     Loaded reports with counts, reorder / remove buttons (order = column order)
+    MergePreview.tsx       Merged rating table preview, Word export button and export error
     loadRoundFile.ts       Reads one report .docx (size limit, ZIP signature check) and extracts its round data
     mergeRounds.ts         Validates RoundExport and merges reports into department columns keyed by checklist item
     mergedDocx.ts          Builds the merged landscape .docx (item x department rating table, then evaluations and photos per department)
