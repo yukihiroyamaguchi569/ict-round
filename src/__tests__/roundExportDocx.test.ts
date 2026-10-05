@@ -61,6 +61,25 @@ async function hasPart(blob: Blob, path: string): Promise<boolean> {
   return zip.file(path) !== null;
 }
 
+type XmlElement = { name: string; attrs: Record<string, string> };
+
+/**
+ * XML 宣言と1つのルート要素だけから成る XML を読み、ルート直下の子要素を返す。
+ * 子要素はすべて属性だけを持つ空要素（[Content_Types].xml と .rels の形）であることも確かめる
+ */
+function rootChildren(xml: string, root: string): XmlElement[] {
+  const match = new RegExp(`^<\\?xml [^>]*\\?><${root}\\b[^>]*>(.*)</${root}>$`).exec(xml);
+  if (!match) throw new Error(`XML 宣言の後に ${root} だけが置かれた形になっていません`);
+  const elements = [...match[1].matchAll(/<(\w+)((?:\s+[\w:]+="[^"]*")*)\/>/g)];
+  if (elements.map(([whole]) => whole).join('') !== match[1]) {
+    throw new Error(`${root} の中に空要素以外のものがあります`);
+  }
+  return elements.map(([, name, attrs]) => ({
+    name,
+    attrs: Object.fromEntries([...attrs.matchAll(/\s([^\s=]+)="([^"]*)"/g)].map(([, key, value]) => [key, value])),
+  }));
+}
+
 describe('embedRoundExport / extractRoundExport', () => {
   it('埋め込んだラウンドデータをそのまま取り出せる', async () => {
     const roundExport = makeRoundExport();
@@ -161,15 +180,42 @@ describe('embedRoundExport / extractRoundExport', () => {
     );
   });
 
-  it('登録は既存の要素の後ろ、閉じタグの直前に足す', async () => {
+  it('登録はルート要素の子として足し、既存の要素を残して重複させない', async () => {
     const embedded = await embedRoundExport(await makeDocx(), makeRoundExport());
 
-    expect(await readPart(embedded, '[Content_Types].xml')).toMatch(
-      /PartName="\/word\/document\.xml"\/><Override [^>]*PartName="\/customXml\/itemProps1\.xml"\/><\/Types>$/
-    );
-    expect(await readPart(embedded, 'word/_rels/document.xml.rels')).toMatch(
-      /Target="styles\.xml"\/><Relationship Id="rId2" [^>]*Target="\.\.\/customXml\/item1\.xml"\/><\/Relationships>$/
-    );
+    const types = rootChildren(await readPart(embedded, '[Content_Types].xml'), 'Types');
+    const overrides = types.filter((el) => el.name === 'Override');
+    expect(overrides.map((el) => el.attrs)).toEqual(expect.arrayContaining([
+      {
+        ContentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',
+        PartName: '/word/document.xml',
+      },
+      {
+        ContentType: 'application/vnd.openxmlformats-officedocument.customXmlProperties+xml',
+        PartName: '/customXml/itemProps1.xml',
+      },
+    ]));
+    const partNames = overrides.map((el) => el.attrs.PartName);
+    expect(new Set(partNames).size).toBe(partNames.length);
+    const extensions = types.filter((el) => el.name === 'Default').map((el) => el.attrs.Extension);
+    expect(new Set(extensions).size).toBe(extensions.length);
+
+    const rels = rootChildren(await readPart(embedded, 'word/_rels/document.xml.rels'), 'Relationships');
+    expect(rels.every((el) => el.name === 'Relationship')).toBe(true);
+    expect(rels.map((el) => el.attrs)).toEqual(expect.arrayContaining([
+      {
+        Id: 'rId1',
+        Type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles',
+        Target: 'styles.xml',
+      },
+      {
+        Id: 'rId2',
+        Type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml',
+        Target: '../customXml/item1.xml',
+      },
+    ]));
+    const ids = rels.map((el) => el.attrs.Id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('拡張子 xml の Default が既にあれば重ねて足さない', async () => {
