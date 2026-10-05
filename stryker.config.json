@@ -10,7 +10,8 @@
     "src/merge/loadRoundFile.ts",
     "src/merge/mergedDocx.ts",
     "src/merge/useMergeFiles.ts",
-    "src/roundExportDocx.ts"
+    "src/roundExportDocx.ts",
+    "src/docx.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
