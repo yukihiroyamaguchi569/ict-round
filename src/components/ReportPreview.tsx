@@ -33,6 +33,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
   // 二重タップで navigator.share() が並行実行されると、後発が InvalidStateError で
   // 落ちて「共有できませんでした」表示になるため、共有中は押せないようにする
   const [sharing, setSharing] = useState(false);
+  // Fixed once when the preview opens, so the pre-built file name and the share text never disagree across midnight
+  const [reportDate] = useState(localDateString);
   const canShare = (() => {
     if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
     // Variant A: type を省略（DOCX_MIME を渡すと iOS メール共有が即閉じる問題の検証）
@@ -46,9 +48,8 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     let cancelled = false;
     // ファイル名は半角英数のみ（日本語名だと iOS の AirDrop が失敗する）。
     // 複数人分が受信側で衝突しないよう末尾に乱数を付ける。
-    const dateStr = localDateString();
     // eslint-disable-next-line sonarjs/pseudo-random -- filename suffix only to avoid collisions, not security-sensitive
-    const docxFilename = `ICTround_${dateStr}_${Math.random().toString(36).slice(2, 6)}.docx`;
+    const docxFilename = `ICTround_${reportDate}_${Math.random().toString(36).slice(2, 6)}.docx`;
 
     // 統合ページは localStorage を持たないためチェックリスト定義を同梱する。
     const roundExport: RoundExport = {
@@ -83,7 +84,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     // AirDrop の転送失敗はファイル名の半角英数化で対処済み。
     navigator.share({
       title: '感染対策ラウンド報告書',
-      text: `${roundData.inspectorName} - ${localDateString()}`,
+      text: `${roundData.inspectorName} - ${reportDate}`,
       files: [shareFile],
     }).then(() => {
       // Count only completed shares, same as main (PR #87): a cancelled share sheet is not an export.
