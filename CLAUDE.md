@@ -148,7 +148,7 @@ src/
     loadRoundFile.ts       Reads one report .docx (size limit, ZIP signature check) and extracts its round data
     mergeRounds.ts         Validates RoundExport and merges reports into department columns keyed by checklist item
     mergedDocx.ts          Builds the merged landscape .docx (item x department rating table, then evaluations and photos per department)
-  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts); fixtures/ holds sample .xlsx and a tiny .jpg
+  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts); fixtures/ holds sample .xlsx, a tiny .jpg and roundDocx.ts (builds report .docx files with embedded round data)
 merge.html                 HTML entry of the merge page (second Vite input in vite.config.ts)
 e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
 playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4317

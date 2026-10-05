@@ -83,6 +83,30 @@ describe('buildMergedDocxBlob', () => {
     expect(allTexts(xml)).toContain('4階西病棟の所見');
   });
 
+  it('本文の文字列はすべて w:t の中に置き、要素の間に地の文字列を残さない', async () => {
+    const merged = mergeRounds([makeExport('3階東病棟', 'A'), makeExport('4階西病棟', 'C')]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    // w:t の中身を除くと、タグの間に文字列は残らないはず（Word はそうした文字列を本文として扱わない）
+    const outsideTexts = xml
+      .replace(/<w:t(?:\s[^>]*)?>.*?<\/w:t>/g, '')
+      .split('>')
+      .map((chunk) => chunk.split('<')[0])
+      .filter((text) => text !== '');
+    expect(outsideTexts).toEqual([]);
+  });
+
+  it('報告書が0件の統合結果でも例外にせず、実施日時・対象部署・担当者を空欄にして出す', async () => {
+    const xml = await readDocumentXml(await buildMergedDocxBlob(mergeRounds([])));
+
+    const paragraphs = paragraphTexts(xml);
+    expect(paragraphs).toContain('実施日時: ');
+    expect(paragraphs).toContain('対象部署: ');
+    expect(paragraphs).toContain('担当者: ');
+    expect(tableCells(xml)).toEqual([]);
+  });
+
   it('その部署に無い項目のセルは — になる', async () => {
     const water: ChecklistCategory = {
       category: '水回り',
@@ -126,6 +150,19 @@ describe('buildMergedDocxBlob', () => {
       expect(gridWidths.reduce((sum, width) => sum + width, 0)).toBeLessThanOrEqual(CONTENT_W);
       expect(Math.min(...gridWidths)).toBeGreaterThan(0);
     }
+  });
+
+  it('警告なしで出せる部署数の上限までは部署列が読める幅を保つ', async () => {
+    /** mergedDocx.ts の DEPT_COL_MIN と揃えている */
+    const DEPT_COL_MIN = 700;
+    const deptColWidth = async (deptCount: number) => {
+      const merged = mergeRounds(Array.from({ length: deptCount }, (_, i) => makeExport(`${i + 1}階病棟`, 'A')));
+      const [gridWidths] = tableGridWidths(await readDocumentXml(await buildMergedDocxBlob(merged)));
+      return gridWidths[1];
+    };
+
+    expect(await deptColWidth(READABLE_DEPT_MAX)).toBeGreaterThanOrEqual(DEPT_COL_MIN);
+    expect(await deptColWidth(READABLE_DEPT_MAX + 1)).toBeLessThan(DEPT_COL_MIN);
   });
 });
 

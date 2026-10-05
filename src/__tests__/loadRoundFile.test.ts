@@ -74,6 +74,21 @@ describe('loadRoundFile', () => {
     );
   });
 
+  it('サイズ超過のエラーには実際の大きさと上限を MB で示す', async () => {
+    const docx = await embedRoundExport(await makeDocx(), makeRoundExport());
+
+    await expect(loadRoundFile(withSize(docx, 120 * 1024 * 1024))).rejects.toThrow(
+      'ファイルが大きすぎます（120MB）。1ファイル 50MB までです'
+    );
+  });
+
+  it('ZIP の署名の一部だけが一致するファイルは .docx として扱わない', async () => {
+    // "PK" で始まっても 03 04 が続かなければ .docx（ZIP のローカルファイルヘッダ）ではない
+    const emptyZip = new Blob([new Uint8Array([0x50, 0x4b, 0x05, 0x06, ...new Array<number>(18).fill(0)])]);
+
+    await expect(loadRoundFile(emptyZip)).rejects.toThrow(/Wordファイル（\.docx）ではありません/);
+  });
+
   it('サイズ上限ちょうどのファイルは読める', async () => {
     const roundExport = makeRoundExport();
     const docx = await embedRoundExport(await makeDocx(), roundExport);

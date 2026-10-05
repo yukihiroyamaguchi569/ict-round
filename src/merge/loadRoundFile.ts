@@ -21,6 +21,7 @@ export async function loadRoundFile(file: Blob): Promise<RoundExport> {
       `ファイルが大きすぎます（${Math.round(file.size / 1024 / 1024)}MB）。1ファイル ${MAX_FILE_BYTES / 1024 / 1024}MB までです`
     );
   }
+  // Stryker disable next-line MethodExpression: slicing only avoids reading the whole file; the first 4 bytes compared are the same either way
   const head = new Uint8Array(await file.slice(0, ZIP_SIGNATURE.length).arrayBuffer());
   if (!ZIP_SIGNATURE.every((byte, i) => head[i] === byte)) {
     throw new Error(
