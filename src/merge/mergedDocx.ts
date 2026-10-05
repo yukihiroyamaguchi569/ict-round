@@ -59,7 +59,6 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
     children: [new TextRun({ text: '感染対策ラウンド報告書（統合）', bold: true, size: 32, color: clr.text })],
   }));
 
-  // Stryker disable next-line StringLiteral: the fallback only applies to zero columns, which the merge page never exports (no files means no merge result)
   const earliest = columns.map((c) => c.startTime).sort()[0] ?? '';
   children.push(new Paragraph({
     spacing: { after: 80 },

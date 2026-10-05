@@ -93,6 +93,16 @@ describe('buildMergedDocxBlob', () => {
     expect(outsideTexts).toBeNull();
   });
 
+  it('報告書が0件の統合結果でも例外にせず、実施日時・対象部署・担当者を空欄にして出す', async () => {
+    const xml = await readDocumentXml(await buildMergedDocxBlob(mergeRounds([])));
+
+    const paragraphs = paragraphTexts(xml);
+    expect(paragraphs).toContain('実施日時: ');
+    expect(paragraphs).toContain('対象部署: ');
+    expect(paragraphs).toContain('担当者: ');
+    expect(tableCells(xml)).toEqual([]);
+  });
+
   it('その部署に無い項目のセルは — になる', async () => {
     const water: ChecklistCategory = {
       category: '水回り',
