@@ -109,13 +109,15 @@ One line per file describing its role. When a PR adds, removes, or renames a fil
 src/
   main.tsx                 Entry point; initializes analytics and mounts App
   App.tsx                  Screen state machine (start / main / photo-add / report / saved-rounds), round state owner, wraps ThemeProvider / IconProvider
-  types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound
+  types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound, RoundExport
   checklistData.ts         Built-in default checklist (CHECKLIST_CATEGORIES) and item lookup helpers
   checklistImport.ts       Parses user checklists from CSV / .xlsx
   checklistEditor.ts       Editor draft model and conversion of a draft into a new checklist (validation, item IDs)
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
+  docx.ts                  Builds the report .docx (checklist table, photos, evaluation) and shared docx helpers
+  roundExportDocx.ts       Embeds / extracts round data (RoundExport) as a customXml part of the report .docx
   themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
   ThemeContext.tsx         React context providing the current theme
   icons.ts                 App icon definitions (ran / meguru) and localStorage persistence
@@ -125,7 +127,7 @@ src/
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
-    RoundStart.tsx         Start screen: inspector / ward name, checklist select / create / copy / import / delete, link to saved rounds
+    RoundStart.tsx         Start screen: inspector / ward name, checklist select / create / copy / import / delete, links to saved rounds and the merge page
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
     ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen
@@ -141,8 +143,15 @@ src/
     EvaluationTab.tsx      Overall evaluation free-text input
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
-    ReportPreview.tsx      Report preview, .docx generation, share / download
-  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts); fixtures/ holds sample .xlsx
+    ReportPreview.tsx      Report preview; builds the .docx with embedded round data, share / download
+  merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
+    main.tsx               Entry point; mounts MergeApp
+    MergeApp.tsx           File drop / select, merge preview, warnings, merged .docx download
+    loadRoundFile.ts       Reads one report .docx (size limit, ZIP signature check) and extracts its round data
+    mergeRounds.ts         Validates RoundExport and merges reports into department columns keyed by checklist item
+    mergedDocx.ts          Builds the merged landscape .docx (item x department rating table, then evaluations and photos per department)
+  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts); fixtures/ holds sample .xlsx and a tiny .jpg
+merge.html                 HTML entry of the merge page (second Vite input in vite.config.ts)
 e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
 playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4317
 stryker.config.json        Stryker mutation testing config (targets the core logic modules; report in reports/mutation/)
