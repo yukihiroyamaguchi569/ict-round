@@ -12,7 +12,9 @@
     "src/merge/useMergeFiles.ts",
     "src/roundExportDocx.ts",
     "src/docx.ts",
-    "src/roundData.ts"
+    "src/roundData.ts",
+    "src/photoImage.ts",
+    "src/localId.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
