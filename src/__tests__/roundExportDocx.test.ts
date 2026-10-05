@@ -61,6 +61,25 @@ async function hasPart(blob: Blob, path: string): Promise<boolean> {
   return zip.file(path) !== null;
 }
 
+type XmlElement = { name: string; attrs: Record<string, string> };
+
+/**
+ * XML 宣言と1つのルート要素だけから成る XML を読み、ルート直下の子要素を返す。
+ * 子要素はすべて属性だけを持つ空要素（[Content_Types].xml と .rels の形）であることも確かめる
+ */
+function rootChildren(xml: string, root: string): XmlElement[] {
+  const match = new RegExp(`^<\\?xml [^>]*\\?><${root}\\b[^>]*>(.*)</${root}>$`).exec(xml);
+  if (!match) throw new Error(`XML 宣言の後に ${root} だけが置かれた形になっていません`);
+  const elements = [...match[1].matchAll(/<(\w+)((?:\s+[\w:]+="[^"]*")*)\/>/g)];
+  if (elements.map(([whole]) => whole).join('') !== match[1]) {
+    throw new Error(`${root} の中に空要素以外のものがあります`);
+  }
+  return elements.map(([, name, attrs]) => ({
+    name,
+    attrs: Object.fromEntries([...attrs.matchAll(/\s([^\s=]+)="([^"]*)"/g)].map(([, key, value]) => [key, value])),
+  }));
+}
+
 describe('embedRoundExport / extractRoundExport', () => {
   it('埋め込んだラウンドデータをそのまま取り出せる', async () => {
     const roundExport = makeRoundExport();
@@ -148,6 +167,130 @@ describe('embedRoundExport / extractRoundExport', () => {
       'Target="itemProps2.xml"'
     );
     expect(await extractRoundExport(embedded)).toEqual(makeRoundExport());
+  });
+
+  it('同梱するパートはどれも XML 宣言から始まり、item のリレーションは customXmlProps を指す', async () => {
+    const embedded = await embedRoundExport(await makeDocx(), makeRoundExport());
+
+    for (const path of ['customXml/item1.xml', 'customXml/itemProps1.xml', 'customXml/_rels/item1.xml.rels']) {
+      expect(await readPart(embedded, path)).toMatch(/^<\?xml version="1\.0" encoding="UTF-8" standalone="yes"\?>/);
+    }
+    expect(await readPart(embedded, 'customXml/_rels/item1.xml.rels')).toContain(
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXmlProps" Target="itemProps1.xml"/>'
+    );
+  });
+
+  it('登録はルート要素の子として足し、既存の要素を残して重複させない', async () => {
+    const embedded = await embedRoundExport(await makeDocx(), makeRoundExport());
+
+    const types = rootChildren(await readPart(embedded, '[Content_Types].xml'), 'Types');
+    const overrides = types.filter((el) => el.name === 'Override');
+    expect(overrides.map((el) => el.attrs)).toEqual(expect.arrayContaining([
+      {
+        ContentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',
+        PartName: '/word/document.xml',
+      },
+      {
+        ContentType: 'application/vnd.openxmlformats-officedocument.customXmlProperties+xml',
+        PartName: '/customXml/itemProps1.xml',
+      },
+    ]));
+    const partNames = overrides.map((el) => el.attrs.PartName);
+    expect(new Set(partNames).size).toBe(partNames.length);
+    const extensions = types.filter((el) => el.name === 'Default').map((el) => el.attrs.Extension);
+    expect(new Set(extensions).size).toBe(extensions.length);
+
+    const rels = rootChildren(await readPart(embedded, 'word/_rels/document.xml.rels'), 'Relationships');
+    expect(rels.every((el) => el.name === 'Relationship')).toBe(true);
+    expect(rels.map((el) => el.attrs)).toEqual(expect.arrayContaining([
+      {
+        Id: 'rId1',
+        Type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles',
+        Target: 'styles.xml',
+      },
+      {
+        Id: 'rId2',
+        Type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml',
+        Target: '../customXml/item1.xml',
+      },
+    ]));
+    const ids = rels.map((el) => el.attrs.Id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('拡張子 xml の Default が既にあれば重ねて足さない', async () => {
+    const embedded = await embedRoundExport(await makeDocx(), makeRoundExport());
+
+    const contentTypes = await readPart(embedded, '[Content_Types].xml');
+    expect(contentTypes.match(/<Default\b[^>]*Extension="xml"/g)).toHaveLength(1);
+  });
+
+  it('リレーションの ID は2桁以上の既存の番号より大きくする', async () => {
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', CONTENT_TYPES);
+    zip.file(
+      'word/_rels/document.xml.rels',
+      DOCUMENT_RELS.replace('</Relationships>', '<Relationship Id="rId12" Type="x" Target="y.xml"/></Relationships>')
+    );
+    const base = new Blob([await zip.generateAsync({ type: 'arraybuffer' })]);
+
+    const rels = await readPart(await embedRoundExport(base, makeRoundExport()), 'word/_rels/document.xml.rels');
+    expect(rels).toContain('<Relationship Id="rId13" ');
+  });
+
+  it('item 本体だけが残っている .docx でも既存パートを壊さない', async () => {
+    const existing = '<?xml version="1.0"?><otherApp>keep me</otherApp>';
+    const base = await makeDocx({ 'customXml/item1.xml': existing });
+
+    const embedded = await embedRoundExport(base, makeRoundExport());
+
+    expect(await readPart(embedded, 'customXml/item1.xml')).toBe(existing);
+    expect(await hasPart(embedded, 'customXml/item2.xml')).toBe(true);
+    expect(await extractRoundExport(embedded)).toEqual(makeRoundExport());
+  });
+
+  it('customXml が9件以上あって item 番号が2桁になっても取り出せる', async () => {
+    const existing: Record<string, string> = {};
+    for (let n = 1; n <= 9; n++) existing[`customXml/item${n}.xml`] = '<?xml version="1.0"?><otherApp/>';
+
+    const embedded = await embedRoundExport(await makeDocx(existing), makeRoundExport());
+
+    expect(await hasPart(embedded, 'customXml/item10.xml')).toBe(true);
+    expect(await extractRoundExport(embedded)).toEqual(makeRoundExport());
+  });
+
+  it('パートの並び順が変わっていても、同じ namespace を参照する itemProps を本体と取り違えない', async () => {
+    // Word で保存し直すと ZIP 内のパートの順序が変わることがある
+    const embedded = await JSZip.loadAsync(await (await embedRoundExport(await makeDocx(), makeRoundExport())).arrayBuffer());
+    const reordered = new JSZip();
+    const paths = Object.keys(embedded.files).filter((path) => !embedded.files[path].dir);
+    const propsFirst = [...paths.filter((p) => p.includes('itemProps')), ...paths.filter((p) => !p.includes('itemProps'))];
+    for (const path of propsFirst) reordered.file(path, await embedded.files[path].async('string'));
+    const docx = new Blob([await reordered.generateAsync({ type: 'arraybuffer' })]);
+
+    expect(await extractRoundExport(docx)).toEqual(makeRoundExport());
+  });
+
+  it('customXml/itemN.xml の位置と名前に一致しないパートは読まない', async () => {
+    const decoy = '<?xml version="1.0"?><meguruRound xmlns="urn:meguru-round:export"><![CDATA[{ broken]]></meguruRound>';
+    const base = await makeDocx({
+      'backup/customXml/item1.xml': decoy,
+      'customXml/item1.xml.bak': decoy,
+    });
+
+    const embedded = await embedRoundExport(base, makeRoundExport());
+
+    expect(await extractRoundExport(embedded)).toEqual(makeRoundExport());
+  });
+
+  it('必須のパートが欠けた .docx には埋め込まず、どのパートかを示すエラーになる', async () => {
+    const zip = new JSZip();
+    zip.file('[Content_Types].xml', CONTENT_TYPES);
+    const base = new Blob([await zip.generateAsync({ type: 'arraybuffer' })]);
+
+    await expect(embedRoundExport(base, makeRoundExport())).rejects.toThrow(
+      'Wordファイルの構造が想定と違います（word/_rels/document.xml.rels がありません）'
+    );
   });
 
   it('ラウンドデータの無い .docx は理由の分かるエラーになる', async () => {

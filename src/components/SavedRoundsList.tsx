@@ -7,6 +7,7 @@ interface Props {
   onBack: () => void;
 }
 
+// eslint-disable-next-line max-lines-per-function -- mostly JSX markup; only a sort and a delete confirm
 export default function SavedRoundsList({ savedRounds, onLoad, onDelete, onBack }: Props) {
   const handleDelete = (id: string) => {
     if (!confirm('この保存済みラウンドを削除しますか？')) return;

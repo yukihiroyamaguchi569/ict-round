@@ -116,6 +116,10 @@ describe('mergeRounds', () => {
     ]);
 
     expect(conflictWarnings(merged.warnings)).toHaveLength(1);
+    // 比べる相手は最初に読み込んだ報告書の項目
+    expect(conflictWarnings(merged.warnings)[0]).toContain(
+      '「手指衛生：擦式消毒薬がある」と「手指衛生：手指消毒のタイミングを守っている」'
+    );
   });
 
   it('項目IDが違えば同じ文言でも警告しない', () => {
@@ -282,6 +286,25 @@ describe('mergeRounds（同じ病棟のまとめ方）', () => {
     expect(merged.columns.map((c) => c.label)).toEqual(['山田', '山田 2']);
   });
 
+  it('見出しが3つ以上重なっても連番を増やして区別する', () => {
+    const merged = mergeRounds([
+      makeShared('', '山田', { 'shushi-1': 'A' }),
+      makeShared('', '山田', { 'shushi-1': 'B' }),
+      makeShared('', '山田', { 'shushi-1': 'C' }),
+    ]);
+
+    expect(merged.columns.map((c) => c.label)).toEqual(['山田', '山田 2', '山田 3']);
+  });
+
+  it('病棟名が空の報告書の見出しは担当者名の前後の空白を落とし、担当者名も空なら名称未設定にする', () => {
+    const merged = mergeRounds([
+      makeShared('', ' 山田 ', { 'shushi-1': 'A' }),
+      makeShared('', '  ', { 'shushi-1': 'B' }),
+    ]);
+
+    expect(merged.columns.map((c) => c.label)).toEqual(['山田', '（名称未設定）']);
+  });
+
   it('1列にまとまった報告書の実施日時は最も早いものにする', () => {
     const early = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
     early.roundData.startTime = '2026-09-19 09:00';
@@ -289,6 +312,15 @@ describe('mergeRounds（同じ病棟のまとめ方）', () => {
     late.roundData.startTime = '2026-09-19 14:00';
 
     expect(mergeRounds([late, early]).columns[0].startTime).toBe('2026-09-19 09:00');
+  });
+
+  it('先に読み込んだ報告書の方が早ければ、後の報告書の実施日時で上書きしない', () => {
+    const early = makeShared('1病棟', '山田', { 'shushi-1': 'A' });
+    early.roundData.startTime = '2026-09-19 09:00';
+    const late = makeShared('1病棟', '田中', { 'shushi-2': 'B' });
+    late.roundData.startTime = '2026-09-19 14:00';
+
+    expect(mergeRounds([early, late]).columns[0].startTime).toBe('2026-09-19 09:00');
   });
 });
 

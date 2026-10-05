@@ -9,6 +9,7 @@ interface Props {
   defaultOpen?: boolean;
 }
 
+// eslint-disable-next-line max-lines-per-function -- mostly JSX markup; only an open toggle and a rated count
 export default function CategoryAccordion({
   category,
   results,
