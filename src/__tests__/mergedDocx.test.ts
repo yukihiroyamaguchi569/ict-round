@@ -83,6 +83,16 @@ describe('buildMergedDocxBlob', () => {
     expect(allTexts(xml)).toContain('4階西病棟の所見');
   });
 
+  it('本文の文字列はすべて w:t の中に置き、要素の間に地の文字列を残さない', async () => {
+    const merged = mergeRounds([makeExport('3階東病棟', 'A'), makeExport('4階西病棟', 'C')]);
+
+    const xml = await readDocumentXml(await buildMergedDocxBlob(merged));
+
+    // w:t の中身を除くと、タグの間に文字列は残らないはず（Word はそうした文字列を本文として扱わない）
+    const outsideTexts = xml.replace(/<w:t(?:\s[^>]*)?>.*?<\/w:t>/g, '').match(/>[^<]+</g);
+    expect(outsideTexts).toBeNull();
+  });
+
   it('その部署に無い項目のセルは — になる', async () => {
     const water: ChecklistCategory = {
       category: '水回り',

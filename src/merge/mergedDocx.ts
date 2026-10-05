@@ -49,7 +49,6 @@ export async function buildMergedDocxBlob(merged: MergeResult): Promise<Blob> {
   const { itemColW, deptColW } = computeColumnWidths(columns.length);
   const columnWidths = [itemColW, ...columns.map(() => deptColW)];
 
-  // Stryker disable next-line ArrayDeclaration: docx silently drops a non-element entry in section children, so a seeded string never reaches the output
   const children: (Paragraph | Table)[] = [];
 
   // ===== Title =====
