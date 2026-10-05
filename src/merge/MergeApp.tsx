@@ -5,6 +5,7 @@ import { RATING_HEX } from '../docx';
 import { itemRowKey, mergeRounds } from './mergeRounds';
 import { loadRoundFile } from './loadRoundFile';
 import { buildMergedDocxBlob } from './mergedDocx';
+import { localDateString } from '../localDate';
 
 interface LoadedFile {
   id: string;
@@ -74,7 +75,7 @@ export default function MergeApp() {
     setBuilding(true);
     try {
       const blob = await buildMergedDocxBlob(merged);
-      saveAs(blob, `ICTround_merged_${new Date().toISOString().slice(0, 10)}.docx`);
+      saveAs(blob, `ICTround_merged_${localDateString()}.docx`);
     } catch (err) {
       console.error('統合DOCX生成エラー:', err);
       setErrors([`Word出力に失敗しました: ${err instanceof Error ? err.message : String(err)}`]);

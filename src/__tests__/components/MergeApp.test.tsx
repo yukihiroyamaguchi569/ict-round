@@ -18,6 +18,7 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 function setup() {
@@ -198,10 +199,12 @@ describe('MergeApp', () => {
     expect(screen.queryByRole('button', { name: 'Word出力' })).not.toBeInTheDocument();
   });
 
-  it('saves the merged report as a dated .docx', async () => {
+  it('saves the merged report as a .docx dated with the local date', async () => {
+    // 07:00 on 2026-10-06 in Japan is still 2026-10-05 in UTC; the file name must use the local date
+    vi.stubEnv('TZ', 'Asia/Tokyo');
     // Fake only Date so userEvent's timers keep running
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-10-05T12:00:00Z'));
+    vi.setSystemTime(new Date('2026-10-05T22:00:00Z'));
     const { fileInput, user } = setup();
     await user.upload(fileInput, [
       await makeRoundDocxFile('a.docx', { wardName: 'A病棟', ratings: { h1: 'A' } }),
@@ -215,7 +218,7 @@ describe('MergeApp', () => {
     const [blob, filename] = vi.mocked(saveAs).mock.calls[0];
     expect(blob).toBeInstanceOf(Blob);
     expect((blob as Blob).size).toBeGreaterThan(0);
-    expect(filename).toBe('ICTround_merged_2026-10-05.docx');
+    expect(filename).toBe('ICTround_merged_2026-10-06.docx');
     expect(vi.mocked(buildMergedDocxBlob).mock.calls[0][0].columns.map((c) => c.label)).toEqual(['A病棟', 'B病棟']);
     expect(await screen.findByRole('button', { name: 'Word出力' })).toBeEnabled();
     expect(screen.queryByText(/Word出力に失敗しました/)).not.toBeInTheDocument();

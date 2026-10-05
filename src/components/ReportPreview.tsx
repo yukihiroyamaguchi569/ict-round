@@ -6,6 +6,7 @@ import { findItemById } from '../checklistData';
 import { buildDocxBlob, RATING_HEX } from '../docx';
 import { embedRoundExport } from '../roundExportDocx';
 import { trackEvent } from '../analytics';
+import { localDateString } from '../localDate';
 
 // Variant A 検証中: type を省略しているため一時的に未使用（Variant B/恒久対応で復活）
 // const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -45,7 +46,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     let cancelled = false;
     // ファイル名は半角英数のみ（日本語名だと iOS の AirDrop が失敗する）。
     // 複数人分が受信側で衝突しないよう末尾に乱数を付ける。
-    const dateStr = new Date().toISOString().slice(0, 10);
+    const dateStr = localDateString();
     // eslint-disable-next-line sonarjs/pseudo-random -- filename suffix only to avoid collisions, not security-sensitive
     const docxFilename = `ICTround_${dateStr}_${Math.random().toString(36).slice(2, 6)}.docx`;
 
@@ -82,7 +83,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
     // AirDrop の転送失敗はファイル名の半角英数化で対処済み。
     navigator.share({
       title: '感染対策ラウンド報告書',
-      text: `${roundData.inspectorName} - ${new Date().toISOString().slice(0, 10)}`,
+      text: `${roundData.inspectorName} - ${localDateString()}`,
       files: [shareFile],
     }).then(() => {
       // Count only completed shares, same as main (PR #87): a cancelled share sheet is not an export.

@@ -114,6 +114,7 @@ src/
   checklistImport.ts       Parses user checklists from CSV / .xlsx
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
+  localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
   docx.ts                  Builds the report .docx (checklist table, photos, evaluation) and shared docx helpers
   roundExportDocx.ts       Embeds / extracts round data (RoundExport) as a customXml part of the report .docx
