@@ -203,4 +203,15 @@ describe('buildMergedDocxBlob（報告書の書式）', () => {
     expect(deptHeadings(xml)).toEqual(['■ 1病棟（担当: 山田）', '■ 2病棟']);
     expect(allTexts(xml)).toContain('田中： 田中 の所見');
   });
+
+  it('表紙の担当者一覧は名前の前後の空白を落としてから、空の名前と重複を除く', async () => {
+    const inspectorLine = async (names: string[]) => {
+      const merged = mergeRounds(names.map((name, i) => makeShared(`${i + 1}病棟`, name, { h1: 'A' })));
+      const layout = bodyLayout(await readDocumentXml(await buildMergedDocxBlob(merged)));
+      return layout.find((line) => line.includes('担当者: '));
+    };
+
+    expect(await inspectorLine(['山田', ' ', '佐藤'])).toBe('[after=80] | *担当者:  | 山田、佐藤');
+    expect(await inspectorLine(['佐藤', '佐藤 '])).toBe('[after=80] | *担当者:  | 佐藤');
+  });
 });

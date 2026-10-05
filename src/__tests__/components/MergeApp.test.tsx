@@ -18,6 +18,7 @@ afterEach(() => {
   vi.clearAllMocks();
   vi.restoreAllMocks();
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 function setup() {
@@ -198,10 +199,12 @@ describe('MergeApp', () => {
     expect(screen.queryByRole('button', { name: 'Word出力' })).not.toBeInTheDocument();
   });
 
-  it('saves the merged report as a dated .docx', async () => {
+  it('saves the merged report as a .docx dated with the local date', async () => {
+    // 07:00 on 2026-10-06 in Japan is still 2026-10-05 in UTC; the file name must use the local date
+    vi.stubEnv('TZ', 'Asia/Tokyo');
     // Fake only Date so userEvent's timers keep running
     vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2026-10-05T12:00:00Z'));
+    vi.setSystemTime(new Date('2026-10-05T22:00:00Z'));
     const { fileInput, user } = setup();
     await user.upload(fileInput, [
       await makeRoundDocxFile('a.docx', { wardName: 'A病棟', ratings: { h1: 'A' } }),
@@ -215,7 +218,7 @@ describe('MergeApp', () => {
     const [blob, filename] = vi.mocked(saveAs).mock.calls[0];
     expect(blob).toBeInstanceOf(Blob);
     expect((blob as Blob).size).toBeGreaterThan(0);
-    expect(filename).toBe('ICTround_merged_2026-10-05.docx');
+    expect(filename).toBe('ICTround_merged_2026-10-06.docx');
     expect(vi.mocked(buildMergedDocxBlob).mock.calls[0][0].columns.map((c) => c.label)).toEqual(['A病棟', 'B病棟']);
     expect(await screen.findByRole('button', { name: 'Word出力' })).toBeEnabled();
     expect(screen.queryByText(/Word出力に失敗しました/)).not.toBeInTheDocument();
@@ -230,13 +233,49 @@ describe('MergeApp', () => {
 
     await user.click(screen.getByRole('button', { name: 'Word出力' }));
 
-    expect(await screen.findByText(/Word出力に失敗しました: docx broke/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Word出力に失敗しました: docx broke');
+    // An export failure is not a file that could not be loaded
+    expect(screen.queryByText('読み込めなかったファイル')).not.toBeInTheDocument();
     expect(buildMergedDocxBlob).toHaveBeenCalledTimes(1);
     expect(saveAs).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalled();
     // The loaded report stays and the button can be pressed again
     expect(screen.getByRole('heading', { name: /読み込んだ報告書（1件）/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Word出力' })).toBeEnabled();
+  });
+
+  it('clears the export error once a retried export succeeds', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(buildMergedDocxBlob).mockRejectedValueOnce(new Error('docx broke'));
+    const { fileInput, user } = setup();
+    await user.upload(fileInput, await makeRoundDocxFile('a.docx', { wardName: 'A病棟' }));
+    await findLoadedList(1);
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('docx broke');
+
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+
+    await waitFor(() => expect(saveAs).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Word出力に失敗しました/)).not.toBeInTheDocument();
+  });
+
+  it('keeps load errors and the export error apart', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(buildMergedDocxBlob).mockRejectedValueOnce(new Error('docx broke'));
+    const { fileInput, user } = setup();
+    await user.upload(fileInput, [
+      await makeRoundDocxFile('ok.docx', { wardName: 'A病棟' }),
+      new File(['ただのテキスト'], 'memo.txt'),
+    ]);
+    await findLoadedList(1);
+
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Word出力に失敗しました: docx broke');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('memo.txt');
+    const loadErrors = within(screen.getByText('読み込めなかったファイル').parentElement ?? document.body).getAllByRole('listitem');
+    expect(loadErrors.map((li) => li.textContent)).toEqual([expect.stringContaining('memo.txt:')]);
   });
 
   it('loads a report dropped onto the drop zone', async () => {
