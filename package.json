@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "typecheck": "tsc -b tsconfig.app.json tsconfig.node.json",
     "typecheck:e2e": "tsc -b tsconfig.e2e.json",
     "test:mutation": "stryker run",
     "verify": "npm run lint && npm test && npm run build",
