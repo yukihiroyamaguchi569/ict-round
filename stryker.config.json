@@ -9,6 +9,7 @@
     "src/merge/mergeRounds.ts",
     "src/merge/loadRoundFile.ts",
     "src/merge/mergedDocx.ts",
+    "src/merge/mergedTableWidths.ts",
     "src/merge/useMergeFiles.ts",
     "src/roundExportDocx.ts",
     "src/docx.ts",

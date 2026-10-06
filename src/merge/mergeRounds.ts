@@ -1,7 +1,6 @@
 import type { ChecklistCategory, ChecklistItemDef, Rating, RoundData, RoundExport } from '../types';
-// 部署数の警告は Word の表レイアウトが決める閾値なので、出力側の値をそのまま使う
-// （mergedDocx 側は型だけを import するため実行時の循環参照は発生しない）
-import { READABLE_DEPT_MAX } from './mergedDocx';
+// 部署数の警告は Word の表レイアウトが決める閾値なので、出力と同じ寸法から求めた値を使う
+import { READABLE_DEPT_MAX } from './mergedTableWidths';
 
 /** 列にまとまった報告書1件分（1つのエクスポートファイル） */
 export interface DeptSource {

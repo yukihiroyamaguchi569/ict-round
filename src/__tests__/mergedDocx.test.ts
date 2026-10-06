@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import JSZip from 'jszip';
-import { buildMergedDocxBlob, CONTENT_W, READABLE_DEPT_MAX } from '../merge/mergedDocx';
+import { buildMergedDocxBlob } from '../merge/mergedDocx';
+import { CONTENT_W, READABLE_DEPT_MAX } from '../merge/mergedTableWidths';
 import { mergeRounds } from '../merge/mergeRounds';
 import type { ChecklistCategory, Rating, RoundExport } from '../types';
 
