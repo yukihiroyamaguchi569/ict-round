@@ -10,14 +10,14 @@ permissions:
   contents: read
 
 jobs:
-  scoria:
+  # Runs the project's code (npm ci, tests, scoria) with read-only permissions.
+  measure:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -27,9 +27,30 @@ jobs:
       # scoria only reads an existing coverage report; it never runs the tests itself.
       - run: npm run test:coverage
       # Report only (mode: report in scoria.config.json); the job summary shows the change since .scoria/baseline.json.
+      # Pinned to an exact version but not added to package.json: its own dependency tree carries
+      # high npm-audit advisories that would otherwise show up as this project's vulnerabilities.
       - run: npx -y scoria@0.3.0 --sarif scoria.sarif
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && hashFiles('scoria.sarif') != '' }}
+        with:
+          name: scoria-sarif
+          path: scoria.sarif
+          retention-days: 7
+
+  # Only this job can write code scanning results, and it runs no project code.
+  upload:
+    needs: measure
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: scoria-sarif
       - uses: github/codeql-action/upload-sarif@v4
-        if: ${{ !cancelled() }}
         with:
           sarif_file: scoria.sarif
           category: scoria
