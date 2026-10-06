@@ -1,4 +1,5 @@
 import type { Photo, Rating, RoundData, SavedChecklist, SavedRound } from './types';
+import type { ImageSize } from './photoImage';
 
 // Pure updates of the round being recorded. Each returns a new RoundData and leaves the input untouched.
 
@@ -54,6 +55,22 @@ export function addPhoto(round: RoundData, photo: Photo, itemId?: string): Round
     };
   }
   return { ...round, generalPhotos: [...round.generalPhotos, photo] };
+}
+
+/** A new photo. The timestamp is the device's local time, e.g. "2026/10/6 9:05:03"; the comment is trimmed. */
+export function buildPhoto(
+  draft: { dataUrl: string; comment: string; size: ImageSize | null },
+  id: string,
+  addedAt: Date
+): Photo {
+  return {
+    id,
+    dataUrl: draft.dataUrl,
+    comment: draft.comment.trim(),
+    timestamp: addedAt.toLocaleString('ja-JP'),
+    width: draft.size?.width,
+    height: draft.size?.height,
+  };
 }
 
 export function deleteItemPhoto(round: RoundData, itemId: string, photoId: string): RoundData {

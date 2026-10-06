@@ -11,6 +11,7 @@ import {
   setInspectorName,
   savedRoundTitle,
   buildSavedRound,
+  buildPhoto,
   saveErrorMessage,
 } from '../roundData';
 import type { Photo, RoundData, SavedChecklist } from '../types';
@@ -248,5 +249,34 @@ describe('saveErrorMessage', () => {
   it('gives the generic message for a non-error value', () => {
     expect(saveErrorMessage('boom')).toBe(GENERIC_MESSAGE);
     expect(saveErrorMessage(undefined)).toBe(GENERIC_MESSAGE);
+  });
+});
+
+describe('buildPhoto', () => {
+  const addedAt = new Date(2026, 9, 6, 9, 5, 3);
+
+  it('builds the photo with the given ID, the local time, the trimmed comment and the size', () => {
+    const p = buildPhoto({ dataUrl: 'data:image/jpeg;base64,AA', comment: '  床に汚れ \n', size: { width: 640, height: 480 } }, 'id1', addedAt);
+    expect(p).toStrictEqual({
+      id: 'id1',
+      dataUrl: 'data:image/jpeg;base64,AA',
+      comment: '床に汚れ',
+      timestamp: addedAt.toLocaleString('ja-JP'),
+      width: 640,
+      height: 480,
+    });
+    // The photo is embedded in the exported report as JSON, so keep the field order stable
+    expect(Object.keys(p)).toEqual(['id', 'dataUrl', 'comment', 'timestamp', 'width', 'height']);
+  });
+
+  it('formats the time as a Japanese local date and time', () => {
+    expect(buildPhoto({ dataUrl: 'd', comment: '', size: null }, 'id', addedAt).timestamp).toBe('2026/10/6 9:05:03');
+  });
+
+  it('leaves the size undefined when it is unknown', () => {
+    const p = buildPhoto({ dataUrl: 'd', comment: '   ', size: null }, 'id', addedAt);
+    expect(p.comment).toBe('');
+    expect(p.width).toBeUndefined();
+    expect(p.height).toBeUndefined();
   });
 });

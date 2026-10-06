@@ -1,4 +1,4 @@
-import type { ChecklistCategory } from './types';
+import type { ChecklistCategory, SavedChecklist } from './types';
 
 function slugify(text: string): string {
   return text
@@ -99,4 +99,38 @@ export async function parseXlsx(buf: ArrayBuffer): Promise<ChecklistCategory[]> 
   }
 
   return buildCategories(rows);
+}
+
+export type ChecklistFileType = 'csv' | 'xlsx';
+
+/** .xlsx by its extension; any other file is read as CSV. */
+export function checklistFileType(fileName: string): ChecklistFileType {
+  return fileName.endsWith('.xlsx') ? 'xlsx' : 'csv';
+}
+
+export async function readChecklistFile(file: File, type: ChecklistFileType): Promise<ChecklistCategory[]> {
+  if (type === 'xlsx') {
+    const buf = await file.arrayBuffer();
+    return parseXlsx(buf);
+  }
+  const text = await file.text();
+  return parseCsv(text);
+}
+
+/** The typed name, else the file name without its last extension, else a fixed default. */
+export function importedChecklistName(typedName: string, fileName: string): string {
+  return typedName.trim() || fileName.replace(/\.[^.]+$/, '') || '取込チェックリスト';
+}
+
+export function buildImportedChecklist(
+  source: { typedName: string; fileName: string; categories: ChecklistCategory[] },
+  id: string,
+  createdAt: string
+): SavedChecklist {
+  return {
+    id,
+    name: importedChecklistName(source.typedName, source.fileName),
+    createdAt,
+    categories: source.categories,
+  };
 }

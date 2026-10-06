@@ -3,7 +3,7 @@
 **文書番号:** ICT-TS-001  
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
-**最終更新日:** 2026年10月5日  
+**最終更新日:** 2026年10月6日  
 **対象バージョン:** 1.15.1
 
 ---
@@ -101,7 +101,7 @@
 
 未インストール環境では、ホーム画面追加を促すバナーを表示します。
 
-- 実装: `src/components/InstallBanner.tsx`、`src/usePwaInstall.ts`
+- 実装: `src/components/InstallBanner.tsx`、`src/useInstallBanner.ts`、`src/usePwaInstall.ts`
 - Android / デスクトップ Chrome では `beforeinstallprompt` を保持し、バナー操作でインストールプロンプトを表示
 - iOS Safari では `beforeinstallprompt` が発火しないため、手動追加手順を案内
 - 閉じた場合は `localStorage` に記録し、以後表示しない
@@ -312,7 +312,7 @@ interface RoundExport {
 - 10MB を超える画像は拒否
 - `Canvas` で JPEG に再エンコード
 - 圧縮条件:
-  - 最大幅 `1200px`
+  - 最大幅 `640px`
   - 品質 `0.8`
 - 保存形式: `dataUrl`
 - 項目紐付き写真と汎用写真を区別して保持
