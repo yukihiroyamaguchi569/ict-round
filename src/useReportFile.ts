@@ -13,12 +13,12 @@ import { localDateString } from './localDate';
  * 報告書のファイル名。半角英数のみ（日本語名だと iOS の AirDrop が失敗する）。
  * 複数人分が受信側で衝突しないよう末尾に乱数の suffix を付ける。
  */
-export function reportFileName(date: string, suffix: string): string {
+function reportFileName(date: string, suffix: string): string {
   return `ICTround_${date}_${suffix}.docx`;
 }
 
 /** 統合ページは localStorage を持たないためチェックリスト定義を同梱する */
-export function buildRoundExport(roundData: RoundData, categories: ChecklistCategory[], exportedAt: string): RoundExport {
+function buildRoundExport(roundData: RoundData, categories: ChecklistCategory[], exportedAt: string): RoundExport {
   return {
     format: 'meguru-round',
     version: 1,
