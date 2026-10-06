@@ -1,0 +1,10 @@
+{
+  "profile": "app",
+  "stacks": [
+    "react",
+    "ts"
+  ],
+  "mode": "report",
+  "targets": [],
+  "lang": "en"
+}
