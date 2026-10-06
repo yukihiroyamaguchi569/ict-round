@@ -1,0 +1,1422 @@
+{
+  "report": {
+    "schemaVersion": 1,
+    "root": ".",
+    "label": "icn-round-app",
+    "profile": "app",
+    "stacks": [
+      "react",
+      "ts"
+    ],
+    "complete": true,
+    "size": {
+      "files": 112,
+      "sloc": 4956,
+      "testSloc": 6233
+    },
+    "dimensions": [
+      {
+        "dimension": "architecture",
+        "status": "experimental",
+        "score": 99.2583,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "knip.unused_export_ratio",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 0.2
+            },
+            "weight": 0.3,
+            "points": 30
+          },
+          {
+            "metric": "knip.unused_file_ratio",
+            "value": 0.0089,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 0.3
+            },
+            "weight": 0.25,
+            "points": 24.2583
+          },
+          {
+            "metric": "knip.unused_dependencies",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 10
+            },
+            "weight": 0.2,
+            "points": 20
+          },
+          {
+            "metric": "circular.cycle_count",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 8
+            },
+            "weight": 0.25,
+            "points": 25
+          }
+        ],
+        "confidence": "low",
+        "confidenceReason": "12 suppressions in scope"
+      },
+      {
+        "dimension": "correctness",
+        "status": "experimental",
+        "score": 62.671,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "oxlint.errors_per_kloc",
+            "value": 0.2018,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 3
+            },
+            "weight": 0.6,
+            "density": true,
+            "points": 55.964
+          },
+          {
+            "metric": "oxlint.violations_per_kloc",
+            "value": 6.6586,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 8
+            },
+            "weight": 0.4,
+            "density": true,
+            "points": 6.707,
+            "topContributors": [
+              {
+                "file": "src/__tests__/mergedDocx.test.ts",
+                "value": 3
+              },
+              {
+                "file": "src/__tests__/mergeRoundsWarnings.test.ts",
+                "value": 3
+              },
+              {
+                "file": "scripts/build-docs.mjs",
+                "value": 3
+              },
+              {
+                "file": "src/merge/mergedDocx.ts",
+                "value": 3
+              },
+              {
+                "file": "src/__tests__/docxHelpers.test.ts",
+                "value": 2
+              }
+            ]
+          }
+        ],
+        "confidence": "low",
+        "confidenceReason": "12 suppressions in scope"
+      },
+      {
+        "dimension": "documentation",
+        "status": "experimental",
+        "score": 100.0001,
+        "coverage": 0.75,
+        "metrics": [
+          {
+            "metric": "readme-contract.has_readme",
+            "value": 1,
+            "state": "ok",
+            "scale": {
+              "good": 1,
+              "bad": 0
+            },
+            "weight": 0.35,
+            "points": 46.6667
+          },
+          {
+            "metric": "readme-contract.readme_words",
+            "value": 368,
+            "state": "ok",
+            "scale": {
+              "good": 120,
+              "bad": 30
+            },
+            "weight": 0.2,
+            "points": 26.6667
+          },
+          {
+            "metric": "readme-contract.documented_flag_ratio",
+            "value": 0,
+            "state": "skipped",
+            "scale": {
+              "good": 1,
+              "bad": 0.5
+            },
+            "weight": 0.25,
+            "points": 0
+          },
+          {
+            "metric": "comment-quality.marker_per_kloc",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 2
+            },
+            "weight": 0.2,
+            "density": true,
+            "points": 26.6667,
+            "topContributors": []
+          }
+        ],
+        "confidence": "low",
+        "confidenceReason": "12 suppressions in scope"
+      },
+      {
+        "dimension": "integrity",
+        "status": "experimental",
+        "score": 81.2547,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "suppression-scan.source_per_kloc",
+            "value": 2.4213,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 5
+            },
+            "weight": 0.3,
+            "density": true,
+            "points": 15.4722,
+            "topContributors": [
+              {
+                "file": "src/IconContext.tsx",
+                "value": 1
+              },
+              {
+                "file": "src/ThemeContext.tsx",
+                "value": 1
+              },
+              {
+                "file": "src/analytics.ts",
+                "value": 1
+              },
+              {
+                "file": "src/localId.ts",
+                "value": 1
+              },
+              {
+                "file": "src/usePwaInstall.ts",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "metric": "suppression-scan.unreasoned_ratio",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 1
+            },
+            "weight": 0.2,
+            "points": 20
+          },
+          {
+            "metric": "suppression-scan.test_count",
+            "value": 1,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 200
+            },
+            "weight": 0.1,
+            "points": 9.95
+          },
+          {
+            "metric": "config-integrity.gap_ratio",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 0.6
+            },
+            "weight": 0.25,
+            "points": 25
+          },
+          {
+            "metric": "ci-integrity.gap_ratio",
+            "value": 0.1667,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 0.6
+            },
+            "weight": 0.15,
+            "points": 10.8325
+          }
+        ],
+        "confidence": "high",
+        "confidenceReason": "no suppression signal wired"
+      },
+      {
+        "dimension": "readability",
+        "status": "experimental",
+        "score": 83.7662,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "file-shape.sloc_p95",
+            "value": 206,
+            "state": "ok",
+            "scale": {
+              "good": 150,
+              "bad": 800
+            },
+            "weight": 0.3,
+            "points": 27.4154,
+            "topContributors": [
+              {
+                "file": "src/merge/mergeRounds.ts",
+                "value": 343
+              },
+              {
+                "file": "src/docx.ts",
+                "value": 250
+              },
+              {
+                "file": "src/components/RoundStart.tsx",
+                "value": 212
+              },
+              {
+                "file": "src/merge/mergedDocx.ts",
+                "value": 206
+              },
+              {
+                "file": "src/components/ChecklistImportDialog.tsx",
+                "value": 179
+              }
+            ]
+          },
+          {
+            "metric": "file-shape.max_file_sloc",
+            "value": 343,
+            "state": "ok",
+            "scale": {
+              "good": 300,
+              "bad": 2000
+            },
+            "weight": 0.2,
+            "points": 19.4941
+          },
+          {
+            "metric": "file-shape.god_file_count",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 20
+            },
+            "weight": 0.15,
+            "points": 15
+          },
+          {
+            "metric": "jscpd.duplicated_lines_pct",
+            "value": 2.41,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 10
+            },
+            "weight": 0.2,
+            "points": 15.18,
+            "topContributors": [
+              {
+                "file": "src/__tests__/mergeRounds.test.ts",
+                "value": 46
+              },
+              {
+                "file": "src/__tests__/components/AppRoundEditing.test.tsx",
+                "value": 45
+              },
+              {
+                "file": "src/__tests__/docx.test.ts",
+                "value": 40
+              },
+              {
+                "file": "src/__tests__/mergedDocx.test.ts",
+                "value": 36
+              },
+              {
+                "file": "src/__tests__/docxSections.test.ts",
+                "value": 35
+              }
+            ]
+          },
+          {
+            "metric": "oxlint.violations_per_kloc",
+            "value": 6.6586,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 12
+            },
+            "weight": 0.15,
+            "density": true,
+            "points": 6.6767,
+            "topContributors": [
+              {
+                "file": "src/__tests__/mergedDocx.test.ts",
+                "value": 3
+              },
+              {
+                "file": "src/__tests__/mergeRoundsWarnings.test.ts",
+                "value": 3
+              },
+              {
+                "file": "scripts/build-docs.mjs",
+                "value": 3
+              },
+              {
+                "file": "src/merge/mergedDocx.ts",
+                "value": 3
+              },
+              {
+                "file": "src/__tests__/docxHelpers.test.ts",
+                "value": 2
+              }
+            ]
+          }
+        ],
+        "confidence": "low",
+        "confidenceReason": "12 suppressions in scope"
+      },
+      {
+        "dimension": "security",
+        "status": "experimental",
+        "score": 100,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "audit.critical",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 1
+            },
+            "weight": 0.4,
+            "points": 40
+          },
+          {
+            "metric": "audit.high",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 5
+            },
+            "weight": 0.35,
+            "points": 35
+          },
+          {
+            "metric": "audit.moderate",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 20
+            },
+            "weight": 0.25,
+            "points": 25
+          }
+        ],
+        "confidence": "high",
+        "confidenceReason": "no suppression signal wired"
+      },
+      {
+        "dimension": "test-coverage",
+        "status": "experimental",
+        "score": 100,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "test-presence.test_to_source_ratio",
+            "value": 1.2577,
+            "state": "ok",
+            "scale": {
+              "good": 0.5,
+              "bad": 0.05
+            },
+            "weight": 0.3,
+            "points": 30
+          },
+          {
+            "metric": "coverage.line_pct",
+            "value": 95.49,
+            "state": "ok",
+            "scale": {
+              "good": 90,
+              "bad": 40
+            },
+            "weight": 0.3,
+            "points": 30
+          },
+          {
+            "metric": "coverage.branch_pct",
+            "value": 88.81,
+            "state": "ok",
+            "scale": {
+              "good": 85,
+              "bad": 30
+            },
+            "weight": 0.25,
+            "points": 25
+          },
+          {
+            "metric": "coverage.function_pct",
+            "value": 95.1,
+            "state": "ok",
+            "scale": {
+              "good": 90,
+              "bad": 40
+            },
+            "weight": 0.15,
+            "points": 15
+          }
+        ],
+        "confidence": "low",
+        "confidenceReason": "12 suppressions in scope"
+      },
+      {
+        "dimension": "type-safety",
+        "status": "experimental",
+        "score": 95.358,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "source-mix.untyped_sloc_ratio",
+            "value": 0.0555,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 0.5
+            },
+            "weight": 0.3,
+            "points": 26.67
+          },
+          {
+            "metric": "source-mix.untyped_file_ratio",
+            "value": 0.0328,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 0.5
+            },
+            "weight": 0.2,
+            "points": 18.688,
+            "topContributors": [
+              {
+                "file": "scripts/build-docs.mjs",
+                "value": 175
+              },
+              {
+                "file": "public/sw.js",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "metric": "tsc.type_errors_per_kloc",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 2
+            },
+            "weight": 0.5,
+            "density": true,
+            "points": 50
+          }
+        ],
+        "confidence": "low",
+        "confidenceReason": "12 suppressions in scope"
+      },
+      {
+        "dimension": "ui-consistency",
+        "status": "experimental",
+        "score": 80.0996,
+        "coverage": 1,
+        "metrics": [
+          {
+            "metric": "ui-token.color_cardinality",
+            "value": 10,
+            "state": "ok",
+            "scale": {
+              "good": 20,
+              "bad": 120
+            },
+            "weight": 0.3,
+            "points": 30,
+            "topContributors": [
+              {
+                "file": "src/components/ThemeSelector.tsx",
+                "value": 6
+              },
+              {
+                "file": "src/components/RatingButtons.tsx",
+                "value": 4
+              },
+              {
+                "file": "src/components/CategoryAccordion.tsx",
+                "value": 2
+              },
+              {
+                "file": "src/components/MainHeader.tsx",
+                "value": 2
+              },
+              {
+                "file": "src/components/BottomTabBar.tsx",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "metric": "ui-token.spacing_cardinality",
+            "value": 10,
+            "state": "ok",
+            "scale": {
+              "good": 10,
+              "bad": 60
+            },
+            "weight": 0.3,
+            "points": 30,
+            "topContributors": [
+              {
+                "file": "src/components/BottomTabBar.tsx",
+                "value": 4
+              },
+              {
+                "file": "src/components/ReportDocument.tsx",
+                "value": 3
+              },
+              {
+                "file": "src/merge/MergePreview.tsx",
+                "value": 3
+              },
+              {
+                "file": "src/components/PhotoTab.tsx",
+                "value": 2
+              },
+              {
+                "file": "src/components/RatingButtons.tsx",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "metric": "ui-token.inline_style_per_kloc",
+            "value": 9.9502,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 10
+            },
+            "weight": 0.2,
+            "density": true,
+            "points": 0.0996
+          },
+          {
+            "metric": "ui-token.style_block_ratio",
+            "value": 0,
+            "state": "ok",
+            "scale": {
+              "good": 0,
+              "bad": 0.6
+            },
+            "weight": 0.2,
+            "points": 20
+          }
+        ],
+        "confidence": "low",
+        "confidenceReason": "12 suppressions in scope"
+      }
+    ],
+    "metrics": {
+      "suppression-scan.source_count": 12,
+      "suppression-scan.test_count": 1,
+      "suppression-scan.source_per_kloc": 2.4213,
+      "suppression-scan.unreasoned_source_count": 0,
+      "suppression-scan.unreasoned_ratio": 0,
+      "file-shape.sloc_p95": 206,
+      "file-shape.max_file_sloc": 343,
+      "file-shape.god_file_count": 0,
+      "file-shape.source_file_count": 61,
+      "file-shape.source_sloc": 4956,
+      "source-mix.untyped_file_ratio": 0.0328,
+      "source-mix.untyped_sloc_ratio": 0.0555,
+      "source-mix.untyped_file_count": 2,
+      "source-mix.typed_file_count": 59,
+      "config-integrity.gap_ratio": 0,
+      "config-integrity.gap_count": 0,
+      "ci-integrity.gap_ratio": 0.1667,
+      "ci-integrity.gap_count": 1,
+      "ci-integrity.workflow_count": 5,
+      "oxlint.violations_per_kloc": 6.6586,
+      "oxlint.violations": 33,
+      "oxlint.errors_per_kloc": 0.2018,
+      "jscpd.duplicated_lines_pct": 2.41,
+      "jscpd.clone_count": 38,
+      "tsc.type_errors": 0,
+      "tsc.type_errors_per_kloc": 0,
+      "knip.unused_files": 1,
+      "knip.unused_file_ratio": 0.0089,
+      "knip.unused_export_ratio": 0,
+      "knip.unused_exports": 0,
+      "knip.unused_dependencies": 0,
+      "audit.critical": 0,
+      "audit.high": 0,
+      "audit.moderate": 0,
+      "audit.low": 0,
+      "test-presence.test_to_source_ratio": 1.2577,
+      "test-presence.test_sloc": 6233,
+      "test-presence.test_file_count": 47,
+      "coverage.line_pct": 95.49,
+      "coverage.branch_pct": 88.81,
+      "coverage.function_pct": 95.1,
+      "circular.cycle_count": 0,
+      "readme-contract.has_readme": 1,
+      "readme-contract.readme_words": 368,
+      "comment-quality.marker_per_kloc": 0,
+      "comment-quality.marker_count": 0,
+      "comment-quality.comment_density": 0.0696,
+      "ui-token.color_cardinality": 10,
+      "ui-token.spacing_cardinality": 10,
+      "ui-token.inline_style_per_kloc": 9.9502,
+      "ui-token.style_block_ratio": 0,
+      "ui-token.ui_file_count": 30
+    },
+    "findings": [
+      {
+        "rule": "untyped-source",
+        "severity": "warning",
+        "file": "public/sw.js",
+        "line": 1,
+        "message": "not type-checked; rename to .ts / .tsx",
+        "probe": "source-mix",
+        "dimension": "type-safety",
+        "tier": 0
+      },
+      {
+        "rule": "untyped-source",
+        "severity": "warning",
+        "file": "scripts/build-docs.mjs",
+        "line": 1,
+        "message": "not type-checked; rename to .ts / .tsx",
+        "probe": "source-mix",
+        "dimension": "type-safety",
+        "tier": 0
+      },
+      {
+        "rule": "ci-step-lint",
+        "severity": "warning",
+        "file": "package.json",
+        "line": 1,
+        "message": "CI does not run `lint`",
+        "probe": "ci-integrity",
+        "dimension": "integrity",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/components/ReportPreview.test.tsx",
+        "line": 1,
+        "message": "Function `finish` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-array-sort",
+        "severity": "warning",
+        "file": "src/whatsNew.ts",
+        "line": 1,
+        "message": "Use `Array#toSorted()` instead of `Array#sort()`.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "src/merge/useMergeFiles.ts",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "src/roundExportDocx.ts",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/docxHelpers.test.ts",
+        "line": 1,
+        "message": "Function `photo` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/docxHelpers.test.ts",
+        "line": 1,
+        "message": "Function `makeRound` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/mergedDocxLayout.test.ts",
+        "line": 1,
+        "message": "Function `inspectorLine` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-underscore-dangle",
+        "severity": "warning",
+        "file": "src/vite-env.d.ts",
+        "line": 1,
+        "message": "Unexpected dangling '_' in '`__APP_VERSION__`'.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-underscore-dangle",
+        "severity": "warning",
+        "file": "src/vite-env.d.ts",
+        "line": 1,
+        "message": "Unexpected dangling '_' in '`__BUILD_DATE__`'.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppWhatsNew.test.tsx",
+        "line": 1,
+        "message": "Function `resolveFetch` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-map-spread",
+        "severity": "warning",
+        "file": "src/__tests__/roundDirty.test.ts",
+        "line": 1,
+        "message": "Spreading to modify object properties in `map` calls is inefficient",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-map-spread",
+        "severity": "warning",
+        "file": "src/__tests__/roundDirty.test.ts",
+        "line": 1,
+        "message": "Spreading to modify object properties in `map` calls is inefficient",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-array-sort",
+        "severity": "warning",
+        "file": "src/components/SavedRoundsList.tsx",
+        "line": 1,
+        "message": "Use `Array#toSorted()` instead of `Array#sort()`.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "src/__tests__/roundExportDocx.test.ts",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "src/__tests__/roundExportDocx.test.ts",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-shadow",
+        "severity": "warning",
+        "file": "src/__tests__/components/ChecklistImportDialogFlow.test.tsx",
+        "line": 1,
+        "message": "'resolve' is already declared in the upper scope.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/components/ChecklistImportDialogFlow.test.tsx",
+        "line": 1,
+        "message": "Function `release` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/components/MergeApp.test.tsx",
+        "line": 1,
+        "message": "Function `finish` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/mergedDocx.test.ts",
+        "line": 1,
+        "message": "Function `deptColWidth` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "src/__tests__/mergedDocx.test.ts",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "src/__tests__/mergedDocx.test.ts",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/checklistImport.test.ts",
+        "line": 1,
+        "message": "Function `loadFixture` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/mergeRoundsWarnings.test.ts",
+        "line": 1,
+        "message": "Function `withResult` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/mergeRoundsWarnings.test.ts",
+        "line": 1,
+        "message": "Function `named` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-map-spread",
+        "severity": "warning",
+        "file": "src/__tests__/mergeRoundsWarnings.test.ts",
+        "line": 1,
+        "message": "Spreading to modify object properties in `map` calls is inefficient",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "scripts/build-docs.mjs",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "scripts/build-docs.mjs",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-await-in-loop",
+        "severity": "warning",
+        "file": "scripts/build-docs.mjs",
+        "line": 1,
+        "message": "Unexpected `await` inside a loop.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-new-array",
+        "severity": "error",
+        "file": "src/__tests__/loadRoundFile.test.ts",
+        "line": 1,
+        "message": "Do not use `new Array(singleArgument)`.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-array-sort",
+        "severity": "warning",
+        "file": "src/merge/mergedDocx.ts",
+        "line": 1,
+        "message": "Use `Array#toSorted()` instead of `Array#sort()`.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/prefer-array-flat-map",
+        "severity": "warning",
+        "file": "src/merge/mergedDocx.ts",
+        "line": 1,
+        "message": "Prefer a single `.flatMap(…)` over `.filter(…).flatMap(…)`.",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/no-map-spread",
+        "severity": "warning",
+        "file": "src/merge/mergedDocx.ts",
+        "line": 1,
+        "message": "Spreading to modify array elements in `map` calls is inefficient",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "oxlint/consistent-function-scoping",
+        "severity": "warning",
+        "file": "src/__tests__/mergeRounds.test.ts",
+        "line": 1,
+        "message": "Function `renamed` does not capture any variables from its parent scope",
+        "probe": "oxlint",
+        "dimension": "correctness",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/PhotoForm.test.tsx",
+        "line": 183,
+        "message": "7 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/MergeApp.test.tsx",
+        "line": 188,
+        "message": "9 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/MergeApp.test.tsx",
+        "line": 292,
+        "message": "8 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/MergeApp.test.tsx",
+        "line": 311,
+        "message": "7 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/ChecklistImportDialog.test.tsx",
+        "line": 18,
+        "message": "10 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/ChecklistImportDialog.test.tsx",
+        "line": 96,
+        "message": "8 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppWhatsNew.test.tsx",
+        "line": 81,
+        "message": "10 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppSaving.test.tsx",
+        "line": 19,
+        "message": "12 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppSaving.test.tsx",
+        "line": 155,
+        "message": "6 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppRoundEditing.test.tsx",
+        "line": 4,
+        "message": "25 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppRoundEditing.test.tsx",
+        "line": 87,
+        "message": "6 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppRoundEditing.test.tsx",
+        "line": 98,
+        "message": "6 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/AppRoundEditing.test.tsx",
+        "line": 191,
+        "message": "8 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/components/App.test.tsx",
+        "line": 16,
+        "message": "12 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/components/ThemeSelector.tsx",
+        "line": 118,
+        "message": "9 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/components/PhotoForm.tsx",
+        "line": 118,
+        "message": "8 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/components/InstallBanner.tsx",
+        "line": 37,
+        "message": "8 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/components/ChecklistImportDialog.tsx",
+        "line": 20,
+        "message": "7 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/roundExportDocx.test.ts",
+        "line": 243,
+        "message": "10 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "duplicated-block",
+        "severity": "warning",
+        "file": "src/__tests__/mergedDocx.test.ts",
+        "line": 37,
+        "message": "11 duplicated lines",
+        "probe": "jscpd",
+        "dimension": "readability",
+        "tier": 0
+      },
+      {
+        "rule": "unused-file",
+        "severity": "warning",
+        "file": "public/sw.js",
+        "line": 1,
+        "message": "nothing imports this file",
+        "probe": "knip",
+        "dimension": "architecture",
+        "tier": 1
+      }
+    ],
+    "probes": [
+      {
+        "probe": "suppression-scan",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "file-shape",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "source-mix",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "config-integrity",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "ci-integrity",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "oxlint",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": [
+          "oxlint"
+        ]
+      },
+      {
+        "probe": "jscpd",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": [
+          "jscpd"
+        ]
+      },
+      {
+        "probe": "tsc",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": [
+          "typescript"
+        ]
+      },
+      {
+        "probe": "knip",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": [
+          "knip"
+        ]
+      },
+      {
+        "probe": "audit",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": [
+          "npm"
+        ]
+      },
+      {
+        "probe": "test-presence",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "coverage",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "circular",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": [
+          "madge"
+        ]
+      },
+      {
+        "probe": "readme-contract",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "comment-quality",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      },
+      {
+        "probe": "ui-token",
+        "status": {
+          "kind": "ok"
+        },
+        "tools": []
+      }
+    ],
+    "toolVersions": {
+      "oxlint": "Version: 1.87.0",
+      "jscpd": "4.3.0",
+      "typescript": "5.9.3",
+      "knip": "6.39.0",
+      "npm": "11.19.1",
+      "madge": "8.0.0"
+    },
+    "overall": {
+      "score": 89.1564,
+      "scoredDimensions": 9,
+      "comparable": false
+    }
+  },
+  "createdAt": "2026-10-06T05:32:36.008Z"
+}
