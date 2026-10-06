@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { itemRowKey, mergeRounds } from '../merge/mergeRounds';
-import { READABLE_DEPT_MAX } from '../merge/mergedDocx';
+import { READABLE_DEPT_MAX } from '../merge/mergedTableWidths';
 import type { ChecklistCategory, RoundExport } from '../types';
 
 const HYGIENE: ChecklistCategory = {

@@ -30,7 +30,7 @@ export function IconProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
+// eslint-disable-next-line react-refresh/only-export-components -- the hook reads the module-private context, so it lives beside its Provider; only Fast Refresh of this file is lost
 export function useIcon() {
   const ctx = useContext(IconContext);
   if (!ctx) throw new Error('useIcon must be inside IconProvider');

@@ -9,7 +9,7 @@ export const ACTIVE_ID_KEY = 'icn-round:active-checklist-id';
 export const ROUNDS_KEY = 'icn-round:saved-rounds';
 export const LAST_SEEN_KEY = 'icn-round:last-seen-version';
 
-export const LIBRARY: SavedChecklist[] = [
+const LIBRARY: SavedChecklist[] = [
   {
     id: 'ward',
     name: '病棟用',

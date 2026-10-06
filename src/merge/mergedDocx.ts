@@ -9,17 +9,10 @@ import {
 } from '../docx';
 import type { ChecklistCategory } from '../types';
 import { itemRowKey, type MergeResult, type DeptColumn } from './mergeRounds';
+import { CONTENT_W, ITEM_COL_MIN } from './mergedTableWidths';
 
-// A4横（16838 twips）から左右余白 1440×2 を引いた本文幅
-export const CONTENT_W = 13958;
 /** 部署が少ないときの部署列の幅 */
 const DEPT_COL_W = 900;
-/** チェック項目の文言に残す最低幅 */
-const ITEM_COL_MIN = 3000;
-/** これより部署列が狭いと列見出しと評価が読み取りにくい */
-const DEPT_COL_MIN = 700;
-/** 部署列の幅を確保できる部署数。これを超えると表が読みにくくなるため統合ページで警告する */
-export const READABLE_DEPT_MAX = Math.floor((CONTENT_W - ITEM_COL_MIN) / DEPT_COL_MIN);
 
 /**
  * 列幅を本文幅に収まるよう配分する。
