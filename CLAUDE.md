@@ -108,16 +108,19 @@ One line per file describing its role. When a PR adds, removes, or renames a fil
 ```text
 src/
   main.tsx                 Entry point; initializes analytics and mounts App
-  App.tsx                  Screen state machine (start / main / photo-add / report / saved-rounds), round state owner, wraps ThemeProvider / IconProvider
+  App.tsx                  Top-level screen switch (start / saved-rounds / round in progress); wires the hooks below to the screens, wraps ThemeProvider / IconProvider
   types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound, RoundExport
   checklistData.ts         Built-in default checklist (CHECKLIST_CATEGORIES) and item lookup helpers
-  checklistImport.ts       Parses user checklists from CSV / .xlsx
+  checklistImport.ts       Parses user checklists from CSV / .xlsx; file type by extension, default name, SavedChecklist building
   checklistEditor.ts       Editor draft model and conversion of a draft into a new checklist (validation, item IDs)
+  localId.ts               newLocalId: local ID for photos and imported checklists (random + time, base 36)
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
+  roundData.ts             Pure round updates (start, rating, photos, evaluation, participant name), Photo and SavedRound building and the save-error message
+  photoImage.ts            Photo file size limit, scaled size, and canvas shrinking with the EXIF orientation applied (compressImage)
   localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
-  docx.ts                  Builds the report .docx (checklist table, photos, evaluation) and shared docx helpers
+  docx.ts                  Builds the report .docx from per-section builders (cover, checklist table, photos, evaluation) and shared docx helpers
   roundExportDocx.ts       Embeds / extracts round data (RoundExport) as a customXml part of the report .docx
   themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
   ThemeContext.tsx         React context providing the current theme
@@ -125,33 +128,50 @@ src/
   IconContext.tsx          React context providing the current icon
   analytics.ts             GA4 initialization and trackEvent (never sends round input data)
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
+  useInstallBanner.ts      Hook for the install banner: prompt vs iOS steps, hiding after acceptance or dismissal, and the analytics events
+  useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download; buildRoundExport and reportFileName pure helpers
+  useRound.ts              Hook for the round in progress: round data and its updates, start / resume / save, unsaved-change check, participant name carried to the next start
+  useSavedRounds.ts        Hook for saved rounds in localStorage: list, save (upsert), delete
+  useChecklistLibrary.ts   Hook for the checklist library and the active checklist, synced with localStorage
+  useWhatsNew.ts           Hook fetching unseen release notes once at launch and recording them as seen on close
+  usePhotoDraft.ts         Hook for the photo being added: pick, shrink, comment, and hand the built Photo to onAdd
+  useChecklistImport.ts    Hook reading a chosen CSV / .xlsx into a preview and saving it as a new checklist
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
+    StartScreen.tsx        Start screen with the "what's new" dialog over it (keeps the start screen inert while open)
     RoundStart.tsx         Start screen: inspector / ward name, checklist select / create / copy / import / delete, links to saved rounds and the merge page
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
     ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen
     ThemeSelector.tsx      Theme and icon picker (shown on the start screen)
     InstallBanner.tsx      PWA install prompt banner
-    MainScreen.tsx         Main screen shell hosting the three tabs
+    RoundScreens.tsx       Screens of a round in progress: main screen, add-photo, report, leave confirmation; mounted fresh per round
+    MainScreen.tsx         Main screen shell: header, body of the active tab, bottom tab bar
+    MainHeader.tsx         Main screen header: home button, participant name inline edit, progress badge, save button with feedback, theme picker
     BottomTabBar.tsx       Bottom tabs (checklist / photos / evaluation) and report button
     ChecklistTab.tsx       Checklist tab: categories with rating controls
     CategoryAccordion.tsx  One collapsible checklist category
     RatingButtons.tsx      A / B / C rating buttons for one item
     PhotoTab.tsx           Photo tab: item-linked and general photos
-    PhotoForm.tsx          Add-photo screen: capture, EXIF orientation fix, item link, comment
+    PhotoForm.tsx          Add-photo screen: capture / gallery buttons, preview, linked item, comment (logic in usePhotoDraft)
     EvaluationTab.tsx      Overall evaluation free-text input
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
-    ReportPreview.tsx      Report preview; builds the .docx with embedded round data, share / download
+    ReportPreview.tsx      Report screen shell: back button, export button and notices, preview; composes the parts below
+    ReportExport.tsx       Share / Word export button and the build-failure / share-failure notices
+    ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
-    MergeApp.tsx           File drop / select, merge preview, warnings, merged .docx download
+    MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
+    useMergeFiles.ts       Hook for loaded reports (load / reorder / remove), load errors, merge result and merged .docx download; moveItem pure helper
+    DropZone.tsx           Drop area and file picker for report .docx files
+    LoadedFileList.tsx     Loaded reports with counts, reorder / remove buttons (order = column order)
+    MergePreview.tsx       Merged rating table preview, Word export button and export error
     loadRoundFile.ts       Reads one report .docx (size limit, ZIP signature check) and extracts its round data
     mergeRounds.ts         Validates RoundExport and merges reports into department columns keyed by checklist item
     mergedDocx.ts          Builds the merged landscape .docx (item x department rating table, then evaluations and photos per department)
-  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts); fixtures/ holds sample .xlsx, a tiny .jpg and roundDocx.ts (builds report .docx files with embedded round data)
+  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts; the App*.test.tsx files share components/appTestHelpers.tsx and stub the add-photo / report screens with components/appStubs.tsx); fixtures/ holds sample .xlsx, a tiny .jpg and roundDocx.ts (builds report .docx files with embedded round data)
 merge.html                 HTML entry of the merge page (second Vite input in vite.config.ts)
 e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
 playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4317
@@ -171,7 +191,7 @@ docs/
 ```
 
 ## Task Routing
-- If the task is about screen flow, start in `src/App.tsx`.
+- If the task is about screen flow, start in `src/App.tsx` and `src/components/RoundScreens.tsx`.
 - If the task is about checklist categories or scoring coverage, start in `src/checklistData.ts` and `src/types.ts`.
 - If the task is about checklist UI behavior, start in `src/components/MainScreen.tsx` and `src/components/ChecklistTab.tsx`.
 - If the task is about adding, deleting, or labeling photos, start in `src/components/PhotoForm.tsx` and `src/components/PhotoTab.tsx`.

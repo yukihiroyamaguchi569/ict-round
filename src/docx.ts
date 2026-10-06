@@ -3,7 +3,7 @@ import {
   BorderStyle, AlignmentType, Table, TableRow, TableCell, WidthType, VerticalAlign,
   ShadingType, TableLayoutType,
 } from 'docx';
-import type { RoundData, Photo, ChecklistCategory } from './types';
+import type { RoundData, Photo, ChecklistCategory, Rating } from './types';
 import { findItemById } from './checklistData';
 
 export const RATING_HEX: Record<string, string> = {
@@ -79,44 +79,47 @@ export function collectPhotoEntries(roundData: RoundData, categories: ChecklistC
   return entries;
 }
 
+/** 写真表の列幅（合計が本文幅 9026） */
+const PHOTO_COL_WIDTHS = [3009, 3009, 3008];
+
+/** 写真表の1セル。写真が無いセルは3列に揃えるための空セル */
+function photoCell(entry: PhotoEntry | undefined, width: number, clr: DocxColors): TableCell {
+  if (!entry) {
+    return new TableCell({
+      width: { size: width, type: WidthType.DXA },
+      children: [new Paragraph({ children: [] })],
+    });
+  }
+  const cellChildren: Paragraph[] = [
+    new Paragraph({ spacing: { after: 40 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: entry.label, size: 16, bold: true, color: clr.primary })] }),
+  ];
+  try {
+    cellChildren.push(new Paragraph({
+      spacing: { after: 40 },
+      alignment: AlignmentType.CENTER, children: [new ImageRun({ data: base64ToUint8Array(entry.photo.dataUrl), transformation: fitContain(entry.photo.width, entry.photo.height), type: 'jpg' })],
+    }));
+  } catch { /* skip */ }
+  if (entry.photo.comment) {
+    cellChildren.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: entry.photo.comment, size: 16 })] }));
+  }
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    children: cellChildren, verticalAlign: VerticalAlign.CENTER,
+  });
+}
+
 /** 写真を3列のテーブルに並べる */
 export function buildPhotoTables(entries: PhotoEntry[], clr: DocxColors): (Paragraph | Table)[] {
   const children: (Paragraph | Table)[] = [];
 
   for (let i = 0; i < entries.length; i += 3) {
-    const rowEntries = entries.slice(i, i + 3);
-    while (rowEntries.length < 3) rowEntries.push({ photo: null as unknown as Photo, label: '' });
-
     children.push(new Table({
       width: { size: 9026, type: WidthType.DXA },
-      columnWidths: [3009, 3009, 3008],
+      columnWidths: PHOTO_COL_WIDTHS,
       layout: TableLayoutType.FIXED,
       rows: [
         new TableRow({
-          children: rowEntries.map((entry, idx) => {
-            if (!entry.photo) {
-              return new TableCell({
-                width: { size: idx === 2 ? 3008 : 3009, type: WidthType.DXA },
-                children: [new Paragraph({ children: [] })],
-              });
-            }
-            const cellChildren: Paragraph[] = [
-              new Paragraph({ spacing: { after: 40 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: entry.label, size: 16, bold: true, color: clr.primary })] }),
-            ];
-            try {
-              cellChildren.push(new Paragraph({
-                spacing: { after: 40 },
-                alignment: AlignmentType.CENTER, children: [new ImageRun({ data: base64ToUint8Array(entry.photo.dataUrl), transformation: fitContain(entry.photo.width, entry.photo.height), type: 'jpg' })],
-              }));
-            } catch { /* skip */ }
-            if (entry.photo.comment) {
-              cellChildren.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: entry.photo.comment, size: 16 })] }));
-            }
-            return new TableCell({
-              width: { size: idx === 2 ? 3008 : 3009, type: WidthType.DXA },
-              children: cellChildren, verticalAlign: VerticalAlign.CENTER,
-            });
-          }),
+          children: PHOTO_COL_WIDTHS.map((width, idx) => photoCell(entries[i + idx], width, clr)),
         }),
       ],
     }));
@@ -126,149 +129,146 @@ export function buildPhotoTables(entries: PhotoEntry[], clr: DocxColors): (Parag
   return children;
 }
 
-// eslint-disable-next-line complexity -- builds the whole report in one function; split into section builders in Issue #106
-export async function buildDocxBlob(roundData: RoundData, categories: ChecklistCategory[]): Promise<Blob> {
-  const clr = getDocxColors();
-
-  const children: (Paragraph | Table)[] = [];
-
-  // ===== Title =====
-  children.push(new Paragraph({
-    heading: HeadingLevel.HEADING_1,
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 160 },
-    children: [new TextRun({ text: '感染対策ラウンド報告書', bold: true, size: 32, color: clr.text })],
-  }));
-
-  children.push(new Paragraph({
-    spacing: { after: 80 },
-    children: [
-      new TextRun({ text: '担当者: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: roundData.inspectorName, color: clr.text }),
-      new TextRun('　'),
-      new TextRun({ text: '病棟: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: roundData.wardName || '—', color: clr.text }),
-      new TextRun('　'),
-      new TextRun({ text: '実施日時: ', bold: true, color: clr.textMuted }),
-      new TextRun({ text: roundData.startTime, color: clr.text }),
-    ],
-  }));
-
-  children.push(new Paragraph({
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: clr.primary } },
-    spacing: { after: 300 },
-    children: [],
-  }));
-
-  // ===== Section 1: Checklist Table =====
-  children.push(new Paragraph({
+/** 番号付きの節見出し */
+function sectionHeading(num: string, title: string, clr: DocxColors): Paragraph {
+  return new Paragraph({
     heading: HeadingLevel.HEADING_2,
     spacing: { before: 200, after: 160 },
-    children: [new TextRun({ text: '1', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  チェックリスト', bold: true, size: 26, color: clr.text })],
-  }));
+    children: [new TextRun({ text: num, bold: true, size: 26, color: clr.primary }), new TextRun({ text: `  ${title}`, bold: true, size: 26, color: clr.text })],
+  });
+}
 
-  {
-    const checklistRows: TableRow[] = [
-      new TableRow({
-        children: [
-          new TableCell({
-            width: { size: 1300, type: WidthType.DXA },
-            shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
-            children: [new Paragraph({ children: [new TextRun({ text: 'ジャンル', bold: true, size: 18, color: clr.primary })] })],
-          }),
-          new TableCell({
-            width: { size: 7126, type: WidthType.DXA },
-            shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
-            children: [new Paragraph({ children: [new TextRun({ text: 'チェック項目', bold: true, size: 18, color: clr.primary })] })],
-          }),
-          new TableCell({
-            width: { size: 600, type: WidthType.DXA },
-            shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
-            children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '評価', bold: true, size: 18, color: clr.primary })] })],
-          }),
-        ],
-      }),
-    ];
-
-    for (const cat of categories) {
-      for (const item of cat.items) {
-        const result = roundData.checklistResults.find((r) => r.itemId === item.id);
-        const rating = result?.rating ?? '—';
-        const ratingColor = rating !== '—' ? RATING_HEX[rating] : clr.textFaint;
-
-        checklistRows.push(new TableRow({
-          children: [
-            new TableCell({
-              width: { size: 1300, type: WidthType.DXA },
-              shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
-              children: [new Paragraph({ children: [new TextRun({ text: cat.category, size: 18, color: clr.textMuted })] })],
-            }),
-            new TableCell({
-              width: { size: 7126, type: WidthType.DXA },
-              shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
-              children: [new Paragraph({ children: [new TextRun({ text: item.description, size: 18, color: clr.text })] })],
-            }),
-            new TableCell({
-              width: { size: 600, type: WidthType.DXA },
-              shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
-              children: [new Paragraph({
-                alignment: AlignmentType.CENTER,
-                children: [new TextRun({ text: rating, bold: true, size: 22, color: ratingColor })],
-              })],
-            }),
-          ],
-        }));
-      }
-    }
-
-    children.push(new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: [1300, 7126, 600], rows: checklistRows }));
-    children.push(new Paragraph({ spacing: { after: 160 }, children: [] }));
-  }
-
-  // ===== Section 2: Photos =====
-  const itemPhotosExist = roundData.checklistResults.some((r) => r.photos.length > 0);
-  const generalPhotosExist = roundData.generalPhotos.length > 0;
-
-  if (itemPhotosExist || generalPhotosExist) {
-    children.push(new Paragraph({
-      border: { top: { style: BorderStyle.SINGLE, size: 2, color: clr.line } },
-      spacing: { before: 300 },
-      children: [],
-    }));
-    children.push(new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 160 },
-      children: [new TextRun({ text: '2', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  写真記録とICTコメント', bold: true, size: 26, color: clr.text })],
-    }));
-
-    children.push(...buildPhotoTables(collectPhotoEntries(roundData, categories), clr));
-  }
-
-  // ===== Section 3: Evaluation =====
-  children.push(new Paragraph({
+/** 節の前に引く区切り線 */
+function sectionDivider(clr: DocxColors): Paragraph {
+  return new Paragraph({
     border: { top: { style: BorderStyle.SINGLE, size: 2, color: clr.line } },
     spacing: { before: 300 },
     children: [],
-  }));
-  children.push(new Paragraph({
-    heading: HeadingLevel.HEADING_2,
-    spacing: { before: 200, after: 160 },
-    children: [new TextRun({ text: '3', bold: true, size: 26, color: clr.primary }), new TextRun({ text: '  総評', bold: true, size: 26, color: clr.text })],
-  }));
+  });
+}
 
-  if (roundData.overallEvaluation.trim()) {
-    const lines = roundData.overallEvaluation.split('\n');
-    for (const line of lines) {
-      children.push(new Paragraph({
-        spacing: { after: 80 },
-        children: [new TextRun({ text: line, size: 22, color: clr.text })],
-      }));
-    }
-  } else {
+/** 表題と、担当者・病棟・実施日時 */
+export function buildCoverSection(roundData: RoundData, clr: DocxColors): Paragraph[] {
+  return [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 160 },
+      children: [new TextRun({ text: '感染対策ラウンド報告書', bold: true, size: 32, color: clr.text })],
+    }),
+    new Paragraph({
+      spacing: { after: 80 },
+      children: [
+        new TextRun({ text: '担当者: ', bold: true, color: clr.textMuted }),
+        new TextRun({ text: roundData.inspectorName, color: clr.text }),
+        new TextRun('　'),
+        new TextRun({ text: '病棟: ', bold: true, color: clr.textMuted }),
+        new TextRun({ text: roundData.wardName || '—', color: clr.text }),
+        new TextRun('　'),
+        new TextRun({ text: '実施日時: ', bold: true, color: clr.textMuted }),
+        new TextRun({ text: roundData.startTime, color: clr.text }),
+      ],
+    }),
+    new Paragraph({
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: clr.primary } },
+      spacing: { after: 300 },
+      children: [],
+    }),
+  ];
+}
+
+/** チェックリスト表の列幅（ジャンル・チェック項目・評価） */
+const CHECKLIST_COL_WIDTHS = [1300, 7126, 600];
+
+function checklistHeaderCell(text: string, width: number, clr: DocxColors, center = false): TableCell {
+  const run = new TextRun({ text, bold: true, size: 18, color: clr.primary });
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    shading: { type: ShadingType.SOLID, color: clr.primaryLt, fill: clr.primaryLt },
+    children: [new Paragraph(center ? { alignment: AlignmentType.CENTER, children: [run] } : { children: [run] })],
+  });
+}
+
+function checklistBodyCell(width: number, paragraph: Paragraph): TableCell {
+  return new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    shading: { type: ShadingType.SOLID, color: 'FFFFFF', fill: 'FFFFFF' },
+    children: [paragraph],
+  });
+}
+
+/** チェックリスト表の1行。未評価の項目は「—」を薄い色で出す */
+function checklistRow(categoryName: string, description: string, rating: Rating | undefined, clr: DocxColors): TableRow {
+  const text = rating ?? '—';
+  const ratingColor = rating ? RATING_HEX[rating] : clr.textFaint;
+  const [catW, itemW, ratingW] = CHECKLIST_COL_WIDTHS;
+  return new TableRow({
+    children: [
+      checklistBodyCell(catW, new Paragraph({ children: [new TextRun({ text: categoryName, size: 18, color: clr.textMuted })] })),
+      checklistBodyCell(itemW, new Paragraph({ children: [new TextRun({ text: description, size: 18, color: clr.text })] })),
+      checklistBodyCell(ratingW, new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ text, bold: true, size: 22, color: ratingColor })],
+      })),
+    ],
+  });
+}
+
+/** 1. チェックリスト: 全項目と評価の表 */
+export function buildChecklistSection(roundData: RoundData, categories: ChecklistCategory[], clr: DocxColors): (Paragraph | Table)[] {
+  const [catW, itemW, ratingW] = CHECKLIST_COL_WIDTHS;
+  const header = new TableRow({
+    children: [
+      checklistHeaderCell('ジャンル', catW, clr),
+      checklistHeaderCell('チェック項目', itemW, clr),
+      checklistHeaderCell('評価', ratingW, clr, true),
+    ],
+  });
+  const rows = categories.flatMap((cat) =>
+    cat.items.map((item) => {
+      const result = roundData.checklistResults.find((r) => r.itemId === item.id);
+      return checklistRow(cat.category, item.description, result?.rating, clr);
+    }),
+  );
+  return [
+    sectionHeading('1', 'チェックリスト', clr),
+    new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, columnWidths: CHECKLIST_COL_WIDTHS, rows: [header, ...rows] }),
+    new Paragraph({ spacing: { after: 160 }, children: [] }),
+  ];
+}
+
+/** 2. 写真記録とICTコメント: 写真が1枚も無ければ節ごと出さない */
+export function buildPhotoSection(roundData: RoundData, categories: ChecklistCategory[], clr: DocxColors): (Paragraph | Table)[] {
+  const itemPhotosExist = roundData.checklistResults.some((r) => r.photos.length > 0);
+  const generalPhotosExist = roundData.generalPhotos.length > 0;
+  if (!itemPhotosExist && !generalPhotosExist) return [];
+  return [
+    sectionDivider(clr),
+    sectionHeading('2', '写真記録とICTコメント', clr),
+    ...buildPhotoTables(collectPhotoEntries(roundData, categories), clr),
+  ];
+}
+
+/** 3. 総評: 行ごとに段落にする */
+export function buildEvaluationSection(overallEvaluation: string, clr: DocxColors): Paragraph[] {
+  const body = overallEvaluation.trim()
+    ? overallEvaluation.split('\n').map((line) => new Paragraph({
+      spacing: { after: 80 },
+      children: [new TextRun({ text: line, size: 22, color: clr.text })],
+    }))
     // 未記載の総評は、出力後に Word で書き込めるよう空の段落を1つ置く
-    children.push(new Paragraph({ spacing: { after: 80 }, children: [] }));
-  }
+    : [new Paragraph({ spacing: { after: 80 }, children: [] })];
+  return [sectionDivider(clr), sectionHeading('3', '総評', clr), ...body];
+}
 
+export async function buildDocxBlob(roundData: RoundData, categories: ChecklistCategory[]): Promise<Blob> {
+  const clr = getDocxColors();
+  const children: (Paragraph | Table)[] = [
+    ...buildCoverSection(roundData, clr),
+    ...buildChecklistSection(roundData, categories, clr),
+    ...buildPhotoSection(roundData, categories, clr),
+    ...buildEvaluationSection(roundData.overallEvaluation, clr),
+  ];
   const doc = new Document({ sections: [{ children }] });
   return Packer.toBlob(doc);
 }
