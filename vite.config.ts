@@ -27,6 +27,13 @@ export default defineConfig({
   test: {
     // Node's own global localStorage hides jsdom's; turn it off (flag exists since Node 22.4).
     execArgv: ['--no-experimental-webstorage'],
+    // Coverage is collected once across both projects below. lcov.info is what scoria reads.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'lcov', 'json-summary'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/__tests__/**', 'src/**/*.d.ts'],
+    },
     // Logic tests (*.test.ts) run in node, component tests (*.test.tsx) in jsdom.
     // extends: true lets both projects inherit the plugins, define and test options above.
     projects: [
