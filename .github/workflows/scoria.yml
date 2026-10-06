@@ -14,6 +14,8 @@ jobs:
   measure:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      has-sarif: ${{ steps.sarif.outputs.present }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -30,8 +32,11 @@ jobs:
       # Pinned to an exact version but not added to package.json: its own dependency tree carries
       # high npm-audit advisories that would otherwise show up as this project's vulnerabilities.
       - run: npx -y scoria@0.3.0 --sarif scoria.sarif
+      - id: sarif
+        if: ${{ !cancelled() }}
+        run: echo "present=${{ hashFiles('scoria.sarif') != '' }}" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() && hashFiles('scoria.sarif') != '' }}
+        if: ${{ !cancelled() && steps.sarif.outputs.present == 'true' }}
         with:
           name: scoria-sarif
           path: scoria.sarif
@@ -40,7 +45,7 @@ jobs:
   # Only this job can write code scanning results, and it runs no project code.
   upload:
     needs: measure
-    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    if: ${{ needs.measure.outputs.has-sarif == 'true' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
