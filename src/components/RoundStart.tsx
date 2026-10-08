@@ -40,11 +40,12 @@ export default function RoundStart({
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-6">
-      <div className="fixed top-4 right-4 z-10">
+      {/* While the share dialog is open, keep the screen behind it out of reach of Tab and typing */}
+      <div className="fixed top-4 right-4 z-10" inert={share.open}>
         <ThemeSelector />
       </div>
 
-      <div className="animate-page w-full max-w-sm">
+      <div className="animate-page w-full max-w-sm" inert={share.open}>
         {/* Icon */}
         <div className="flex items-center justify-center mb-8">
           <img src={`${import.meta.env.BASE_URL}${icon.file}`} alt={icon.alt} className="w-40 h-40 object-contain drop-shadow-md" />
