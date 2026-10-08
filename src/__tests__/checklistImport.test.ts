@@ -10,6 +10,7 @@ import {
   importedChecklistName,
   buildImportedChecklist,
 } from '../checklistImport';
+import { addPhoto, createRound, setRating } from '../roundData';
 
 // Fixture tests use the real reader; individual tests can feed rows directly.
 const readSheetMock = vi.hoisted(() => vi.fn<(input: ArrayBuffer) => Promise<SheetData>>());
@@ -78,6 +79,23 @@ describe('parseCsv', () => {
     expect(result[1].items[0].description).toBe('項目2');
   });
 
+  it.each([
+    ['先頭の空行', '\n\r\n,\n'],
+    ['タイトル行（1列だけ・2列目が空）', '感染対策ラウンド表\n感染対策ラウンド表,\n,作成日\n'],
+    // Quoted so that trimming the whole line does not remove the blank cell.
+    ['空白だけのセルがある行', '" ",作成日\n感染対策ラウンド表," "\n'],
+  ])('%sの後にある見出し行をスキップする (#103)', (_label, leading) => {
+    const result = parseCsv(`${leading}category,description\n手指衛生,項目1`);
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+    expect(result[0].items.map((i) => i.description)).toEqual(['項目1']);
+  });
+
+  it('データ行の後の category 行は、先頭に空行があっても見出しとして扱わず取り込む (#103)', () => {
+    const result = parseCsv('\ncategory,description\n手指衛生,項目1\ncategory,項目2');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'category']);
+    expect(result[1].items[0].description).toBe('項目2');
+  });
+
   it('引用符で囲まれたカンマを列の区切りとして扱わない', () => {
     const result = parseCsv('手指衛生,"手洗い,手指消毒の両方"');
     expect(result[0].items).toHaveLength(1);
@@ -103,6 +121,81 @@ describe('parseCsv', () => {
     // The message is shown as-is in the import dialog.
     expect(() => parseCsv('')).toThrow('有効な行が見つかりません');
     expect(() => parseCsv('列が1つだけ')).toThrow('有効な行が見つかりません');
+  });
+});
+
+describe('項目 ID (#102)', () => {
+  const ids = (csv: string) => parseCsv(csv).flatMap((c) => c.items.map((i) => i.id));
+
+  it('slug が重ならない入力では ID を今までどおり slug-連番 にする', () => {
+    expect(
+      ids(
+        [
+          '手指衛生,項目1',
+          'Hand  Hygiene!,項目2',
+          '手指衛生,項目3',
+          '個人防護具（PPE）の着脱,項目4',
+          'あいうえおかきくけこさしすせそたちつてとなにぬ,項目5',
+          '!!!,項目6',
+        ].join('\n')
+      )
+    ).toEqual(['手指衛生-1', '手指衛生-2', 'hand-hygiene-1', '個人防護具ppeの着脱-1', 'あいうえおかきくけこさしすせそたちつてと-1', '-1']);
+  });
+
+  it('配布テンプレートの ID はずらさない', async () => {
+    const buf = readFileSync(fileURLToPath(new URL('../../public/round-checklist-template.xlsx', import.meta.url)));
+    const result = await parseXlsx(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer);
+    expect(result.flatMap((c) => c.items).some((i) => i.id.includes('~'))).toBe(false);
+  });
+
+  it('大文字小文字・空白の数だけが違うカテゴリは、後のカテゴリの ID をずらす', () => {
+    expect(ids('Hand Hygiene,項目1\nhand  hygiene,項目2\nHand Hygiene,項目3')).toEqual([
+      'hand-hygiene-1',
+      'hand-hygiene-2',
+      'hand-hygiene~2-1',
+    ]);
+  });
+
+  it('slug で除かれる記号だけが違うカテゴリは、後のカテゴリの ID をずらす', () => {
+    expect(ids('手指衛生①,項目1\n手指衛生②,項目2\n手指衛生③,項目3')).toEqual([
+      '手指衛生-1',
+      '手指衛生~2-1',
+      '手指衛生~3-1',
+    ]);
+  });
+
+  it('先頭 20 文字が同じ長いカテゴリ名は、後のカテゴリの ID をずらす', () => {
+    const prefix = 'あいうえおかきくけこさしすせそたちつてと';
+    expect(ids(`${prefix}A,項目1\n${prefix}B,項目2`)).toEqual([`${prefix}-1`, `${prefix}~2-1`]);
+  });
+
+  it('slug が空になるカテゴリどうしも ID を重複させない', () => {
+    expect(ids('!!!,項目1\n???,項目2')).toEqual(['-1', '~2-1']);
+  });
+
+  it('ずらした ID は、slug から自然に生まれる ID や後続のカテゴリの ID と衝突しない', () => {
+    const csv = ['a,1', 'A,2', 'a 2,3', 'a2,4', 'a-2,5', 'a~2,6', 'a_2,7', 'A,8', 'a,9'].join('\n');
+    const all = ids(csv);
+    expect(new Set(all).size).toBe(all.length);
+    expect(all).toEqual(['a-1', 'a-2', 'a~2-1', 'a~2-2', 'a-2-1', 'a2-1', 'a-2~2-1', 'a2~2-1', 'a_2-1']);
+  });
+
+  it('同じ入力からは常に同じ ID を作る', () => {
+    const csv = 'Hand Hygiene,項目1\nhand  hygiene,項目2\n手指衛生①,項目3\n手指衛生②,項目4';
+    expect(ids(csv)).toEqual(ids(csv));
+  });
+
+  it('ID が重ならないので、片方の項目の評価・写真がもう片方に入らない', () => {
+    const categories = parseCsv('Hand Hygiene,項目1\nhand  hygiene,項目2');
+    const checklist = buildImportedChecklist({ typedName: 'x', fileName: 'x.csv', categories }, 'c1', '2026-10-08T00:00:00.000Z');
+    const [first, second] = categories.flatMap((c) => c.items);
+    let round = createRound(checklist, '山田', '3東', '2026/10/08 09:00');
+    round = setRating(round, first.id, 'A');
+    round = addPhoto(round, { id: 'p1', dataUrl: 'data:image/jpeg;base64,AA', comment: '', timestamp: '09:01' }, first.id);
+    const results = round.checklistResults;
+    expect(results.map((r) => r.rating)).toEqual(['A', null]);
+    expect(results.map((r) => r.photos.length)).toEqual([1, 0]);
+    expect(results[1].itemId).toBe(second.id);
   });
 });
 
@@ -162,6 +255,51 @@ describe('parseXlsx', () => {
     ]);
     const result = await parseXlsx(new ArrayBuffer(0));
     expect(result.map((c) => c.category)).toEqual(['手指衛生', 'Category']);
+  });
+
+  // Empty cells come back as null, and rows are padded to the sheet width (as the real reader returns them).
+  it('先頭の空行・タイトル行の後にある見出し行をスキップする (#103)', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      [null, null],
+      ['感染対策ラウンド表', null],
+      [null, '作成日'],
+      ['Category', 'Description'],
+      ['手指衛生', '項目1'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+    expect(result[0].items.map((i) => i.description)).toEqual(['項目1']);
+  });
+
+  it('空白だけのセルがある行はデータ行に数えず、その後の見出し行をスキップする (#103)', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      [' ', '作成日'],
+      ['感染対策ラウンド表', ' '],
+      ['category', 'description'],
+      ['手指衛生', '項目1'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
+  it('データ行の後の category 行は、先頭にタイトル行があっても見出しとして扱わず取り込む (#103)', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      ['感染対策ラウンド表', null],
+      ['category', 'description'],
+      ['手指衛生', '項目1'],
+      ['category', '項目2'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'category']);
+  });
+
+  it('別カテゴリで slug が同じでも項目 ID を重複させない (#102)', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      ['Hand Hygiene', '項目1'],
+      ['hand  hygiene', '項目2'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.flatMap((c) => c.items.map((i) => i.id))).toEqual(['hand-hygiene-1', 'hand-hygiene~2-1']);
   });
 
   it('空行・片側だけのセルを無視して有効な行のみ取り込む', async () => {

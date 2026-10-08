@@ -8,25 +8,44 @@ function slugify(text: string): string {
     .slice(0, 20);
 }
 
+/**
+ * ID prefix of a new category: its slug, or `<slug>~<k>` (smallest free k from 2) when an earlier
+ * category already took that slug. slugify always removes `~`, so a shifted prefix never equals a
+ * natural one, and input without such clashes keeps exactly the IDs it had before.
+ */
+function uniqueIdPrefix(category: string, usedPrefixes: Set<string>): string {
+  const slug = slugify(category);
+  let prefix = slug;
+  let k = 1;
+  while (usedPrefixes.has(prefix)) {
+    k++;
+    prefix = `${slug}~${k}`;
+  }
+  usedPrefixes.add(prefix);
+  return prefix;
+}
+
 function buildCategories(rows: [string, string][]): ChecklistCategory[] {
   const map = new Map<string, ChecklistCategory>();
   const counters = new Map<string, number>();
+  const idPrefixes = new Map<string, string>();
+  const usedPrefixes = new Set<string>();
 
   for (const [category, description] of rows) {
     const cat = category.trim();
     const desc = description.trim();
-    if (!cat || !desc) continue;
 
     if (!map.has(cat)) {
       map.set(cat, { category: cat, items: [] });
       counters.set(cat, 0);
+      idPrefixes.set(cat, uniqueIdPrefix(cat, usedPrefixes));
     }
 
     const n = (counters.get(cat) ?? 0) + 1;
     counters.set(cat, n);
 
     map.get(cat)!.items.push({
-      id: `${slugify(cat)}-${n}`,
+      id: `${idPrefixes.get(cat)}-${n}`,
       category: cat,
       description: desc,
     });
@@ -60,6 +79,14 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
+/**
+ * A `category` row before any data row is the header, even after blank or title rows.
+ * Callers drop rows with an empty cell first, so a title row never counts as data.
+ */
+function isHeaderRow(col0: string, rows: [string, string][]): boolean {
+  return rows.length === 0 && col0.trim().toLowerCase() === 'category';
+}
+
 export function parseCsv(text: string): ChecklistCategory[] {
   const lines = text.split(/\r?\n/);
   const rows: [string, string][] = [];
@@ -72,8 +99,8 @@ export function parseCsv(text: string): ChecklistCategory[] {
     if (cols.length < 2) continue;
 
     const [col0, col1] = cols;
-    // Skip header row
-    if (i === 0 && col0.trim().toLowerCase() === 'category') continue;
+    if (!col0.trim() || !col1.trim()) continue;
+    if (isHeaderRow(col0, rows)) continue;
 
     rows.push([col0, col1]);
   }
@@ -92,9 +119,8 @@ export async function parseXlsx(buf: ArrayBuffer): Promise<ChecklistCategory[]> 
     if (!Array.isArray(row) || row.length < 2) continue;
     const col0 = String(row[0] ?? '').trim();
     const col1 = String(row[1] ?? '').trim();
-    if (!col0 && !col1) continue;
-    // Skip header row
-    if (i === 0 && col0.toLowerCase() === 'category') continue;
+    if (!col0 || !col1) continue;
+    if (isHeaderRow(col0, rows)) continue;
     rows.push([col0, col1]);
   }
 
