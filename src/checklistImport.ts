@@ -8,9 +8,24 @@ function slugify(text: string): string {
     .slice(0, 20);
 }
 
+/**
+ * ID prefix of a new category: its slug, or `<slug>~<k>` (smallest free k from 2) when an earlier
+ * category already took that slug. slugify always removes `~`, so a shifted prefix never equals a
+ * natural one, and input without such clashes keeps exactly the IDs it had before.
+ */
+function uniqueIdPrefix(category: string, usedPrefixes: Set<string>): string {
+  const slug = slugify(category);
+  let prefix = slug;
+  for (let k = 2; usedPrefixes.has(prefix); k++) prefix = `${slug}~${k}`;
+  usedPrefixes.add(prefix);
+  return prefix;
+}
+
 function buildCategories(rows: [string, string][]): ChecklistCategory[] {
   const map = new Map<string, ChecklistCategory>();
   const counters = new Map<string, number>();
+  const idPrefixes = new Map<string, string>();
+  const usedPrefixes = new Set<string>();
 
   for (const [category, description] of rows) {
     const cat = category.trim();
@@ -20,13 +35,14 @@ function buildCategories(rows: [string, string][]): ChecklistCategory[] {
     if (!map.has(cat)) {
       map.set(cat, { category: cat, items: [] });
       counters.set(cat, 0);
+      idPrefixes.set(cat, uniqueIdPrefix(cat, usedPrefixes));
     }
 
     const n = (counters.get(cat) ?? 0) + 1;
     counters.set(cat, n);
 
     map.get(cat)!.items.push({
-      id: `${slugify(cat)}-${n}`,
+      id: `${idPrefixes.get(cat)}-${n}`,
       category: cat,
       description: desc,
     });
