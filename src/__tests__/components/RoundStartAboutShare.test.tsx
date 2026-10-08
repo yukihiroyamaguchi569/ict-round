@@ -135,6 +135,17 @@ describe('RoundStart share dialog: opening and closing', () => {
     expect(overlay.parentElement).toBe(document.querySelector('.animate-page')?.parentElement);
   });
 
+  it('keeps the screen behind the dialog out of reach while it is open', async () => {
+    const { user, dialog } = await openDialog();
+    const page = document.querySelector('.animate-page');
+    expect(page).toHaveAttribute('inert');
+    expect(screen.getByRole('button', { name: '外観設定', hidden: true }).closest('[inert]')).not.toBeNull();
+    expect(dialog.closest('[inert]')).toBeNull();
+
+    await user.click(within(dialog).getByRole('button', { name: '閉じる' }));
+    expect(document.querySelector('[inert]')).toBeNull();
+  });
+
   it('closes with the close button', async () => {
     const { user, dialog } = await openDialog();
     await user.click(within(dialog).getByRole('button', { name: '閉じる' }));
@@ -192,6 +203,29 @@ describe('RoundStart share dialog: copy link', () => {
     expect(within(dialog).queryByText('コピーできませんでした')).not.toBeInTheDocument();
     expect(trackEvent).toHaveBeenCalledTimes(1);
     expect(trackEvent).toHaveBeenCalledWith('app_share', { method: 'copy' });
+  });
+
+  it('ignores a second tap while copying, so a late failure cannot hide a later success', async () => {
+    const { user, dialog } = await openDialog();
+    let fail: () => void = () => undefined;
+    const writeText = vi.fn<(text: string) => Promise<void>>(
+      () => new Promise<void>((_, reject) => { fail = () => reject(new DOMException('denied', 'NotAllowedError')); }),
+    );
+    stubClipboard({ writeText });
+    const button = within(dialog).getByRole('button', { name: 'リンクをコピー' });
+    await user.click(button);
+    await user.click(button);
+    expect(writeText).toHaveBeenCalledTimes(1);
+
+    fail();
+    expect(await within(dialog).findByText('コピーできませんでした')).toBeInTheDocument();
+
+    // Once the first write settles the button works again
+    writeText.mockImplementation(() => Promise.resolve());
+    await user.click(button);
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(await within(dialog).findByText('コピーしました')).toBeInTheDocument();
+    expect(within(dialog).queryByText('コピーできませんでした')).not.toBeInTheDocument();
   });
 
   it('shows the hint about pasting into apps such as Instagram', async () => {
