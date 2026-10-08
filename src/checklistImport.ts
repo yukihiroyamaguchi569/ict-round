@@ -16,7 +16,11 @@ function slugify(text: string): string {
 function uniqueIdPrefix(category: string, usedPrefixes: Set<string>): string {
   const slug = slugify(category);
   let prefix = slug;
-  for (let k = 2; usedPrefixes.has(prefix); k++) prefix = `${slug}~${k}`;
+  let k = 1;
+  while (usedPrefixes.has(prefix)) {
+    k++;
+    prefix = `${slug}~${k}`;
+  }
   usedPrefixes.add(prefix);
   return prefix;
 }
