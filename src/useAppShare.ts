@@ -13,6 +13,8 @@ export function useAppShare() {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   // A second tap while the sheet is open would reject with InvalidStateError
   const sharing = useRef(false);
+  // Without this, a slow first write failing after a second one succeeded would overwrite "copied" with "failed"
+  const copying = useRef(false);
   const canShareOther = typeof navigator.share === 'function';
 
   const openDialog = () => {
@@ -28,6 +30,8 @@ export function useAppShare() {
   };
 
   const copyLink = async () => {
+    if (copying.current) return;
+    copying.current = true;
     try {
       // Throws a TypeError when the browser has no Clipboard API, which is handled like a refused write
       await navigator.clipboard.writeText(appShareUrl('copy'));
@@ -35,6 +39,8 @@ export function useAppShare() {
       trackEvent('app_share', { method: 'copy' });
     } catch {
       setCopyStatus('failed');
+    } finally {
+      copying.current = false;
     }
   };
 
