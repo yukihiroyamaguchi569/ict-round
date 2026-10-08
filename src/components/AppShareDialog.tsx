@@ -67,11 +67,16 @@ function CopyOption({ share }: { share: AppShareState }) {
 /** Dialog listing where to send the app's introduction. Render it outside .animate-page. */
 export default function AppShareDialog({ share }: { share: AppShareState }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const { closeDialog } = share;
+  const { closeDialog, triggerRef } = share;
 
   useEffect(() => {
+    const trigger = triggerRef.current;
     panelRef.current?.focus();
-  }, []);
+    // Return focus to the button that opened the dialog, so keyboard users continue from where they were.
+    // The ref is used rather than document.activeElement: Safari does not focus a tapped button, and the
+    // button turns inert while the dialog is open. The cleanup runs after inert is lifted again.
+    return () => trigger?.focus();
+  }, [triggerRef]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

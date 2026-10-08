@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import { useTheme } from '../ThemeContext';
 import { useIcon } from '../IconContext';
 import ThemeSelector from './ThemeSelector';
@@ -77,7 +77,7 @@ export default function RoundStart({
 
         <MergeLinkCard />
 
-        <AboutShareLinks onOpenShare={share.openDialog} />
+        <AboutShareLinks onOpenShare={share.openDialog} shareTriggerRef={share.triggerRef} />
 
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
@@ -196,7 +196,13 @@ function MergeLinkCard() {
 }
 
 /** Quiet links under the merge card: the user guide, the About page, and introducing the app to a colleague. */
-function AboutShareLinks({ onOpenShare }: { onOpenShare: () => void }) {
+function AboutShareLinks({
+  onOpenShare,
+  shareTriggerRef,
+}: {
+  onOpenShare: () => void;
+  shareTriggerRef: RefObject<HTMLButtonElement | null>;
+}) {
   return (
     <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-text-muted">
       {/* New tab, like the other links, so an installed app never navigates away from itself */}
@@ -219,6 +225,7 @@ function AboutShareLinks({ onOpenShare }: { onOpenShare: () => void }) {
         めぐる君について
       </a>
       <button
+        ref={shareTriggerRef}
         type="button"
         onClick={onOpenShare}
         aria-haspopup="dialog"
