@@ -13,11 +13,17 @@ export function useAppShare() {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
   // A second tap while the sheet is open would reject with InvalidStateError
   const sharing = useRef(false);
-  // Without this, a slow first write failing after a second one succeeded would overwrite "copied" with "failed"
-  const copying = useRef(false);
+  // Each opening of the dialog is a session, so a copy that settles after the dialog was reopened leaves the new one alone
+  const session = useRef(0);
+  // Session whose copy is still pending; without it a slow first write failing after a second one succeeded
+  // would overwrite "copied" with "failed"
+  const copyingSession = useRef<number | null>(null);
   const canShareOther = typeof navigator.share === 'function';
+  // The button that opens the dialog; focus goes back to it on close
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const openDialog = () => {
+    session.current += 1;
     setCopyStatus('idle');
     setOpen(true);
   };
@@ -30,17 +36,21 @@ export function useAppShare() {
   };
 
   const copyLink = async () => {
-    if (copying.current) return;
-    copying.current = true;
+    const current = session.current;
+    if (copyingSession.current === current) return;
+    copyingSession.current = current;
+    const showIfCurrent = (status: CopyStatus) => {
+      if (session.current === current) setCopyStatus(status);
+    };
     try {
       // Throws a TypeError when the browser has no Clipboard API, which is handled like a refused write
       await navigator.clipboard.writeText(appShareUrl('copy'));
-      setCopyStatus('copied');
+      showIfCurrent('copied');
       trackEvent('app_share', { method: 'copy' });
     } catch {
-      setCopyStatus('failed');
+      showIfCurrent('failed');
     } finally {
-      copying.current = false;
+      if (copyingSession.current === current) copyingSession.current = null;
     }
   };
 
@@ -58,7 +68,7 @@ export function useAppShare() {
     }
   };
 
-  return { open, copyStatus, canShareOther, openDialog, closeDialog, trackLink, copyLink, shareOther };
+  return { open, copyStatus, canShareOther, triggerRef, openDialog, closeDialog, trackLink, copyLink, shareOther };
 }
 
 export type AppShareState = ReturnType<typeof useAppShare>;
