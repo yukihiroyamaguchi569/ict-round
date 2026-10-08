@@ -4,6 +4,9 @@ import userEvent from '@testing-library/user-event';
 import ChecklistEditor from '../../components/ChecklistEditor';
 import { draftFromChecklist, emptyDraft, type EditorDraft } from '../../checklistEditor';
 import type { SavedChecklist } from '../../types';
+import { trackEvent } from '../../analytics';
+
+vi.mock('../../analytics', () => ({ trackEvent: vi.fn() }));
 
 const SOURCE: SavedChecklist = {
   id: 'default',
@@ -39,6 +42,7 @@ function savedChecklist(onSave: ReturnType<typeof setup>['onSave']): SavedCheckl
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.mocked(trackEvent).mockClear();
 });
 
 describe('ChecklistEditor', () => {
@@ -206,5 +210,58 @@ describe('ChecklistEditor', () => {
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('records the open event once with its source', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { source: 'copy' }]]);
+    // Editing re-renders but must not record the open event again
+    await user.type(textbox('チェックリストの名前'), 'x');
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('records the open event for a new checklist', () => {
+    setup();
+    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { source: 'new' }]]);
+  });
+
+  it('records the save event only when the checklist is saved', async () => {
+    const { onSave, user } = setup();
+    await user.click(button('保存して適用'));
+    expect(trackEvent).not.toHaveBeenCalledWith('checklist_editor_save');
+
+    await user.type(textbox('チェックリストの名前'), '名前');
+    await user.type(textbox('カテゴリ1の名前'), '転倒');
+    await user.type(textbox('カテゴリ1の項目1'), '柵');
+    await user.click(button('保存して適用'));
+    expect(trackEvent).toHaveBeenLastCalledWith('checklist_editor_save');
+    expect(trackEvent).toHaveBeenCalledTimes(2);
+    expect(savedChecklist(onSave).name).toBe('名前');
+  });
+
+  it('does not record a save event when cancelling', async () => {
+    const { onCancel, user } = setup();
+    await user.click(button('キャンセル'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { source: 'new' }]]);
+  });
+
+  it('cancels without asking when edits were reverted to the initial content', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const { onCancel, user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.type(textbox('チェックリストの名前'), 'x');
+    await user.type(textbox('チェックリストの名前'), '{Backspace}');
+    await user.click(button('キャンセル'));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks before cancelling after a category was added', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { onCancel, user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリを追加'));
+    await user.click(button('閉じる'));
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });
