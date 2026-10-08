@@ -159,6 +159,21 @@ describe('RoundStart share dialog: opening and closing', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['the close button', async (user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement) => {
+      await user.click(within(dialog).getByRole('button', { name: '閉じる' }));
+    }],
+    ['Escape', async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.keyboard('{Escape}');
+    }],
+  ])('returns focus to the share button after closing with %s', async (_, close) => {
+    const { user, dialog } = await openDialog();
+    // Move focus away first, as Safari does not focus a tapped button
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    await close(user, dialog);
+    expect(screen.getByRole('button', { name: '同僚に紹介する' })).toHaveFocus();
+  });
+
   it('moves focus into the dialog', async () => {
     const { dialog } = await openDialog();
     expect(dialog).toHaveFocus();
@@ -226,6 +241,31 @@ describe('RoundStart share dialog: copy link', () => {
     expect(writeText).toHaveBeenCalledTimes(2);
     expect(await within(dialog).findByText('コピーしました')).toBeInTheDocument();
     expect(within(dialog).queryByText('コピーできませんでした')).not.toBeInTheDocument();
+  });
+
+  it('does not show a copy result from before the dialog was reopened, and lets the new one copy', async () => {
+    const { user, dialog } = await openDialog();
+    let finishFirst: () => void = () => undefined;
+    const writeText = vi.fn<(text: string) => Promise<void>>(
+      () => new Promise<void>((resolve) => { finishFirst = resolve; }),
+    );
+    stubClipboard({ writeText });
+    await user.click(within(dialog).getByRole('button', { name: 'リンクをコピー' }));
+    await user.click(within(dialog).getByRole('button', { name: '閉じる' }));
+    await user.click(screen.getByRole('button', { name: '同僚に紹介する' }));
+    const reopened = screen.getByRole('dialog', { name: '同僚に紹介する' });
+
+    // The pending copy is not blocking the new dialog
+    writeText.mockImplementationOnce(() => Promise.reject(new DOMException('denied', 'NotAllowedError')));
+    await user.click(within(reopened).getByRole('button', { name: 'リンクをコピー' }));
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(await within(reopened).findByText('コピーできませんでした')).toBeInTheDocument();
+
+    // The first copy finishing late must not replace the new dialog's result
+    finishFirst();
+    await vi.waitFor(() => expect(trackEvent).toHaveBeenCalledWith('app_share', { method: 'copy' }));
+    expect(within(reopened).getByText('コピーできませんでした')).toBeInTheDocument();
+    expect(within(reopened).queryByText('コピーしました')).not.toBeInTheDocument();
   });
 
   it('shows the hint about pasting into apps such as Instagram', async () => {
