@@ -34,7 +34,6 @@ function buildCategories(rows: [string, string][]): ChecklistCategory[] {
   for (const [category, description] of rows) {
     const cat = category.trim();
     const desc = description.trim();
-    if (!cat || !desc) continue;
 
     if (!map.has(cat)) {
       map.set(cat, { category: cat, items: [] });

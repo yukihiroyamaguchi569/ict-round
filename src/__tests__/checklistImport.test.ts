@@ -91,6 +91,12 @@ describe('parseCsv', () => {
     expect(result.flatMap((c) => c.items).some((i) => i.description === 'description')).toBe(false);
   });
 
+  it('空白だけのセルがある行はデータ行に数えず、その後の見出し行をスキップする (#103)', () => {
+    // Quoted so that trimming the whole line does not remove the blank cell.
+    const result = parseCsv('" ",作成日\n感染対策ラウンド表," "\ncategory,description\n手指衛生,項目1');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+  });
+
   it('データ行の後の category 行は、先頭に空行があっても見出しとして扱わず取り込む (#103)', () => {
     const result = parseCsv('\ncategory,description\n手指衛生,項目1\ncategory,項目2');
     expect(result.map((c) => c.category)).toEqual(['手指衛生', 'category']);
@@ -270,6 +276,17 @@ describe('parseXlsx', () => {
     const result = await parseXlsx(new ArrayBuffer(0));
     expect(result.map((c) => c.category)).toEqual(['手指衛生']);
     expect(result[0].items.map((i) => i.description)).toEqual(['項目1']);
+  });
+
+  it('空白だけのセルがある行はデータ行に数えず、その後の見出し行をスキップする (#103)', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      [' ', '作成日'],
+      ['感染対策ラウンド表', ' '],
+      ['category', 'description'],
+      ['手指衛生', '項目1'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
   });
 
   it('データ行の後の category 行は、先頭にタイトル行があっても見出しとして扱わず取り込む (#103)', async () => {
