@@ -249,6 +249,80 @@ describe('RoundStart', () => {
     expect(screen.getByRole('button', { name: '複製して編集' })).toBeInTheDocument();
   });
 
+  it('marks only the active checklist row as selected', () => {
+    setup({ activeId: 'custom' });
+    const row = (name: string) => screen.getByText(name).closest<HTMLElement>('.cursor-pointer');
+    // jsdom drops var() inside the border shorthand, so read the inline style attribute
+    expect(row('外来用')?.getAttribute('style')).toContain('border: 1.5px solid var(--t-primary)');
+    expect(row('標準チェックリスト')?.getAttribute('style')).toContain('border: 1.5px solid var(--t-line)');
+    // The radio dot is drawn only inside the selected row
+    expect(row('外来用')?.querySelector('.bg-white')).not.toBeNull();
+    expect(row('標準チェックリスト')?.querySelector('.bg-white')).toBeNull();
+  });
+
+  it('shows the item counts and marks the default checklist', () => {
+    setup();
+    expect(screen.getAllByText(/1カテゴリ・1項目/)).toHaveLength(2);
+    expect(screen.getAllByText('（標準）')).toHaveLength(1);
+  });
+
+  it('reports the add options as collapsed until they are opened', async () => {
+    const { user } = setup();
+    const addButton = screen.getByRole('button', { name: '新しいチェックリストを追加する' });
+    expect(addButton).toHaveAttribute('aria-expanded', 'false');
+    await user.click(addButton);
+    expect(addButton).toHaveAttribute('aria-expanded', 'true');
+    await user.click(addButton);
+    expect(addButton).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('collapses the add options when the editor is opened from them', async () => {
+    const { user } = setup();
+    const addButton = screen.getByRole('button', { name: '新しいチェックリストを追加する' });
+    await user.click(addButton);
+    await user.click(screen.getByRole('button', { name: '画面で作成する' }));
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }));
+    expect(screen.queryByRole('heading', { name: 'チェックリストを作成' })).not.toBeInTheDocument();
+    expect(addButton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: '画面で作成する' })).not.toBeInTheDocument();
+  });
+
+  it('collapses the add options and closes the import dialog on cancel without adding anything', async () => {
+    const { props, user } = setup();
+    const addButton = screen.getByRole('button', { name: '新しいチェックリストを追加する' });
+    await user.click(addButton);
+    await user.click(screen.getByRole('button', { name: 'ファイルから取り込む' }));
+    expect(addButton).toHaveAttribute('aria-expanded', 'false');
+    await user.click(screen.getByRole('button', { name: 'キャンセル' }));
+    expect(screen.queryByRole('heading', { name: 'チェックリストを取り込む' })).not.toBeInTheDocument();
+    expect(props.onAddChecklist).not.toHaveBeenCalled();
+    expect(props.onSelectChecklist).not.toHaveBeenCalled();
+  });
+
+  it('shows the saved rounds count only when there are saved rounds', () => {
+    setup({ savedRoundsCount: 3 });
+    expect(screen.getByRole('button', { name: /保存済みラウンドを開く/ })).toHaveTextContent(/保存済みラウンドを開く\s*3$/);
+  });
+
+  it('shows no saved rounds count when there are none', () => {
+    setup({ savedRoundsCount: 0 });
+    expect(screen.getByRole('button', { name: /保存済みラウンドを開く/ })).toHaveTextContent(/保存済みラウンドを開く$/);
+  });
+
+  it('links to the merge page in a new tab', () => {
+    setup();
+    const link = screen.getByRole('link', { name: '開く' });
+    expect(link).toHaveAttribute('href', './merge.html');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener');
+    expect(screen.getByText('複数部署のレポートを統合')).toBeInTheDocument();
+  });
+
+  it('shows the app name with the version and build date', () => {
+    setup();
+    expect(screen.getByText(`ICTラウンドアプリ「めぐる君」 v${__APP_VERSION__} (build ${__BUILD_DATE__})`)).toBeInTheDocument();
+  });
+
   it('closes the editor on cancel without adding anything', async () => {
     const { props, user } = setup();
     await user.click(screen.getAllByRole('button', { name: '複製して編集' })[0]);
