@@ -1,14 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { SavedChecklist } from '../types';
-import {
-  buildChecklist,
-  emptyCategory,
-  emptyItem,
-  moveItem,
-  type DraftCategory,
-  type EditorDraft,
-} from '../checklistEditor';
-import { trackEvent } from '../analytics';
+import { emptyItem, moveItem, type DraftCategory, type EditorDraft } from '../checklistEditor';
+import { useChecklistEditor } from '../useChecklistEditor';
 
 interface Props {
   initialDraft: EditorDraft;
@@ -156,59 +149,34 @@ function EditorFooter({ error, onCancel, onSave }: EditorFooterProps) {
   );
 }
 
+interface EditorHeaderProps {
+  source: 'new' | 'copy';
+  onClose: () => void;
+}
+
+function EditorHeader({ source, onClose }: EditorHeaderProps) {
+  return (
+    <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-surface flex-shrink-0">
+      <h2 className="text-sm font-extrabold text-text">
+        {source === 'copy' ? 'チェックリストを複製して編集' : 'チェックリストを作成'}
+      </h2>
+      <button type="button" onClick={onClose} aria-label="閉じる" className="text-text-muted hover:text-text">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d={CROSS} />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export default function ChecklistEditor({ initialDraft, source, onSave, onCancel }: Props) {
-  const [draft, setDraft] = useState(initialDraft);
-  const [error, setError] = useState('');
-  const initialJson = useRef(JSON.stringify(initialDraft));
-  const [addedCategoryKey, setAddedCategoryKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    trackEvent('checklist_editor_open', { source });
-  }, [source]);
-
-  const setCategories = (categories: DraftCategory[]) => setDraft((d) => ({ ...d, categories }));
+  const editor = useChecklistEditor(initialDraft, source, onSave, onCancel);
+  const { draft, addedCategoryKey } = editor;
   const { categories } = draft;
-
-  const handleDeleteCategory = (index: number) => {
-    const hasText = categories[index].items.some((item) => item.description.trim() !== '');
-    if (hasText && !confirm('このカテゴリと中の項目を削除しますか？')) return;
-    setCategories(categories.filter((_, i) => i !== index));
-  };
-
-  const handleAddCategory = () => {
-    const category = emptyCategory();
-    setAddedCategoryKey(category.key);
-    setCategories([...categories, category]);
-  };
-
-  const handleCancel = () => {
-    const dirty = JSON.stringify(draft) !== initialJson.current;
-    if (dirty && !confirm('編集内容を破棄して閉じますか？')) return;
-    onCancel();
-  };
-
-  const handleSave = () => {
-    const result = buildChecklist(draft);
-    if ('error' in result) {
-      setError(result.error);
-      return;
-    }
-    trackEvent('checklist_editor_save');
-    onSave(result.checklist);
-  };
 
   return (
     <div className="fixed inset-0 z-50 bg-base flex flex-col">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-surface flex-shrink-0">
-        <h2 className="text-sm font-extrabold text-text">
-          {source === 'copy' ? 'チェックリストを複製して編集' : 'チェックリストを作成'}
-        </h2>
-        <button type="button" onClick={handleCancel} aria-label="閉じる" className="text-text-muted hover:text-text">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d={CROSS} />
-          </svg>
-        </button>
-      </div>
+      <EditorHeader source={source} onClose={editor.handleCancel} />
 
       <div className="overflow-y-auto flex-1">
         <div className="w-full max-w-md mx-auto px-4 py-4 space-y-3">
@@ -220,7 +188,7 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
               id="checklist-editor-name"
               type="text"
               value={draft.name}
-              onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
+              onChange={(e) => editor.setName(e.target.value)}
               placeholder="例: 医療安全ラウンド"
               className="w-full bg-surface border-2 border-line rounded-t px-3 py-2.5 text-sm text-text placeholder:text-text-faint"
             />
@@ -237,15 +205,15 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
               index={i}
               count={categories.length}
               focusName={cat.key === addedCategoryKey}
-              onChange={(next) => setCategories(categories.map((c, j) => (j === i ? next : c)))}
-              onMove={(delta) => setCategories(moveItem(categories, i, delta))}
-              onDelete={() => handleDeleteCategory(i)}
+              onChange={(next) => editor.changeCategory(i, next)}
+              onMove={(delta) => editor.moveCategory(i, delta)}
+              onDelete={() => editor.handleDeleteCategory(i)}
             />
           ))}
 
           <button
             type="button"
-            onClick={handleAddCategory}
+            onClick={editor.handleAddCategory}
             className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-bold border-2 rounded-t transition-colors"
             style={{ borderColor: 'var(--t-primary)', color: 'var(--t-primary)' }}
           >
@@ -255,7 +223,7 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
         </div>
       </div>
 
-      <EditorFooter error={error} onCancel={handleCancel} onSave={handleSave} />
+      <EditorFooter error={editor.error} onCancel={editor.handleCancel} onSave={editor.handleSave} />
     </div>
   );
 }
