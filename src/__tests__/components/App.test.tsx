@@ -92,6 +92,7 @@ describe('App checklist library', () => {
   it('an imported checklist is added to the library, persisted and selected', async () => {
     const { user, container } = renderApp();
     await user.click(screen.getByRole('button', { name: '新しいチェックリストを追加する' }));
+    await user.click(screen.getByRole('button', { name: 'ファイルから取り込む' }));
     const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]');
     if (!fileInput) throw new Error('file input not found');
     const csv = ['category,description', '廃棄物,分別されている', '廃棄物,蓋が閉まっている'].join('\n');
