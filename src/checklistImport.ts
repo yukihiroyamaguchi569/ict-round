@@ -60,6 +60,14 @@ function parseCsvLine(line: string): string[] {
   return result;
 }
 
+/**
+ * A `category` row before any data row is the header, even after blank or title rows.
+ * Callers drop rows with an empty cell first, so a title row never counts as data.
+ */
+function isHeaderRow(col0: string, rows: [string, string][]): boolean {
+  return rows.length === 0 && col0.trim().toLowerCase() === 'category';
+}
+
 export function parseCsv(text: string): ChecklistCategory[] {
   const lines = text.split(/\r?\n/);
   const rows: [string, string][] = [];
@@ -72,8 +80,8 @@ export function parseCsv(text: string): ChecklistCategory[] {
     if (cols.length < 2) continue;
 
     const [col0, col1] = cols;
-    // Skip header row
-    if (i === 0 && col0.trim().toLowerCase() === 'category') continue;
+    if (!col0.trim() || !col1.trim()) continue;
+    if (isHeaderRow(col0, rows)) continue;
 
     rows.push([col0, col1]);
   }
@@ -92,9 +100,8 @@ export async function parseXlsx(buf: ArrayBuffer): Promise<ChecklistCategory[]> 
     if (!Array.isArray(row) || row.length < 2) continue;
     const col0 = String(row[0] ?? '').trim();
     const col1 = String(row[1] ?? '').trim();
-    if (!col0 && !col1) continue;
-    // Skip header row
-    if (i === 0 && col0.toLowerCase() === 'category') continue;
+    if (!col0 || !col1) continue;
+    if (isHeaderRow(col0, rows)) continue;
     rows.push([col0, col1]);
   }
 

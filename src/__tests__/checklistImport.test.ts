@@ -78,6 +78,24 @@ describe('parseCsv', () => {
     expect(result[1].items[0].description).toBe('項目2');
   });
 
+  it('先頭の空行の後にある見出し行をスキップする (#103)', () => {
+    const result = parseCsv('\n\r\n,\ncategory,description\n手指衛生,項目1');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+    expect(result[0].items.map((i) => i.description)).toEqual(['項目1']);
+  });
+
+  it('タイトル行（1列だけ・2列目が空）の後にある見出し行をスキップする (#103)', () => {
+    const result = parseCsv('感染対策ラウンド表\n感染対策ラウンド表,\n,作成日\ncategory,description\n手指衛生,項目1');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+    expect(result.flatMap((c) => c.items).some((i) => i.description === 'description')).toBe(false);
+  });
+
+  it('データ行の後の category 行は、先頭に空行があっても見出しとして扱わず取り込む (#103)', () => {
+    const result = parseCsv('\ncategory,description\n手指衛生,項目1\ncategory,項目2');
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'category']);
+    expect(result[1].items[0].description).toBe('項目2');
+  });
+
   it('引用符で囲まれたカンマを列の区切りとして扱わない', () => {
     const result = parseCsv('手指衛生,"手洗い,手指消毒の両方"');
     expect(result[0].items).toHaveLength(1);
@@ -162,6 +180,31 @@ describe('parseXlsx', () => {
     ]);
     const result = await parseXlsx(new ArrayBuffer(0));
     expect(result.map((c) => c.category)).toEqual(['手指衛生', 'Category']);
+  });
+
+  // Empty cells come back as null, and rows are padded to the sheet width (as the real reader returns them).
+  it('先頭の空行・タイトル行の後にある見出し行をスキップする (#103)', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      [null, null],
+      ['感染対策ラウンド表', null],
+      [null, '作成日'],
+      ['Category', 'Description'],
+      ['手指衛生', '項目1'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
+    expect(result[0].items.map((i) => i.description)).toEqual(['項目1']);
+  });
+
+  it('データ行の後の category 行は、先頭にタイトル行があっても見出しとして扱わず取り込む (#103)', async () => {
+    readSheetMock.mockResolvedValueOnce([
+      ['感染対策ラウンド表', null],
+      ['category', 'description'],
+      ['手指衛生', '項目1'],
+      ['category', '項目2'],
+    ]);
+    const result = await parseXlsx(new ArrayBuffer(0));
+    expect(result.map((c) => c.category)).toEqual(['手指衛生', 'category']);
   });
 
   it('空行・片側だけのセルを無視して有効な行のみ取り込む', async () => {
