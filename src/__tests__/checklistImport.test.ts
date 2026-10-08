@@ -79,22 +79,15 @@ describe('parseCsv', () => {
     expect(result[1].items[0].description).toBe('項目2');
   });
 
-  it('先頭の空行の後にある見出し行をスキップする (#103)', () => {
-    const result = parseCsv('\n\r\n,\ncategory,description\n手指衛生,項目1');
+  it.each([
+    ['先頭の空行', '\n\r\n,\n'],
+    ['タイトル行（1列だけ・2列目が空）', '感染対策ラウンド表\n感染対策ラウンド表,\n,作成日\n'],
+    // Quoted so that trimming the whole line does not remove the blank cell.
+    ['空白だけのセルがある行', '" ",作成日\n感染対策ラウンド表," "\n'],
+  ])('%sの後にある見出し行をスキップする (#103)', (_label, leading) => {
+    const result = parseCsv(`${leading}category,description\n手指衛生,項目1`);
     expect(result.map((c) => c.category)).toEqual(['手指衛生']);
     expect(result[0].items.map((i) => i.description)).toEqual(['項目1']);
-  });
-
-  it('タイトル行（1列だけ・2列目が空）の後にある見出し行をスキップする (#103)', () => {
-    const result = parseCsv('感染対策ラウンド表\n感染対策ラウンド表,\n,作成日\ncategory,description\n手指衛生,項目1');
-    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
-    expect(result.flatMap((c) => c.items).some((i) => i.description === 'description')).toBe(false);
-  });
-
-  it('空白だけのセルがある行はデータ行に数えず、その後の見出し行をスキップする (#103)', () => {
-    // Quoted so that trimming the whole line does not remove the blank cell.
-    const result = parseCsv('" ",作成日\n感染対策ラウンド表," "\ncategory,description\n手指衛生,項目1');
-    expect(result.map((c) => c.category)).toEqual(['手指衛生']);
   });
 
   it('データ行の後の category 行は、先頭に空行があっても見出しとして扱わず取り込む (#103)', () => {
