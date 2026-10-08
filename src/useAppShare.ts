@@ -1,39 +1,58 @@
-import { useRef } from 'react';
-import { appShareData, appShareMailto, isShareCancel, openMailDraft } from './appShare';
+import { useRef, useState } from 'react';
+import { appShareData, appShareUrl, isShareCancel, type AppShareMethod } from './appShare';
 import { trackEvent } from './analytics';
 
+export type CopyStatus = 'idle' | 'copied' | 'failed';
+
 /**
- * Introduce the app to a colleague: the OS share sheet when there is one, otherwise a new mail.
- * A cancelled share sheet does nothing; any other share failure falls back to mail.
- * Only the method is recorded, never round input data.
+ * The dialog for introducing the app to a colleague: open / close, copying the link, and the OS share sheet.
+ * Only the destination is recorded, never round input data.
  */
 export function useAppShare() {
-  // A second tap while the sheet is open would reject with InvalidStateError and wrongly fall back to mail
+  const [open, setOpen] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle');
+  // A second tap while the sheet is open would reject with InvalidStateError
   const sharing = useRef(false);
+  const canShareOther = typeof navigator.share === 'function';
 
-  const openMail = () => {
-    openMailDraft(appShareMailto());
-    trackEvent('app_share', { method: 'email' });
+  const openDialog = () => {
+    setCopyStatus('idle');
+    setOpen(true);
   };
 
-  const shareApp = async () => {
-    if (sharing.current) return;
-    if (typeof navigator.share !== 'function') {
-      openMail();
-      return;
+  const closeDialog = () => setOpen(false);
+
+  /** Mail, LINE and X are plain links; record the tap. */
+  const trackLink = (method: Extract<AppShareMethod, 'email' | 'line' | 'x'>) => {
+    trackEvent('app_share', { method });
+  };
+
+  const copyLink = async () => {
+    try {
+      // Throws a TypeError when the browser has no Clipboard API, which is handled like a refused write
+      await navigator.clipboard.writeText(appShareUrl('copy'));
+      setCopyStatus('copied');
+      trackEvent('app_share', { method: 'copy' });
+    } catch {
+      setCopyStatus('failed');
     }
+  };
+
+  const shareOther = async () => {
+    if (sharing.current) return;
     sharing.current = true;
     try {
       await navigator.share(appShareData());
       trackEvent('app_share', { method: 'share' });
     } catch (err) {
-      if (!isShareCancel(err)) openMail();
+      // Cancelling the sheet is not an error; other failures leave the remaining options in the dialog
+      if (!isShareCancel(err)) console.error('共有に失敗しました:', err);
     } finally {
       sharing.current = false;
     }
   };
 
-  const trackAboutClick = () => trackEvent('about_link_click');
-
-  return { shareApp, trackAboutClick };
+  return { open, copyStatus, canShareOther, openDialog, closeDialog, trackLink, copyLink, shareOther };
 }
+
+export type AppShareState = ReturnType<typeof useAppShare>;

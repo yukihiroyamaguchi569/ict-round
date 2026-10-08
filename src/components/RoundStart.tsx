@@ -7,6 +7,8 @@ import InstallBanner from './InstallBanner';
 import type { SavedChecklist } from '../types';
 import { useChecklistPicker } from '../useChecklistPicker';
 import { useAppShare } from '../useAppShare';
+import { trackEvent } from '../analytics';
+import AppShareDialog from './AppShareDialog';
 
 interface Props {
   library: SavedChecklist[];
@@ -34,6 +36,7 @@ export default function RoundStart({
   const { theme } = useTheme();
   const { icon } = useIcon();
   const picker = useChecklistPicker({ onSelectChecklist, onAddChecklist, onDeleteChecklist });
+  const share = useAppShare();
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-6">
@@ -73,12 +76,14 @@ export default function RoundStart({
 
         <MergeLinkCard />
 
-        <AboutShareLinks />
+        <AboutShareLinks onOpenShare={share.openDialog} />
 
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
 
       <ChecklistPickerDialogs picker={picker} />
+      {/* Outside .animate-page for the same reason as the picker dialogs */}
+      {share.open && <AppShareDialog share={share} />}
     </div>
   );
 }
@@ -190,23 +195,22 @@ function MergeLinkCard() {
 }
 
 /** Quiet links under the merge card: the About page and introducing the app to a colleague. */
-function AboutShareLinks() {
-  const { shareApp, trackAboutClick } = useAppShare();
-
+function AboutShareLinks({ onOpenShare }: { onOpenShare: () => void }) {
   return (
     <div className="mt-4 flex items-center justify-center gap-5 text-xs text-text-muted">
       <a
         href="./about/"
         target="_blank"
         rel="noopener"
-        onClick={trackAboutClick}
+        onClick={() => trackEvent('about_link_click')}
         className="underline underline-offset-2 hover:text-text transition-colors"
       >
         めぐる君について
       </a>
       <button
         type="button"
-        onClick={shareApp}
+        onClick={onOpenShare}
+        aria-haspopup="dialog"
         className="flex items-center gap-1 underline underline-offset-2 hover:text-text transition-colors"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
