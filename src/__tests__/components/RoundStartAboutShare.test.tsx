@@ -66,6 +66,21 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe('RoundStart help link', () => {
+  // Same rule as in the round: an installed app must not navigate away from itself
+  it('opens the user guide in a new tab and records the open from the start screen', async () => {
+    const user = renderStart();
+    const link = screen.getByRole('link', { name: '使い方' });
+    expect(link).toHaveAttribute('href', './docs/user-guide/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener');
+
+    await user.click(link);
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('help_open', { from: 'start' });
+  });
+});
+
 describe('RoundStart about link', () => {
   it('opens the About page in a new tab and records the click', async () => {
     const user = renderStart();
@@ -79,14 +94,16 @@ describe('RoundStart about link', () => {
     expect(trackEvent).toHaveBeenCalledWith('about_link_click');
   });
 
-  it('sits with the share button between the merge card and the version line', () => {
+  it('sits with the help link and the share button between the merge card and the version line', () => {
     renderStart();
     const merge = screen.getByText('複数部署のレポートを統合');
+    const help = screen.getByRole('link', { name: '使い方' });
     const about = screen.getByRole('link', { name: 'めぐる君について' });
     const shareButton = screen.getByRole('button', { name: '同僚に紹介する' });
     const version = screen.getByText(/ICTラウンドアプリ「めぐる君」 v/);
     const follows = (a: Node, b: Node) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(follows(merge, about)).toBe(true);
+    expect(follows(merge, help)).toBe(true);
+    expect(follows(help, about)).toBe(true);
     expect(follows(about, shareButton)).toBe(true);
     expect(follows(shareButton, version)).toBe(true);
   });

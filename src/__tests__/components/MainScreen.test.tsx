@@ -5,6 +5,9 @@ import MainScreen from '../../components/MainScreen';
 import { ThemeProvider } from '../../ThemeContext';
 import { IconProvider } from '../../IconContext';
 import type { ChecklistCategory, Photo, RoundData } from '../../types';
+import { trackEvent } from '../../analytics';
+
+vi.mock('../../analytics', () => ({ trackEvent: vi.fn() }));
 
 const CATEGORIES: ChecklistCategory[] = [
   {
@@ -328,5 +331,33 @@ describe('MainScreen tabs', () => {
     expect(screen.queryByRole('img', { name: '記入済み' })).not.toBeInTheDocument();
     rerender({ roundData: round({ overallEvaluation: ' 良好 ' }) });
     expect(screen.getByRole('img', { name: '記入済み' })).toBeInTheDocument();
+  });
+});
+
+describe('MainScreen help link', () => {
+  // The round lives only in React state until saved, so the guide must never replace this tab
+  it('opens the user guide in a new tab so the unsaved round is kept', () => {
+    setup();
+    const link = screen.getByRole('link', { name: '使い方' });
+    expect(link).toHaveAttribute('href', './docs/user-guide/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener');
+  });
+
+  it('records the open from the round and leaves the round untouched', async () => {
+    vi.mocked(trackEvent).mockClear();
+    const { props, user } = setup();
+    await user.click(screen.getByRole('link', { name: '使い方' }));
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('help_open', { from: 'round' });
+    expect(props.onSave).not.toHaveBeenCalled();
+    expect(props.onHome).not.toHaveBeenCalled();
+  });
+
+  it('sits in the header to the left of the save button', () => {
+    setup();
+    const link = screen.getByRole('link', { name: '使い方' });
+    expect(link.compareDocumentPosition(saveButton()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(link.parentElement).toBe(saveButton().parentElement);
   });
 });
