@@ -2,11 +2,9 @@ import { useState } from 'react';
 import { useTheme } from '../ThemeContext';
 import { useIcon } from '../IconContext';
 import ThemeSelector from './ThemeSelector';
-import ChecklistImportDialog from './ChecklistImportDialog';
-import ChecklistEditor from './ChecklistEditor';
+import ChecklistPicker from './ChecklistPicker';
 import InstallBanner from './InstallBanner';
 import type { SavedChecklist } from '../types';
-import { draftFromChecklist, emptyDraft, type EditorDraft } from '../checklistEditor';
 
 interface Props {
   library: SavedChecklist[];
@@ -31,50 +29,8 @@ export default function RoundStart({
   onDeleteChecklist,
   onViewSaved,
 }: Props) {
-  // Carry over the participant name so consecutive ward rounds do not require retyping it
-  const [name, setName] = useState(initialName);
-  const [wardName, setWardName] = useState('');
-  const [showImport, setShowImport] = useState(false);
-  const [showAddOptions, setShowAddOptions] = useState(false);
-  const [editor, setEditor] = useState<{ draft: EditorDraft; source: 'new' | 'copy' } | null>(null);
   const { theme } = useTheme();
   const { icon } = useIcon();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (name.trim()) onStart(name.trim(), wardName.trim());
-  };
-
-  const handleSaveImport = (c: SavedChecklist) => {
-    onAddChecklist(c);
-    onSelectChecklist(c.id);
-    setShowImport(false);
-  };
-
-  const handleSaveEditor = (c: SavedChecklist) => {
-    onAddChecklist(c);
-    onSelectChecklist(c.id);
-    setEditor(null);
-  };
-
-  const openImport = () => {
-    setShowAddOptions(false);
-    setShowImport(true);
-  };
-
-  const openNewEditor = () => {
-    setShowAddOptions(false);
-    setEditor({ draft: emptyDraft(), source: 'new' });
-  };
-
-  const openCopyEditor = (c: SavedChecklist) => {
-    setEditor({ draft: draftFromChecklist(c, `${c.name}のコピー`), source: 'copy' });
-  };
-
-  const handleDelete = (id: string) => {
-    if (!confirm('このチェックリストを削除しますか？')) return;
-    onDeleteChecklist(id);
-  };
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-6">
@@ -95,200 +51,134 @@ export default function RoundStart({
         </div>
 
         {/* Checklist selector */}
-        <div className="card p-4 mb-4 space-y-2">
-          <div className="mb-1">
-            <span className="text-xs font-bold text-text-muted">使用するチェックリスト</span>
-          </div>
-
-          {library.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-t cursor-pointer transition-colors"
-              style={
-                c.id === activeId
-                  ? { backgroundColor: 'var(--t-primary-light)', border: '1.5px solid var(--t-primary)' }
-                  : { backgroundColor: 'var(--t-base)', border: '1.5px solid var(--t-line)' }
-              }
-              onClick={() => onSelectChecklist(c.id)}
-            >
-              <div
-                className="w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center"
-                style={
-                  c.id === activeId
-                    ? { borderColor: 'var(--t-primary)', backgroundColor: 'var(--t-primary)' }
-                    : { borderColor: 'var(--t-line)', backgroundColor: 'transparent' }
-                }
-              >
-                {c.id === activeId && (
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-text truncate">{c.name}</p>
-                <p className="text-[10px] text-text-faint">
-                  {c.categories.length}カテゴリ・{c.categories.reduce((s, cat) => s + cat.items.length, 0)}項目
-                  {c.isDefault && <span className="ml-1 text-primary font-bold">（標準）</span>}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); openCopyEditor(c); }}
-                className="text-text-faint hover:text-primary transition-colors p-1"
-                aria-label="複製して編集"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </button>
-              {library.length > 1 && (
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleDelete(c.id); }}
-                  className="text-text-faint hover:text-red-500 transition-colors p-1"
-                  aria-label="削除"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-
-          <button
-            type="button"
-            onClick={() => setShowAddOptions((v) => !v)}
-            aria-expanded={showAddOptions}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold border-2 rounded-t transition-colors"
-            style={{ borderColor: 'var(--t-primary)', color: 'var(--t-primary)' }}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            新しいチェックリストを追加する
-          </button>
-
-          {showAddOptions && (
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={openNewEditor}
-                className="py-2.5 text-xs font-bold border-2 border-line rounded-t text-text-muted hover:text-primary hover:border-primary transition-colors"
-              >
-                画面で作成する
-              </button>
-              <button
-                type="button"
-                onClick={openImport}
-                className="py-2.5 text-xs font-bold border-2 border-line rounded-t text-text-muted hover:text-primary hover:border-primary transition-colors"
-              >
-                ファイルから取り込む
-              </button>
-            </div>
-          )}
-        </div>
+        <ChecklistPicker
+          library={library}
+          activeId={activeId}
+          onSelectChecklist={onSelectChecklist}
+          onAddChecklist={onAddChecklist}
+          onDeleteChecklist={onDeleteChecklist}
+        />
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="card p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-text-muted mb-2">参加者</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例: 山田 花子"
-              className="w-full bg-base border-2 border-line rounded-t px-4 py-3.5 text-base text-text placeholder:text-text-faint transition-all duration-200"
-              autoFocus
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-text-muted mb-2">
-              病棟名
-              <span className="text-text-faint font-normal ml-1">（任意）</span>
-            </label>
-            <input
-              type="text"
-              value={wardName}
-              onChange={(e) => setWardName(e.target.value)}
-              placeholder="例: 3階東病棟"
-              className="w-full bg-base border-2 border-line rounded-t px-4 py-3.5 text-base text-text placeholder:text-text-faint transition-all duration-200"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={!name.trim()}
-            className="btn-primary w-full py-4 text-base font-bold"
-          >
-            ラウンド開始
-          </button>
-
-          <button
-            type="button"
-            onClick={onViewSaved}
-            className="w-full py-3 text-sm font-bold border-2 border-line rounded-t text-text-muted hover:text-text hover:border-primary transition-colors flex items-center justify-center gap-2"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
-            保存済みラウンドを開く
-            {savedRoundsCount > 0 && (
-              <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--t-primary-light)', color: 'var(--t-primary)' }}>
-                {savedRoundsCount}
-              </span>
-            )}
-          </button>
-        </form>
+        <StartForm
+          initialName={initialName}
+          savedRoundsCount={savedRoundsCount}
+          onStart={onStart}
+          onViewSaved={onViewSaved}
+        />
 
         <InstallBanner />
 
-        {/* 統合ページは PC で開く別ページ（相対パスなので GitHub Pages / Cloudflare Pages のどちらでも通る） */}
-        <div className="card p-4 mt-4 flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: 'var(--t-primary-light)' }}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="var(--t-primary)" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h5l3 3h8a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 12v5m0-5l-2 2m2-2l2 2" />
-            </svg>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-text">複数部署のレポートを統合</p>
-            <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
-              集めたデータをPCで1本のWord報告書にまとめます
-            </p>
-          </div>
-          <a
-            href="./merge.html"
-            target="_blank"
-            rel="noopener"
-            className="text-xs font-bold px-3 py-2 rounded-t flex-shrink-0 transition-colors"
-            style={{ backgroundColor: 'var(--t-primary)', color: '#fff' }}
-          >
-            開く
-          </a>
-        </div>
+        <MergeLinkCard />
 
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
+    </div>
+  );
+}
 
-      {showImport && (
-        <ChecklistImportDialog
-          onSave={handleSaveImport}
-          onCancel={() => setShowImport(false)}
-        />
-      )}
+interface StartFormProps {
+  initialName: string;
+  savedRoundsCount: number;
+  onStart: (name: string, wardName: string) => void;
+  onViewSaved: () => void;
+}
 
-      {editor && (
-        <ChecklistEditor
-          initialDraft={editor.draft}
-          source={editor.source}
-          onSave={handleSaveEditor}
-          onCancel={() => setEditor(null)}
+/** Participant and ward name inputs, the start button, and the button to open saved rounds. */
+function StartForm({ initialName, savedRoundsCount, onStart, onViewSaved }: StartFormProps) {
+  // Carry over the participant name so consecutive ward rounds do not require retyping it
+  const [name, setName] = useState(initialName);
+  const [wardName, setWardName] = useState('');
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) onStart(name.trim(), wardName.trim());
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="card p-6 space-y-4">
+      <div>
+        <label className="block text-sm font-bold text-text-muted mb-2">参加者</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="例: 山田 花子"
+          className="w-full bg-base border-2 border-line rounded-t px-4 py-3.5 text-base text-text placeholder:text-text-faint transition-all duration-200"
+          autoFocus
         />
-      )}
+      </div>
+
+      <div>
+        <label className="block text-sm font-bold text-text-muted mb-2">
+          病棟名
+          <span className="text-text-faint font-normal ml-1">（任意）</span>
+        </label>
+        <input
+          type="text"
+          value={wardName}
+          onChange={(e) => setWardName(e.target.value)}
+          placeholder="例: 3階東病棟"
+          className="w-full bg-base border-2 border-line rounded-t px-4 py-3.5 text-base text-text placeholder:text-text-faint transition-all duration-200"
+        />
+      </div>
+
+      <button
+        type="submit"
+        disabled={!name.trim()}
+        className="btn-primary w-full py-4 text-base font-bold"
+      >
+        ラウンド開始
+      </button>
+
+      <button
+        type="button"
+        onClick={onViewSaved}
+        className="w-full py-3 text-sm font-bold border-2 border-line rounded-t text-text-muted hover:text-text hover:border-primary transition-colors flex items-center justify-center gap-2"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+        </svg>
+        保存済みラウンドを開く
+        {savedRoundsCount > 0 && (
+          <span className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded-full" style={{ backgroundColor: 'var(--t-primary-light)', color: 'var(--t-primary)' }}>
+            {savedRoundsCount}
+          </span>
+        )}
+      </button>
+    </form>
+  );
+}
+
+/** Card linking to the merge page that combines reports from several departments. */
+// 統合ページは PC で開く別ページ（相対パスなので GitHub Pages / Cloudflare Pages のどちらでも通る）
+function MergeLinkCard() {
+  return (
+    <div className="card p-4 mt-4 flex items-center gap-3">
+      <div
+        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: 'var(--t-primary-light)' }}
+      >
+        <svg className="w-5 h-5" fill="none" stroke="var(--t-primary)" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h5l3 3h8a1 1 0 011 1v8a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 12v5m0-5l-2 2m2-2l2 2" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-text">複数部署のレポートを統合</p>
+        <p className="text-xs text-text-muted mt-0.5 leading-relaxed">
+          集めたデータをPCで1本のWord報告書にまとめます
+        </p>
+      </div>
+      <a
+        href="./merge.html"
+        target="_blank"
+        rel="noopener"
+        className="text-xs font-bold px-3 py-2 rounded-t flex-shrink-0 transition-colors"
+        style={{ backgroundColor: 'var(--t-primary)', color: '#fff' }}
+      >
+        開く
+      </a>
     </div>
   );
 }
