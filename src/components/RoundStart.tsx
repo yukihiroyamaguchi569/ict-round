@@ -194,10 +194,20 @@ function MergeLinkCard() {
   );
 }
 
-/** Quiet links under the merge card: the About page and introducing the app to a colleague. */
+/** Quiet links under the merge card: the user guide, the About page, and introducing the app to a colleague. */
 function AboutShareLinks({ onOpenShare }: { onOpenShare: () => void }) {
   return (
-    <div className="mt-4 flex items-center justify-center gap-5 text-xs text-text-muted">
+    <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-text-muted">
+      {/* New tab, like the other links, so an installed app never navigates away from itself */}
+      <a
+        href="./docs/user-guide/"
+        target="_blank"
+        rel="noopener"
+        onClick={() => trackEvent('help_open', { from: 'start' })}
+        className="underline underline-offset-2 hover:text-text transition-colors"
+      >
+        使い方
+      </a>
       <a
         href="./about/"
         target="_blank"
