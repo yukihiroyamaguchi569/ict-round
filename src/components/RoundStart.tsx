@@ -6,6 +6,7 @@ import ChecklistPicker, { ChecklistPickerDialogs } from './ChecklistPicker';
 import InstallBanner from './InstallBanner';
 import type { SavedChecklist } from '../types';
 import { useChecklistPicker } from '../useChecklistPicker';
+import { useAppShare } from '../useAppShare';
 
 interface Props {
   library: SavedChecklist[];
@@ -71,6 +72,8 @@ export default function RoundStart({
         <InstallBanner />
 
         <MergeLinkCard />
+
+        <AboutShareLinks />
 
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
@@ -182,6 +185,36 @@ function MergeLinkCard() {
       >
         開く
       </a>
+    </div>
+  );
+}
+
+/** Quiet links under the merge card: the About page and introducing the app to a colleague. */
+function AboutShareLinks() {
+  const { shareApp, trackAboutClick } = useAppShare();
+
+  return (
+    <div className="mt-4 flex items-center justify-center gap-5 text-xs text-text-muted">
+      <a
+        href="./about/"
+        target="_blank"
+        rel="noopener"
+        onClick={trackAboutClick}
+        className="underline underline-offset-2 hover:text-text transition-colors"
+      >
+        めぐる君について
+      </a>
+      <button
+        type="button"
+        onClick={shareApp}
+        className="flex items-center gap-1 underline underline-offset-2 hover:text-text transition-colors"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9 6 9-6" />
+        </svg>
+        同僚に紹介する
+      </button>
     </div>
   );
 }
