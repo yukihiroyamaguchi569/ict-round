@@ -136,14 +136,17 @@ src/
   useWhatsNew.ts           Hook fetching unseen release notes once at launch and recording them as seen on close
   usePhotoDraft.ts         Hook for the photo being added: pick, shrink, comment, and hand the built Photo to onAdd
   useChecklistImport.ts    Hook reading a chosen CSV / .xlsx into a preview and saving it as a new checklist
+  useChecklistPicker.ts    Hook for the checklist picker: add options / import dialog / editor open state, add-then-select on save, delete confirm
+  useChecklistEditor.ts    Hook for the checklist editor: draft, category edits, discard confirm on cancel, validation on save, and the open / save events
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
     StartScreen.tsx        Start screen with the "what's new" dialog over it (keeps the start screen inert while open)
-    RoundStart.tsx         Start screen: inspector / ward name, checklist select / create / copy / import / delete, links to saved rounds and the merge page
+    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the merge page link card
+    ChecklistPicker.tsx    "Checklist to use" card: checklist rows (select / copy / delete), add options, and the import dialog / editor it opens (logic in useChecklistPicker)
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
-    ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen
+    ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen (logic in useChecklistEditor)
     ThemeSelector.tsx      Theme and icon picker (shown on the start screen)
     InstallBanner.tsx      PWA install prompt banner
     RoundScreens.tsx       Screens of a round in progress: main screen, add-photo, report, leave confirmation; mounted fresh per round
