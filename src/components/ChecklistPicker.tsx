@@ -1,47 +1,52 @@
 import ChecklistImportDialog from './ChecklistImportDialog';
 import ChecklistEditor from './ChecklistEditor';
 import type { SavedChecklist } from '../types';
-import { useChecklistPicker } from '../useChecklistPicker';
+import type { ChecklistPickerState } from '../useChecklistPicker';
 
 interface Props {
   library: SavedChecklist[];
   activeId: string;
   onSelectChecklist: (id: string) => void;
-  onAddChecklist: (c: SavedChecklist) => void;
-  onDeleteChecklist: (id: string) => void;
+  picker: ChecklistPickerState;
 }
 
-/** "Checklist to use" card: select, copy to edit, delete, and add a new checklist by editor or import. */
-export default function ChecklistPicker({ library, activeId, onSelectChecklist, onAddChecklist, onDeleteChecklist }: Props) {
-  const picker = useChecklistPicker({ onSelectChecklist, onAddChecklist, onDeleteChecklist });
-
+/** "Checklist to use" card: select, copy to edit, delete, and the options to add a new checklist by editor or import. */
+export default function ChecklistPicker({ library, activeId, onSelectChecklist, picker }: Props) {
   return (
-    <>
-      <div className="card p-4 mb-4 space-y-2">
-        <div className="mb-1">
-          <span className="text-xs font-bold text-text-muted">使用するチェックリスト</span>
-        </div>
-
-        {library.map((c) => (
-          <ChecklistRow
-            key={c.id}
-            checklist={c}
-            active={c.id === activeId}
-            deletable={library.length > 1}
-            onSelect={() => onSelectChecklist(c.id)}
-            onCopy={() => picker.openCopyEditor(c)}
-            onDelete={() => picker.handleDelete(c.id)}
-          />
-        ))}
-
-        <AddChecklistOptions
-          expanded={picker.showAddOptions}
-          onToggle={picker.toggleAddOptions}
-          onCreate={picker.openNewEditor}
-          onImport={picker.openImport}
-        />
+    <div className="card p-4 mb-4 space-y-2">
+      <div className="mb-1">
+        <span className="text-xs font-bold text-text-muted">使用するチェックリスト</span>
       </div>
 
+      {library.map((c) => (
+        <ChecklistRow
+          key={c.id}
+          checklist={c}
+          active={c.id === activeId}
+          deletable={library.length > 1}
+          onSelect={() => onSelectChecklist(c.id)}
+          onCopy={() => picker.openCopyEditor(c)}
+          onDelete={() => picker.handleDelete(c.id)}
+        />
+      ))}
+
+      <AddChecklistOptions
+        expanded={picker.showAddOptions}
+        onToggle={picker.toggleAddOptions}
+        onCreate={picker.openNewEditor}
+        onImport={picker.openImport}
+      />
+    </div>
+  );
+}
+
+/**
+ * The import dialog and the editor opened from the picker.
+ * Render them outside .animate-page: its transform would become the containing block of their position: fixed.
+ */
+export function ChecklistPickerDialogs({ picker }: { picker: ChecklistPickerState }) {
+  return (
+    <>
       {picker.showImport && (
         <ChecklistImportDialog
           onSave={picker.handleSaveImport}

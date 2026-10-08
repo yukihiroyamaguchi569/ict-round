@@ -299,6 +299,21 @@ describe('RoundStart', () => {
     expect(props.onSelectChecklist).not.toHaveBeenCalled();
   });
 
+  // .animate-page keeps its transform after the animation, which would make it the containing block of
+  // the dialogs' position: fixed and shrink them to the max-w-sm column instead of the whole screen
+  it.each([
+    ['the import dialog', 'チェックリストを取り込む', ['新しいチェックリストを追加する', 'ファイルから取り込む']],
+    ['the editor for a new checklist', 'チェックリストを作成', ['新しいチェックリストを追加する', '画面で作成する']],
+    ['the editor for a copy', 'チェックリストを複製して編集', ['複製して編集']],
+  ])('renders %s as a direct child of the screen root, outside .animate-page', async (_, heading, clicks) => {
+    const { user } = setup();
+    for (const name of clicks) await user.click(screen.getAllByRole('button', { name })[0]);
+    const dialog = screen.getByRole('heading', { name: heading }).closest('.fixed.inset-0');
+    if (!dialog) throw new Error('dialog not found');
+    expect(dialog.closest('.animate-page')).toBeNull();
+    expect(dialog.parentElement).toBe(document.querySelector('.animate-page')?.parentElement);
+  });
+
   it('shows the saved rounds count only when there are saved rounds', () => {
     setup({ savedRoundsCount: 3 });
     expect(screen.getByRole('button', { name: /保存済みラウンドを開く/ })).toHaveTextContent(/保存済みラウンドを開く\s*3$/);

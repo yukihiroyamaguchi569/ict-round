@@ -62,3 +62,5 @@ export function useChecklistPicker({ onSelectChecklist, onAddChecklist, onDelete
     handleDelete,
   };
 }
+
+export type ChecklistPickerState = ReturnType<typeof useChecklistPicker>;

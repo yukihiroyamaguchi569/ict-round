@@ -142,8 +142,8 @@ src/
   vite-env.d.ts            Vite type references
   components/
     StartScreen.tsx        Start screen with the "what's new" dialog over it (keeps the start screen inert while open)
-    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the merge page link card
-    ChecklistPicker.tsx    "Checklist to use" card: checklist rows (select / copy / delete), add options, and the import dialog / editor it opens (logic in useChecklistPicker)
+    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the merge page link card; holds useChecklistPicker and renders the picker's dialogs outside .animate-page
+    ChecklistPicker.tsx    "Checklist to use" card: checklist rows (select / copy / delete) and add options; ChecklistPickerDialogs renders the import dialog / editor it opens (state from useChecklistPicker, passed in by RoundStart)
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
     ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen (logic in useChecklistEditor)

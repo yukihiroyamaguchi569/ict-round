@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useTheme } from '../ThemeContext';
 import { useIcon } from '../IconContext';
 import ThemeSelector from './ThemeSelector';
-import ChecklistPicker from './ChecklistPicker';
+import ChecklistPicker, { ChecklistPickerDialogs } from './ChecklistPicker';
 import InstallBanner from './InstallBanner';
 import type { SavedChecklist } from '../types';
+import { useChecklistPicker } from '../useChecklistPicker';
 
 interface Props {
   library: SavedChecklist[];
@@ -31,6 +32,7 @@ export default function RoundStart({
 }: Props) {
   const { theme } = useTheme();
   const { icon } = useIcon();
+  const picker = useChecklistPicker({ onSelectChecklist, onAddChecklist, onDeleteChecklist });
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-6">
@@ -55,8 +57,7 @@ export default function RoundStart({
           library={library}
           activeId={activeId}
           onSelectChecklist={onSelectChecklist}
-          onAddChecklist={onAddChecklist}
-          onDeleteChecklist={onDeleteChecklist}
+          picker={picker}
         />
 
         {/* Form */}
@@ -73,6 +74,8 @@ export default function RoundStart({
 
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
+
+      <ChecklistPickerDialogs picker={picker} />
     </div>
   );
 }
