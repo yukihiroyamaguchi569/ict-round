@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import JSZip from 'jszip';
 import { Document, Packer, type Paragraph, type Table } from 'docx';
 import {
-  buildCoverSection, buildChecklistSection, buildPhotoSection, buildEvaluationSection,
+  buildCoverSection, buildChecklistSection, buildPhotoSection, buildEvaluationSection, reportTitle,
   type DocxColors,
 } from '../docx';
 import type { ChecklistCategory, Photo, RoundData } from '../types';
@@ -138,11 +138,24 @@ describe('buildCoverSection', () => {
     ]);
   });
 
+  it('サンプルは表題に【サンプル】を付ける', async () => {
+    const xml = await toXml(buildCoverSection(makeRound(), CLR, true));
+
+    expect(bodyLayout(xml)[0]).toBe('[Heading1 center after=160] | *【サンプル】感染対策ラウンド報告書(32)#0000A4');
+  });
+
   it('病棟名が空なら「—」を出す', async () => {
     const xml = await toXml(buildCoverSection(makeRound({ wardName: '' }), CLR));
 
     expect(allTexts(xml)).toContain('—');
     expect(allTexts(xml)).not.toContain('3階東病棟');
+  });
+});
+
+describe('reportTitle', () => {
+  it('サンプルの表題にだけ【サンプル】を付ける', () => {
+    expect(reportTitle(true)).toBe('【サンプル】感染対策ラウンド報告書');
+    expect(reportTitle(false)).toBe('感染対策ラウンド報告書');
   });
 });
 

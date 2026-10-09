@@ -33,10 +33,10 @@ const roundData: RoundData = {
 
 const FILE_NAME = /^ICTround_(\d{4}-\d{2}-\d{2})_[a-z0-9]{1,4}\.docx$/;
 
-function renderPreview() {
+function renderPreview(isSample?: boolean) {
   render(
     <ThemeProvider>
-      <ReportPreview roundData={roundData} categories={categories} onBack={() => {}} />
+      <ReportPreview roundData={roundData} categories={categories} isSample={isSample} onBack={() => {}} />
     </ThemeProvider>,
   );
   return userEvent.setup();
@@ -143,7 +143,7 @@ describe('ReportPreview building the report file', () => {
     renderPreview();
     await screen.findByRole('button', { name: 'Word出力' });
 
-    expect(buildDocxBlob).toHaveBeenCalledWith(roundData, categories);
+    expect(buildDocxBlob).toHaveBeenCalledWith(roundData, categories, false);
     expect(embedRoundExport).toHaveBeenCalledTimes(1);
     expect(vi.mocked(embedRoundExport).mock.calls[0][1]).toEqual({
       format: 'meguru-round',
@@ -212,7 +212,7 @@ describe('ReportPreview sharing and downloading', () => {
     await user.click(await screen.findByRole('button', { name: '共有' }));
 
     expect(share.mock.calls[0][0].title).toBe('感染対策ラウンド報告書');
-    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'share' }));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'share', sample: false }));
     expect(screen.getByRole('button', { name: '共有' })).toBeEnabled();
   });
 
@@ -253,7 +253,7 @@ describe('ReportPreview sharing and downloading', () => {
     expect(trackEvent).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Word出力' }));
     expect(saveAs).toHaveBeenCalledTimes(1);
-    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download' });
+    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download', sample: false });
   });
 
   it('counts a download as an export', async () => {
@@ -263,6 +263,35 @@ describe('ReportPreview sharing and downloading', () => {
 
     const [file] = vi.mocked(saveAs).mock.calls[0];
     expect(file).toBeInstanceOf(File);
-    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download' });
+    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download', sample: false });
+  });
+});
+
+describe('ReportPreview of the sample round', () => {
+  it('marks the title of the preview, the Word file and the share as a sample', async () => {
+    const share = stubShare();
+    const user = renderPreview(true);
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('【サンプル】感染対策ラウンド報告書');
+    await user.click(await screen.findByRole('button', { name: '共有' }));
+
+    expect(buildDocxBlob).toHaveBeenCalledWith(roundData, categories, true);
+    expect(share.mock.calls[0][0].title).toBe('【サンプル】感染対策ラウンド報告書');
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'share', sample: true }));
+  });
+
+  it('counts a sample download as a sample export', async () => {
+    const user = renderPreview(true);
+
+    await user.click(await screen.findByRole('button', { name: 'Word出力' }));
+
+    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download', sample: true });
+  });
+
+  it('leaves a normal report title unmarked', async () => {
+    renderPreview();
+
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(/^感染対策ラウンド報告書$/);
+    await waitFor(() => expect(buildDocxBlob).toHaveBeenCalledWith(roundData, categories, false));
   });
 });

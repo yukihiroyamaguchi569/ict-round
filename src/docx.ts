@@ -12,6 +12,11 @@ export const RATING_HEX: Record<string, string> = {
   C: 'DC2626',
 };
 
+/** Report heading; the sample report is marked so it is never mistaken for a real one. */
+export function reportTitle(isSample: boolean): string {
+  return `${isSample ? '【サンプル】' : ''}感染対策ラウンド報告書`;
+}
+
 export function getCssHex(varName: string): string {
   const raw = getComputedStyle(document.documentElement)
     .getPropertyValue(varName)
@@ -147,14 +152,14 @@ function sectionDivider(clr: DocxColors): Paragraph {
   });
 }
 
-/** 表題と、担当者・病棟・実施日時 */
-export function buildCoverSection(roundData: RoundData, clr: DocxColors): Paragraph[] {
+/** 表題と、担当者・病棟・実施日時。サンプルは表題に【サンプル】を付ける */
+export function buildCoverSection(roundData: RoundData, clr: DocxColors, isSample = false): Paragraph[] {
   return [
     new Paragraph({
       heading: HeadingLevel.HEADING_1,
       alignment: AlignmentType.CENTER,
       spacing: { after: 160 },
-      children: [new TextRun({ text: '感染対策ラウンド報告書', bold: true, size: 32, color: clr.text })],
+      children: [new TextRun({ text: reportTitle(isSample), bold: true, size: 32, color: clr.text })],
     }),
     new Paragraph({
       spacing: { after: 80 },
@@ -261,10 +266,10 @@ export function buildEvaluationSection(overallEvaluation: string, clr: DocxColor
   return [sectionDivider(clr), sectionHeading('3', '総評', clr), ...body];
 }
 
-export async function buildDocxBlob(roundData: RoundData, categories: ChecklistCategory[]): Promise<Blob> {
+export async function buildDocxBlob(roundData: RoundData, categories: ChecklistCategory[], isSample = false): Promise<Blob> {
   const clr = getDocxColors();
   const children: (Paragraph | Table)[] = [
-    ...buildCoverSection(roundData, clr),
+    ...buildCoverSection(roundData, clr, isSample),
     ...buildChecklistSection(roundData, categories, clr),
     ...buildPhotoSection(roundData, categories, clr),
     ...buildEvaluationSection(roundData.overallEvaluation, clr),

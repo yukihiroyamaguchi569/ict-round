@@ -7,12 +7,14 @@ import ReportDocument from './ReportDocument';
 interface Props {
   roundData: RoundData;
   categories: ChecklistCategory[];
+  /** Marks the report title as a sample */
+  isSample?: boolean;
   onBack: () => void;
 }
 
-export default function ReportPreview({ roundData, categories, onBack }: Props) {
+export default function ReportPreview({ roundData, categories, isSample = false, onBack }: Props) {
   const { theme } = useTheme();
-  const file = useReportFile(roundData, categories);
+  const file = useReportFile(roundData, categories, isSample);
 
   return (
     <div className="min-h-screen bg-base">
@@ -31,7 +33,7 @@ export default function ReportPreview({ roundData, categories, onBack }: Props) 
 
       {/* Report preview */}
       <div className="animate-page px-4 py-5 pb-10">
-        <ReportDocument roundData={roundData} categories={categories} />
+        <ReportDocument roundData={roundData} categories={categories} isSample={isSample} />
 
         {/* 共有した .docx の使い道を、送った直後の文脈で案内する */}
         <div className="max-w-2xl mx-auto mt-5 px-1">
