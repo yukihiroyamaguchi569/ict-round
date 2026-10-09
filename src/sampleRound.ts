@@ -34,8 +34,8 @@ export type SamplePhotoKey = 'item-1' | 'item-2' | 'general-1';
 
 export interface SamplePhotoImage {
   dataUrl: string;
-  width?: number;
-  height?: number;
+  width: number;
+  height: number;
 }
 
 /** The photos that could be loaded; a missing key means that photo is left out of the sample. */

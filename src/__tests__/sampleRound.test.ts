@@ -15,7 +15,7 @@ const NOW = new Date('2026-10-09T00:30:00Z');
 const ALL_PHOTOS: SamplePhotoImages = {
   'item-1': { dataUrl: 'data:image/jpeg;base64,AAAA', width: 640, height: 480 },
   'item-2': { dataUrl: 'data:image/jpeg;base64,BBBB', width: 480, height: 640 },
-  'general-1': { dataUrl: 'data:image/jpeg;base64,CCCC' },
+  'general-1': { dataUrl: 'data:image/jpeg;base64,CCCC', width: 800, height: 600 },
 };
 
 function resultOf(itemId: string, photos: SamplePhotoImages = ALL_PHOTOS) {
@@ -74,8 +74,7 @@ describe('buildSampleRound', () => {
     expect(waste[0]).toMatchObject({ id: 'sample-item-2', dataUrl: 'data:image/jpeg;base64,BBBB', width: 480, height: 640 });
 
     expect(round.generalPhotos).toHaveLength(1);
-    expect(round.generalPhotos[0]).toMatchObject({ id: 'sample-general-1', dataUrl: 'data:image/jpeg;base64,CCCC' });
-    expect(round.generalPhotos[0].width).toBeUndefined();
+    expect(round.generalPhotos[0]).toMatchObject({ id: 'sample-general-1', dataUrl: 'data:image/jpeg;base64,CCCC', width: 800, height: 600 });
 
     const photoCount = round.checklistResults.reduce((n, r) => n + r.photos.length, 0);
     expect(photoCount).toBe(2);

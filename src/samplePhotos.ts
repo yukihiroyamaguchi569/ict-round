@@ -6,7 +6,7 @@ const FETCH_TIMEOUT_MS = 8000;
 
 export interface SamplePhotoDeps {
   fetchFn?: (input: string, init?: RequestInit) => Promise<Response>;
-  /** Reads the pixel size of an image; undefined when it cannot. */
+  /** Decodes an image and reads its pixel size; undefined when it cannot be decoded. */
   measure?: (blob: Blob) => Promise<ImageSize | undefined>;
   baseUrl?: string;
   timeoutMs?: number;
@@ -19,7 +19,6 @@ async function measureWithBitmap(blob: Blob): Promise<ImageSize | undefined> {
     bitmap.close();
     return size;
   } catch {
-    // The report then lays the photo out in the default frame
     return undefined;
   }
 }
@@ -34,7 +33,7 @@ async function toDataUrl(blob: Blob): Promise<string> {
   return `data:${blob.type};base64,${btoa(binary)}`;
 }
 
-/** One bundled photo, or null when it cannot be fetched or is not an image. */
+/** One bundled photo, or null when it cannot be fetched or is not a decodable JPEG. */
 async function fetchImage(
   url: string,
   fetchFn: NonNullable<SamplePhotoDeps['fetchFn']>,
@@ -45,9 +44,11 @@ async function fetchImage(
     const response = await fetchFn(url, { signal });
     if (!response.ok) return null;
     const blob = await response.blob();
-    // A missing file may come back as the HTML fallback page with status 200
-    if (!blob.type.startsWith('image/')) return null;
+    // A missing file may come back as the HTML fallback page with status 200, and the report embeds photos as JPEG
+    if (blob.type !== 'image/jpeg') return null;
+    // A photo the browser cannot decode would show broken in the preview and the report
     const size = await measure(blob);
+    if (!size) return null;
     return { dataUrl: await toDataUrl(blob), ...size };
   } catch (err) {
     console.warn('サンプル写真を読み込めませんでした:', url, err);

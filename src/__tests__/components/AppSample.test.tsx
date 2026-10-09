@@ -91,8 +91,9 @@ describe('App sample round: in progress', () => {
     expect(roundData.checklistResults.every((r) => r.photos.length === 0)).toBe(true);
   });
 
-  it('includes the sample photos when they can be fetched', async () => {
+  it('includes the sample photos when they can be fetched and decoded', async () => {
     const fetchMock = stubFetch(jpegResponse);
+    vi.stubGlobal('createImageBitmap', vi.fn(() => Promise.resolve({ width: 640, height: 480, close: () => {} })));
     const { user } = renderApp();
     await startSample(user);
 

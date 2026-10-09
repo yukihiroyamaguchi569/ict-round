@@ -18,6 +18,7 @@ const measure = vi.fn<NonNullable<SamplePhotoDeps['measure']>>(() => Promise.res
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   measure.mockClear();
 });
@@ -104,20 +105,38 @@ describe('loadSamplePhotos', () => {
     expect(stuckMeasure).toHaveBeenCalledTimes(3);
   });
 
-  it('keeps the photo without a size when its size cannot be read', async () => {
+  it('leaves out a photo the browser cannot decode, such as a broken JPEG', async () => {
     const fetchFn = fakeFetch(() => Promise.resolve(jpegResponse()));
     const failingMeasure = vi.fn<NonNullable<SamplePhotoDeps['measure']>>(() => Promise.resolve(undefined));
 
-    const photos = await loadSamplePhotos({ fetchFn, measure: failingMeasure });
-
-    expect(photos['item-1']).toEqual({ dataUrl: JPEG_DATA_URL });
+    await expect(loadSamplePhotos({ fetchFn, measure: failingMeasure })).resolves.toEqual({});
+    expect(failingMeasure).toHaveBeenCalledTimes(3);
   });
 
-  it('keeps the photos without a size where the browser cannot decode them (no createImageBitmap)', async () => {
+  it('leaves out an image that is not a JPEG, since the report embeds the photos as JPEG', async () => {
+    const fetchFn = fakeFetch(() =>
+      Promise.resolve(new Response(JPEG_BYTES, { headers: { 'Content-Type': 'image/png' } }))
+    );
+
+    await expect(loadSamplePhotos({ fetchFn, measure })).resolves.toEqual({});
+    expect(measure).not.toHaveBeenCalled();
+  });
+
+  it('decodes with createImageBitmap by default and uses its size', async () => {
+    const close = vi.fn();
+    vi.stubGlobal('createImageBitmap', vi.fn(() => Promise.resolve({ width: 320, height: 240, close })));
     const fetchFn = fakeFetch(() => Promise.resolve(jpegResponse()));
 
     const photos = await loadSamplePhotos({ fetchFn });
 
-    expect(photos['general-1']).toEqual({ dataUrl: JPEG_DATA_URL });
+    expect(photos['general-1']).toEqual({ dataUrl: JPEG_DATA_URL, width: 320, height: 240 });
+    expect(close).toHaveBeenCalledTimes(3);
+  });
+
+  it('leaves the photos out where createImageBitmap rejects them', async () => {
+    vi.stubGlobal('createImageBitmap', vi.fn(() => Promise.reject(new DOMException('bad image', 'InvalidStateError'))));
+    const fetchFn = fakeFetch(() => Promise.resolve(jpegResponse()));
+
+    await expect(loadSamplePhotos({ fetchFn })).resolves.toEqual({});
   });
 });
