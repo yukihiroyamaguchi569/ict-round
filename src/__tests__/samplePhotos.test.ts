@@ -92,6 +92,18 @@ describe('loadSamplePhotos', () => {
     expect(fetchFn.mock.calls.every(([, init]) => init?.signal?.aborted === true)).toBe(true);
   });
 
+  it('gives up on a photo whose decoding does not finish in time, after the download succeeded', async () => {
+    vi.useFakeTimers();
+    const fetchFn = fakeFetch(() => Promise.resolve(jpegResponse()));
+    const stuckMeasure = vi.fn<NonNullable<SamplePhotoDeps['measure']>>(() => new Promise(() => {}));
+
+    const loading = loadSamplePhotos({ fetchFn, measure: stuckMeasure, timeoutMs: 1000 });
+    await vi.advanceTimersByTimeAsync(1000);
+
+    await expect(loading).resolves.toEqual({});
+    expect(stuckMeasure).toHaveBeenCalledTimes(3);
+  });
+
   it('keeps the photo without a size when its size cannot be read', async () => {
     const fetchFn = fakeFetch(() => Promise.resolve(jpegResponse()));
     const failingMeasure = vi.fn<NonNullable<SamplePhotoDeps['measure']>>(() => Promise.resolve(undefined));

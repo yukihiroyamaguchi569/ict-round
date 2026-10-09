@@ -34,17 +34,15 @@ async function toDataUrl(blob: Blob): Promise<string> {
   return `data:${blob.type};base64,${btoa(binary)}`;
 }
 
-/** One bundled photo, or null when it cannot be fetched in time or is not an image. */
-async function loadOne(
+/** One bundled photo, or null when it cannot be fetched or is not an image. */
+async function fetchImage(
   url: string,
   fetchFn: NonNullable<SamplePhotoDeps['fetchFn']>,
   measure: NonNullable<SamplePhotoDeps['measure']>,
-  timeoutMs: number
+  signal: AbortSignal
 ): Promise<SamplePhotoImage | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetchFn(url, { signal: controller.signal });
+    const response = await fetchFn(url, { signal });
     if (!response.ok) return null;
     const blob = await response.blob();
     // A missing file may come back as the HTML fallback page with status 200
@@ -54,6 +52,26 @@ async function loadOne(
   } catch (err) {
     console.warn('サンプル写真を読み込めませんでした:', url, err);
     return null;
+  }
+}
+
+/** fetchImage with a deadline over the whole photo (download and decoding); null once it passes. */
+async function loadOne(
+  url: string,
+  fetchFn: NonNullable<SamplePhotoDeps['fetchFn']>,
+  measure: NonNullable<SamplePhotoDeps['measure']>,
+  timeoutMs: number
+): Promise<SamplePhotoImage | null> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<null>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve(null);
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([fetchImage(url, fetchFn, measure, controller.signal), deadline]);
   } finally {
     clearTimeout(timer);
   }
