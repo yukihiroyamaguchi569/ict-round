@@ -23,14 +23,18 @@ async function measureWithBitmap(blob: Blob): Promise<ImageSize | undefined> {
   }
 }
 
-async function toDataUrl(blob: Blob): Promise<string> {
-  const bytes = new Uint8Array(await blob.arrayBuffer());
+/** A JPEG file starts with the SOI marker followed by another marker (FF D8 FF). */
+function isJpeg(bytes: Uint8Array): boolean {
+  return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+}
+
+function jpegDataUrl(bytes: Uint8Array): string {
   let binary = '';
   const CHUNK = 0x8000;
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
   }
-  return `data:${blob.type};base64,${btoa(binary)}`;
+  return `data:image/jpeg;base64,${btoa(binary)}`;
 }
 
 /** One bundled photo, or null when it cannot be fetched or is not a decodable JPEG. */
@@ -46,10 +50,12 @@ async function fetchImage(
     const blob = await response.blob();
     // A missing file may come back as the HTML fallback page with status 200, and the report embeds photos as JPEG
     if (blob.type !== 'image/jpeg') return null;
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (!isJpeg(bytes)) return null;
     // A photo the browser cannot decode would show broken in the preview and the report
     const size = await measure(blob);
     if (!size) return null;
-    return { dataUrl: await toDataUrl(blob), ...size };
+    return { dataUrl: jpegDataUrl(bytes), ...size };
   } catch (err) {
     console.warn('サンプル写真を読み込めませんでした:', url, err);
     return null;

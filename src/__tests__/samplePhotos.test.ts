@@ -122,6 +122,24 @@ describe('loadSamplePhotos', () => {
     expect(measure).not.toHaveBeenCalled();
   });
 
+  it('leaves out a file served as JPEG whose content is not a JPEG, such as a PNG', async () => {
+    const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const fetchFn = fakeFetch(() =>
+      Promise.resolve(new Response(PNG_BYTES, { headers: { 'Content-Type': 'image/jpeg' } }))
+    );
+
+    await expect(loadSamplePhotos({ fetchFn, measure })).resolves.toEqual({});
+    expect(measure).not.toHaveBeenCalled();
+  });
+
+  it('leaves out an empty file served as JPEG', async () => {
+    const fetchFn = fakeFetch(() =>
+      Promise.resolve(new Response(new Uint8Array([]), { headers: { 'Content-Type': 'image/jpeg' } }))
+    );
+
+    await expect(loadSamplePhotos({ fetchFn, measure })).resolves.toEqual({});
+  });
+
   it('decodes with createImageBitmap by default and uses its size', async () => {
     const close = vi.fn();
     vi.stubGlobal('createImageBitmap', vi.fn(() => Promise.resolve({ width: 320, height: 240, close })));
