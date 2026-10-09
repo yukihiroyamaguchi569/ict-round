@@ -9,11 +9,12 @@ interface Props {
   savedRoundsCount: number;
   initialName: string;
   onStart: (name: string, wardName: string) => void;
+  onStartSample: () => Promise<void>;
   onViewSaved: () => void;
 }
 
 /** The start screen, with the "what's new" announcement over it after an update. */
-export default function StartScreen({ checklists, whatsNew, savedRoundsCount, initialName, onStart, onViewSaved }: Props) {
+export default function StartScreen({ checklists, whatsNew, savedRoundsCount, initialName, onStart, onStartSample, onViewSaved }: Props) {
   const { unseenReleases, closeWhatsNew } = whatsNew;
 
   return (
@@ -26,6 +27,7 @@ export default function StartScreen({ checklists, whatsNew, savedRoundsCount, in
           savedRoundsCount={savedRoundsCount}
           initialName={initialName}
           onStart={onStart}
+          onStartSample={onStartSample}
           onSelectChecklist={checklists.select}
           onAddChecklist={checklists.add}
           onDeleteChecklist={checklists.remove}

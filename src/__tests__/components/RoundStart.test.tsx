@@ -31,6 +31,7 @@ function setup(overrides: Partial<Props> = {}) {
     savedRoundsCount: 0,
     initialName: '',
     onStart: vi.fn(),
+    onStartSample: vi.fn(() => Promise.resolve()),
     onSelectChecklist: vi.fn(),
     onAddChecklist: vi.fn(),
     onDeleteChecklist: vi.fn(),
@@ -345,5 +346,46 @@ describe('RoundStart', () => {
     expect(screen.queryByRole('heading', { name: 'チェックリストを複製して編集' })).not.toBeInTheDocument();
     expect(props.onAddChecklist).not.toHaveBeenCalled();
     expect(props.onSelectChecklist).not.toHaveBeenCalled();
+  });
+});
+
+describe('RoundStart sample button', () => {
+  it('shows one prominent sample button while there are no saved rounds', () => {
+    setup({ savedRoundsCount: 0 });
+    const buttons = screen.getAllByRole('button', { name: /サンプルで試す/ });
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).toHaveAccessibleName(/入力済みの例で報告書の出力まで試せます（保存されません）/);
+  });
+
+  it('moves the sample to the quiet links, before the user guide, once rounds are saved', () => {
+    setup({ savedRoundsCount: 2 });
+    const buttons = screen.getAllByRole('button', { name: /サンプルで試す/ });
+    expect(buttons).toHaveLength(1);
+    expect(buttons[0]).toHaveAccessibleName('サンプルで試す');
+    const guide = screen.getByRole('link', { name: '使い方' });
+    expect(buttons[0].parentElement).toBe(guide.parentElement);
+    expect(buttons[0].compareDocumentPosition(guide) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('starts the sample without starting a normal round', async () => {
+    const { props, user } = setup();
+    await user.click(screen.getByRole('button', { name: /サンプルで試す/ }));
+    expect(props.onStartSample).toHaveBeenCalledTimes(1);
+    expect(props.onStart).not.toHaveBeenCalled();
+  });
+
+  it('is disabled while the sample loads, and usable again if the sample did not open', async () => {
+    let finish: () => void = () => {};
+    const onStartSample = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));
+    const { user } = setup({ onStartSample, savedRoundsCount: 3 });
+
+    await user.click(screen.getByRole('button', { name: 'サンプルで試す' }));
+    const pending = screen.getByRole('button', { name: '準備中…' });
+    expect(pending).toBeDisabled();
+    await user.click(pending);
+    expect(onStartSample).toHaveBeenCalledTimes(1);
+
+    finish();
+    expect(await screen.findByRole('button', { name: 'サンプルで試す' })).toBeEnabled();
   });
 });

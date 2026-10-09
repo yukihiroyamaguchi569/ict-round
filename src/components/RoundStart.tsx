@@ -16,6 +16,7 @@ interface Props {
   savedRoundsCount: number;
   initialName: string;
   onStart: (name: string, wardName: string) => void;
+  onStartSample: () => Promise<void>;
   onSelectChecklist: (id: string) => void;
   onAddChecklist: (c: SavedChecklist) => void;
   onDeleteChecklist: (id: string) => void;
@@ -28,6 +29,7 @@ export default function RoundStart({
   savedRoundsCount,
   initialName,
   onStart,
+  onStartSample,
   onSelectChecklist,
   onAddChecklist,
   onDeleteChecklist,
@@ -73,11 +75,14 @@ export default function RoundStart({
           onViewSaved={onViewSaved}
         />
 
+        {/* First-time users get the sample right under the form; after that it moves to the quiet links */}
+        {savedRoundsCount === 0 && <SampleTryButton prominent onStartSample={onStartSample} />}
+
         <InstallBanner />
 
         <MergeLinkCard />
 
-        <AboutShareLinks onOpenShare={share.openDialog} shareTriggerRef={share.triggerRef} />
+        <AboutShareLinks onOpenShare={share.openDialog} shareTriggerRef={share.triggerRef} onStartSample={savedRoundsCount > 0 ? onStartSample : undefined} />
 
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
@@ -162,6 +167,58 @@ function StartForm({ initialName, savedRoundsCount, onStart, onViewSaved }: Star
   );
 }
 
+/**
+ * Starts the sample round, already filled in, so the report can be tried out without input.
+ * Disabled while the sample photos load.
+ */
+function SampleTryButton({ prominent = false, onStartSample }: { prominent?: boolean; onStartSample: () => Promise<void> }) {
+  const [pending, setPending] = useState(false);
+  const label = pending ? '準備中…' : 'サンプルで試す';
+
+  const handleClick = () => {
+    setPending(true);
+    void onStartSample().finally(() => setPending(false));
+  };
+
+  if (!prominent) {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={pending}
+        className="underline underline-offset-2 hover:text-text transition-colors"
+      >
+        {label}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={pending}
+      className="card w-full p-4 mt-4 flex items-center gap-3 text-left border-2 border-dashed border-primary hover:bg-base-deep transition-colors disabled:opacity-60"
+    >
+      <span
+        className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: 'var(--t-primary-light)' }}
+        aria-hidden="true"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="var(--t-primary)" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      </span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-bold text-primary">{label}</span>
+        <span className="block text-xs text-text-muted mt-0.5 leading-relaxed">
+          入力済みの例で報告書の出力まで試せます（保存されません）
+        </span>
+      </span>
+    </button>
+  );
+}
+
 /** Card linking to the merge page that combines reports from several departments. */
 // 統合ページは PC で開く別ページ（相対パスなので GitHub Pages / Cloudflare Pages のどちらでも通る）
 function MergeLinkCard() {
@@ -195,16 +252,22 @@ function MergeLinkCard() {
   );
 }
 
-/** Quiet links under the merge card: the user guide, the About page, and introducing the app to a colleague. */
+/**
+ * Quiet links under the merge card: the user guide, the About page, and introducing the app to a colleague,
+ * led by the sample when onStartSample is given (once rounds have been saved).
+ */
 function AboutShareLinks({
   onOpenShare,
   shareTriggerRef,
+  onStartSample,
 }: {
   onOpenShare: () => void;
   shareTriggerRef: RefObject<HTMLButtonElement | null>;
+  onStartSample?: () => Promise<void>;
 }) {
   return (
     <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-text-muted">
+      {onStartSample && <SampleTryButton onStartSample={onStartSample} />}
       {/* New tab, like the other links, so an installed app never navigates away from itself */}
       <a
         href="./docs/user-guide/"

@@ -52,13 +52,14 @@ export default function RoundScreens({ round, categories, onSave, onExit }: Prop
   }
 
   if (screen === 'report') {
-    return <ReportPreview roundData={round.roundData} categories={categories} onBack={() => setScreen('main')} />;
+    return <ReportPreview roundData={round.roundData} categories={categories} isSample={round.isSample} onBack={() => setScreen('main')} />;
   }
 
   return (
     <>
       <MainScreen
         roundData={round.roundData}
+        isSample={round.isSample}
         categories={categories}
         activeTab={activeMainTab}
         onTabChange={setActiveMainTab}

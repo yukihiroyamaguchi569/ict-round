@@ -19,6 +19,7 @@ function renderStart() {
           savedRoundsCount={0}
           initialName=""
           onStart={vi.fn()}
+          onStartSample={vi.fn(() => Promise.resolve())}
           onSelectChecklist={vi.fn()}
           onAddChecklist={vi.fn()}
           onDeleteChecklist={vi.fn()}

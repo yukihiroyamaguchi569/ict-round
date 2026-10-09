@@ -9,6 +9,7 @@ import { useChecklistLibrary } from './useChecklistLibrary';
 import { useSavedRounds } from './useSavedRounds';
 import { useRound } from './useRound';
 import { useWhatsNew } from './useWhatsNew';
+import { CHECKLIST_CATEGORIES } from './checklistData';
 
 type Screen = 'start' | 'saved-rounds' | 'round';
 
@@ -22,6 +23,10 @@ function AppContent() {
   const handleStartRound = (name: string, wardName: string) => {
     round.start(checklists.activeChecklist, name, wardName);
     setScreen('round');
+  };
+
+  const handleStartSample = async () => {
+    if (await round.startSample()) setScreen('round');
   };
 
   const handleLoadRound = (savedRound: SavedRound) => {
@@ -48,6 +53,7 @@ function AppContent() {
         savedRoundsCount={saved.savedRounds.length}
         initialName={round.carriedInspectorName}
         onStart={handleStartRound}
+        onStartSample={handleStartSample}
         onViewSaved={() => setScreen('saved-rounds')}
       />
     );
@@ -67,7 +73,8 @@ function AppContent() {
   return (
     <RoundScreens
       round={round}
-      categories={checklists.activeChecklist.categories}
+      /* The sample always uses the built-in checklist, whichever one is selected */
+      categories={round.isSample ? CHECKLIST_CATEGORIES : checklists.activeChecklist.categories}
       onSave={() => round.save(checklists.activeId, saved.save)}
       onExit={() => setScreen('start')}
     />
