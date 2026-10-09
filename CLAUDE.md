@@ -116,11 +116,13 @@ src/
   localId.ts               newLocalId: local ID for photos and imported checklists (random + time, base 36)
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
+  sampleRound.ts           Pure builder of the sample round (built-in checklist, fixed ratings / evaluation, sample participant and ward) and the bundled sample photo definitions
+  samplePhotos.ts          Fetches the bundled sample photos (public/sample/) as data URLs with a timeout; a photo that fails is left out
   roundData.ts             Pure round updates (start, rating, photos, evaluation, participant name), Photo and SavedRound building and the save-error message
   photoImage.ts            Photo file size limit, scaled size, and canvas shrinking with the EXIF orientation applied (compressImage)
   localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
-  docx.ts                  Builds the report .docx from per-section builders (cover, checklist table, photos, evaluation) and shared docx helpers
+  docx.ts                  Builds the report .docx from per-section builders (cover, checklist table, photos, evaluation), the report title (marked for the sample) and shared docx helpers
   roundExportDocx.ts       Embeds / extracts round data (RoundExport) as a customXml part of the report .docx
   themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
   ThemeContext.tsx         React context providing the current theme
@@ -131,7 +133,7 @@ src/
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
   useInstallBanner.ts      Hook for the install banner: prompt vs iOS steps, hiding after acceptance or dismissal, and the analytics events
   useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download; buildRoundExport and reportFileName pure helpers
-  useRound.ts              Hook for the round in progress: round data and its updates, start / resume / save, unsaved-change check, participant name carried to the next start
+  useRound.ts              Hook for the round in progress: round data and its updates, start / sample start / resume / save, unsaved-change check, participant name carried to the next start, round_start event; a sample round is never saved
   useSavedRounds.ts        Hook for saved rounds in localStorage: list, save (upsert), delete
   useChecklistLibrary.ts   Hook for the checklist library and the active checklist, synced with localStorage
   useAppShare.ts           Hook for the "introduce to a colleague" dialog: open / close, copy the link, the OS share sheet, and the app_share events
@@ -144,7 +146,7 @@ src/
   vite-env.d.ts            Vite type references
   components/
     StartScreen.tsx        Start screen with the "what's new" dialog over it (keeps the start screen inert while open)
-    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the merge page link card, bottom links (user guide / about / introduce to a colleague); holds useChecklistPicker and useAppShare and renders their dialogs outside .animate-page
+    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the "try the sample" button (prominent with no saved rounds, otherwise in the bottom links), the merge page link card, bottom links (user guide / about / introduce to a colleague); holds useChecklistPicker and useAppShare and renders their dialogs outside .animate-page
     AppShareDialog.tsx     Dialog listing where to send the app's introduction (mail / LINE / X / copy link / other apps); state from useAppShare
     ChecklistPicker.tsx    "Checklist to use" card: checklist rows (select / copy / delete) and add options; ChecklistPickerDialogs renders the import dialog / editor it opens (state from useChecklistPicker, passed in by RoundStart)
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
@@ -154,7 +156,7 @@ src/
     InstallBanner.tsx      PWA install prompt banner
     RoundScreens.tsx       Screens of a round in progress: main screen, add-photo, report, leave confirmation; mounted fresh per round
     MainScreen.tsx         Main screen shell: header, body of the active tab, bottom tab bar
-    MainHeader.tsx         Main screen header: home button, participant name inline edit, progress badge, help link (user guide in a new tab), save button with feedback, theme picker
+    MainHeader.tsx         Main screen header: home button, participant name inline edit, progress badge, help link (user guide in a new tab), save button with feedback (hidden for the sample), theme picker, sample banner
     BottomTabBar.tsx       Bottom tabs (checklist / photos / evaluation) and report button
     ChecklistTab.tsx       Checklist tab: categories with rating controls
     CategoryAccordion.tsx  One collapsible checklist category
@@ -186,7 +188,8 @@ stryker.config.json        Stryker mutation testing config (targets the core log
 scoria.config.json         scoria code-health config (profile app, report mode); .scoria/baseline.json is the recorded baseline
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
-  sw.js                    Service Worker (offline support)
+  sw.js                    Service Worker (offline support; precaches the sample photos)
+  sample/                  Photos of the sample round (item-1 / item-2 linked to checklist items, general-1 general)
   manifest.json            PWA manifest
   about/                   Public landing page
   updates/                 Update history page; releases.json is its data
