@@ -174,6 +174,22 @@ describe('App sample round: in progress', () => {
   });
 });
 
+describe('App sample round: leaving the start screen while it loads', () => {
+  it('stays on the saved rounds list when the sample finishes loading after the user went there', async () => {
+    const pending: (() => void)[] = [];
+    stubFetch(() => new Promise((resolve) => pending.push(() => resolve(jpegResponse()))));
+    const { user } = renderApp();
+    await user.click(sampleButton());
+    await user.click(screen.getByRole('button', { name: /保存済みラウンドを開く/ }));
+    pending.forEach((release) => release());
+    await act(() => new Promise((resolve) => setTimeout(resolve, 20)));
+
+    expect(screen.getByText('保存済みラウンドはありません')).toBeInTheDocument();
+    expect(screen.queryByText(SAMPLE_BANNER)).not.toBeInTheDocument();
+    expect(trackEvent).not.toHaveBeenCalledWith('round_start', expect.anything());
+  });
+});
+
 describe('App sample round: analytics', () => {
   it('sends round_start with sample true for the sample and false for a normal round, without any input data', async () => {
     const { user } = renderApp();

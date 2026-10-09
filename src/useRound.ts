@@ -14,8 +14,7 @@ import {
   buildSavedRound,
   saveErrorMessage,
 } from './roundData';
-import { buildSampleRound } from './sampleRound';
-import { loadSamplePhotos } from './samplePhotos';
+import { buildSampleRound, type SamplePhotoImages } from './sampleRound';
 import { trackEvent } from './analytics';
 
 /**
@@ -30,17 +29,12 @@ export function useRound() {
   // The participant name pre-filled on the next start screen
   const [carriedInspectorName, setCarriedInspectorName] = useState('');
   const savedSnapshotRef = useRef('');
-  // Counts opened rounds, so a sample that finishes loading after another round was opened is dropped
-  const openCountRef = useRef(0);
 
-  /** Opens a round; one without a saved id is newly started and counted as such. */
   const open = (data: RoundData, id: string | null, sample = false) => {
-    openCountRef.current += 1;
     setRoundData(data);
     savedSnapshotRef.current = snapshotRound(data);
     setSavedRoundId(id);
     setIsSample(sample);
-    if (id === null) trackEvent('round_start', { sample });
   };
 
   return {
@@ -51,14 +45,12 @@ export function useRound() {
     start: (checklist: SavedChecklist, name: string, wardName: string) => {
       open(createRound(checklist, name, wardName, formatStartTime(new Date())), null);
       setCarriedInspectorName(name);
+      trackEvent('round_start', { sample: false });
     },
-    /** Loads the sample photos and opens the sample; false when another round was opened meanwhile. */
-    startSample: async (): Promise<boolean> => {
-      const openCount = openCountRef.current;
-      const photos = await loadSamplePhotos();
-      if (openCountRef.current !== openCount) return false;
+    /** Opens the sample round with whichever sample photos were loaded. */
+    startSample: (photos: SamplePhotoImages) => {
       open(buildSampleRound(new Date(), photos), null, true);
-      return true;
+      trackEvent('round_start', { sample: true });
     },
     resume: (saved: SavedRound) => open(saved.roundData, saved.id),
     /** Saves through persist, reusing the saved round's id; on failure alerts and returns false. */
