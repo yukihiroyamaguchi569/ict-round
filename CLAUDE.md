@@ -133,6 +133,7 @@ src/
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
   useInstallBanner.ts      Hook for the install banner: prompt vs iOS steps, hiding after acceptance or dismissal, and the analytics events
   useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download; buildRoundExport and reportFileName pure helpers
+  useSampleStart.ts        Hook starting the sample once its photos load; drops the start if a normal round was started or the start screen left meanwhile
   useRound.ts              Hook for the round in progress: round data and its updates, start / sample start / resume / save, unsaved-change check, participant name carried to the next start, round_start event; a sample round is never saved
   useSavedRounds.ts        Hook for saved rounds in localStorage: list, save (upsert), delete
   useChecklistLibrary.ts   Hook for the checklist library and the active checklist, synced with localStorage
