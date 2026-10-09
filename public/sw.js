@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const SHELL_CACHE = `app-shell-${CACHE_VERSION}`;
 const FONTS_CACHE = `google-fonts-${CACHE_VERSION}`;
 
@@ -8,6 +8,10 @@ const SHELL_URLS = [
   './manifest.json',
   './meguru.png',
   './favicon.svg',
+  // Photos of the sample round, so it starts with them offline too
+  './sample/item-1.jpg',
+  './sample/item-2.jpg',
+  './sample/general-1.jpg',
 ];
 
 // インストール: アプリシェルをprecache
