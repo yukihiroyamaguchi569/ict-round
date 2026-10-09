@@ -127,12 +127,14 @@ src/
   icons.ts                 App icon definitions (ran / meguru) and localStorage persistence
   IconContext.tsx          React context providing the current icon
   analytics.ts             GA4 initialization and trackEvent (never sends round input data)
+  appShare.ts              App introduction: wording in one place, fixed production About URL with UTM per destination, mail / LINE / X / share sheet data
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
   useInstallBanner.ts      Hook for the install banner: prompt vs iOS steps, hiding after acceptance or dismissal, and the analytics events
   useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download; buildRoundExport and reportFileName pure helpers
   useRound.ts              Hook for the round in progress: round data and its updates, start / resume / save, unsaved-change check, participant name carried to the next start
   useSavedRounds.ts        Hook for saved rounds in localStorage: list, save (upsert), delete
   useChecklistLibrary.ts   Hook for the checklist library and the active checklist, synced with localStorage
+  useAppShare.ts           Hook for the "introduce to a colleague" dialog: open / close, copy the link, the OS share sheet, and the app_share events
   useWhatsNew.ts           Hook fetching unseen release notes once at launch and recording them as seen on close
   usePhotoDraft.ts         Hook for the photo being added: pick, shrink, comment, and hand the built Photo to onAdd
   useChecklistImport.ts    Hook reading a chosen CSV / .xlsx into a preview and saving it as a new checklist
@@ -142,7 +144,8 @@ src/
   vite-env.d.ts            Vite type references
   components/
     StartScreen.tsx        Start screen with the "what's new" dialog over it (keeps the start screen inert while open)
-    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the merge page link card; holds useChecklistPicker and renders the picker's dialogs outside .animate-page
+    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the merge page link card, bottom links (user guide / about / introduce to a colleague); holds useChecklistPicker and useAppShare and renders their dialogs outside .animate-page
+    AppShareDialog.tsx     Dialog listing where to send the app's introduction (mail / LINE / X / copy link / other apps); state from useAppShare
     ChecklistPicker.tsx    "Checklist to use" card: checklist rows (select / copy / delete) and add options; ChecklistPickerDialogs renders the import dialog / editor it opens (state from useChecklistPicker, passed in by RoundStart)
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
@@ -151,7 +154,7 @@ src/
     InstallBanner.tsx      PWA install prompt banner
     RoundScreens.tsx       Screens of a round in progress: main screen, add-photo, report, leave confirmation; mounted fresh per round
     MainScreen.tsx         Main screen shell: header, body of the active tab, bottom tab bar
-    MainHeader.tsx         Main screen header: home button, participant name inline edit, progress badge, save button with feedback, theme picker
+    MainHeader.tsx         Main screen header: home button, participant name inline edit, progress badge, help link (user guide in a new tab), save button with feedback, theme picker
     BottomTabBar.tsx       Bottom tabs (checklist / photos / evaluation) and report button
     ChecklistTab.tsx       Checklist tab: categories with rating controls
     CategoryAccordion.tsx  One collapsible checklist category

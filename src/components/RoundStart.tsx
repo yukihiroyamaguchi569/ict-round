@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import { useTheme } from '../ThemeContext';
 import { useIcon } from '../IconContext';
 import ThemeSelector from './ThemeSelector';
@@ -6,6 +6,9 @@ import ChecklistPicker, { ChecklistPickerDialogs } from './ChecklistPicker';
 import InstallBanner from './InstallBanner';
 import type { SavedChecklist } from '../types';
 import { useChecklistPicker } from '../useChecklistPicker';
+import { useAppShare } from '../useAppShare';
+import { trackEvent } from '../analytics';
+import AppShareDialog from './AppShareDialog';
 
 interface Props {
   library: SavedChecklist[];
@@ -33,14 +36,16 @@ export default function RoundStart({
   const { theme } = useTheme();
   const { icon } = useIcon();
   const picker = useChecklistPicker({ onSelectChecklist, onAddChecklist, onDeleteChecklist });
+  const share = useAppShare();
 
   return (
     <div className="min-h-screen bg-base flex flex-col items-center justify-center px-6">
-      <div className="fixed top-4 right-4 z-10">
+      {/* While the share dialog is open, keep the screen behind it out of reach of Tab and typing */}
+      <div className="fixed top-4 right-4 z-10" inert={share.open}>
         <ThemeSelector />
       </div>
 
-      <div className="animate-page w-full max-w-sm">
+      <div className="animate-page w-full max-w-sm" inert={share.open}>
         {/* Icon */}
         <div className="flex items-center justify-center mb-8">
           <img src={`${import.meta.env.BASE_URL}${icon.file}`} alt={icon.alt} className="w-40 h-40 object-contain drop-shadow-md" />
@@ -72,10 +77,14 @@ export default function RoundStart({
 
         <MergeLinkCard />
 
+        <AboutShareLinks onOpenShare={share.openDialog} shareTriggerRef={share.triggerRef} />
+
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
 
       <ChecklistPickerDialogs picker={picker} />
+      {/* Outside .animate-page for the same reason as the picker dialogs */}
+      {share.open && <AppShareDialog share={share} />}
     </div>
   );
 }
@@ -182,6 +191,52 @@ function MergeLinkCard() {
       >
         開く
       </a>
+    </div>
+  );
+}
+
+/** Quiet links under the merge card: the user guide, the About page, and introducing the app to a colleague. */
+function AboutShareLinks({
+  onOpenShare,
+  shareTriggerRef,
+}: {
+  onOpenShare: () => void;
+  shareTriggerRef: RefObject<HTMLButtonElement | null>;
+}) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-text-muted">
+      {/* New tab, like the other links, so an installed app never navigates away from itself */}
+      <a
+        href="./docs/user-guide/"
+        target="_blank"
+        rel="noopener"
+        onClick={() => trackEvent('help_open', { from: 'start' })}
+        className="underline underline-offset-2 hover:text-text transition-colors"
+      >
+        使い方
+      </a>
+      <a
+        href="./about/"
+        target="_blank"
+        rel="noopener"
+        onClick={() => trackEvent('about_link_click')}
+        className="underline underline-offset-2 hover:text-text transition-colors"
+      >
+        めぐる君について
+      </a>
+      <button
+        ref={shareTriggerRef}
+        type="button"
+        onClick={onOpenShare}
+        aria-haspopup="dialog"
+        className="flex items-center gap-1 underline underline-offset-2 hover:text-text transition-colors"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7l9 6 9-6" />
+        </svg>
+        同僚に紹介する
+      </button>
     </div>
   );
 }

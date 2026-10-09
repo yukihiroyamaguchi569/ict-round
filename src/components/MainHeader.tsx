@@ -3,6 +3,7 @@ import { useIcon } from '../IconContext';
 import type { ChecklistCategory, ChecklistItemResult, RoundData } from '../types';
 import { getTotalItems } from '../checklistData';
 import ThemeSelector from './ThemeSelector';
+import { trackEvent } from '../analytics';
 
 interface Props {
   roundData: RoundData;
@@ -31,6 +32,7 @@ export default function MainHeader({ roundData, categories, onInspectorChange, o
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <ProgressBadge checklistResults={roundData.checklistResults} categories={categories} />
+          <HelpLink />
           <SaveButton onSave={onSave} />
           <ThemeSelector />
         </div>
@@ -120,6 +122,27 @@ function ProgressBadge({
     >
       {ratedCount}/{totalItems}
     </span>
+  );
+}
+
+/**
+ * Opens the user guide. Always in a new tab: the round lives only in React state until it is saved,
+ * so leaving this tab would lose the input.
+ */
+function HelpLink() {
+  return (
+    <a
+      href="./docs/user-guide/"
+      target="_blank"
+      rel="noopener"
+      aria-label="使い方"
+      onClick={() => trackEvent('help_open', { from: 'round' })}
+      className="w-8 h-8 rounded-xl bg-base-deep flex items-center justify-center text-text-muted hover:text-text transition-colors duration-200"
+    >
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.1 9a3 3 0 015.8 1c0 2-3 3-3 3m.1 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    </a>
   );
 }
 
