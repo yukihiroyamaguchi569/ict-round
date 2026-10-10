@@ -93,10 +93,12 @@ const TAIL_START = /^[\u3040-\u30ff\u3400-\u9fff]/;
 
 /**
  * Whether a line is the rest of the item above, wrapped in its table cell ("…してい" then "る．"):
- * the item stops mid-word, and the line is short, starts with Japanese text and ends like a sentence.
+ * the item fills its cell (longer than a category name) and stops mid-word, and the line is short,
+ * starts with Japanese text and ends like a sentence. Two short items ("清掃を実施", "確認する") stay apart.
  */
 export function isWrappedItemTail(item: string, line: string): boolean {
   return (
+    item.length > CATEGORY_MAX_LENGTH &&
     OPEN_ENDING.test(item) &&
     !looksLikeSentence(item) &&
     line.length <= WRAP_TAIL_MAX_LENGTH &&

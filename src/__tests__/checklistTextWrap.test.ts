@@ -113,6 +113,12 @@ describe('parseChecklistText: items and category names wrapped in their cells', 
     ]);
   });
 
+  it('keeps two short items apart when the first does not end like a sentence', () => {
+    expect(simplify(parseChecklistText(lines('■環境', '清掃を実施', '確認する')))).toEqual([
+      { name: '環境', items: ['清掃を実施', '確認する'] },
+    ]);
+  });
+
   it('joins the end of a category name wrapped in its cell when the next row repeats the cut name', () => {
     const text = lines('汚物室・トイ 清潔が保たれている． A', 'レ', '汚物室・トイ 区別されている．', 'レ', '汚物室•トイ 置かない．', 'レ');
     expect(simplify(parseChecklistText(text))).toEqual([
@@ -149,23 +155,32 @@ describe('parseChecklistText: items and category names wrapped in their cells', 
 });
 
 describe('isWrappedItemTail', () => {
+  /** Text long enough to have filled its cell. */
+  const LONG = '清潔物品と不潔物品を区別して';
+
   it(`accepts a tail of up to ${WRAP_TAIL_MAX_LENGTH} characters after an item that stops mid-word`, () => {
-    expect(isWrappedItemTail('配置してい', 'る．')).toBe(true);
-    expect(isWrappedItemTail('配置してい', 'る、')).toBe(true);
-    expect(isWrappedItemTail('配置し', 'ている。')).toBe(true);
-    expect(isWrappedItemTail('配置し', 'ていない。')).toBe(false);
-    expect(isWrappedItemTail('配置し', 'て'.repeat(WRAP_TAIL_MAX_LENGTH - 1) + '．')).toBe(true);
-    expect(isWrappedItemTail('配置し', 'て'.repeat(WRAP_TAIL_MAX_LENGTH) + '．')).toBe(false);
+    expect(isWrappedItemTail(LONG + '配置してい', 'る．')).toBe(true);
+    expect(isWrappedItemTail(LONG + '配置してい', 'る、')).toBe(true);
+    expect(isWrappedItemTail(LONG + '配置し', 'ている。')).toBe(true);
+    expect(isWrappedItemTail(LONG + '配置し', 'ていない。')).toBe(false);
+    expect(isWrappedItemTail(LONG + '配置し', 'て'.repeat(WRAP_TAIL_MAX_LENGTH - 1) + '．')).toBe(true);
+    expect(isWrappedItemTail(LONG + '配置し', 'て'.repeat(WRAP_TAIL_MAX_LENGTH) + '．')).toBe(false);
   });
 
   it.each<[string, string]>([
-    ['配置している．', 'る．'],
-    ['配置している、', 'る．'],
-    ['配置している', 'る．'],
-    ['（2週間毎）', 'る．'],
-    ['配置してい', 'る'],
-    ['配置してい', '1.'],
-    ['配置してい', 'A．'],
-    ['配置してい', 'レ'],
+    [`${LONG}配置している．`, 'る．'],
+    [`${LONG}配置している、`, 'る．'],
+    [`${LONG}配置している`, 'る．'],
+    [`${LONG}（2週間毎）`, 'る．'],
+    [`${LONG}配置してい`, 'る'],
+    [`${LONG}配置してい`, '1.'],
+    [`${LONG}配置してい`, 'A．'],
+    [`${LONG}配置してい`, 'レ'],
+    ['清掃を実施', '確認する'],
+    ['あ'.repeat(CATEGORY_MAX_LENGTH), 'る．'],
   ])('rejects %s followed by %s', (item, line) => expect(isWrappedItemTail(item, line)).toBe(false));
+
+  it(`needs the item to be longer than ${CATEGORY_MAX_LENGTH} characters`, () => {
+    expect(isWrappedItemTail('あ'.repeat(CATEGORY_MAX_LENGTH + 1), 'る．')).toBe(true);
+  });
 });
