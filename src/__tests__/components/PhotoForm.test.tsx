@@ -76,6 +76,11 @@ async function photoShown() {
   return screen.findByAltText('撮影済み');
 }
 
+/** Presses the source button, which records photo_add_attempt and opens the matching input. */
+async function pressSource(user: ReturnType<typeof userEvent.setup>, method: 'camera' | 'gallery') {
+  await user.click(screen.getByRole('button', { name: method === 'camera' ? '撮影' : 'ギャラリーから選択' }));
+}
+
 describe('PhotoForm: layout', () => {
   it('shows the linked item description when linked to a known item', () => {
     renderForm('h1');
@@ -119,6 +124,7 @@ describe('PhotoForm: picking a photo', () => {
   it('scales a wide photo down to 640px, applying the EXIF orientation, and records success', async () => {
     const { camera, user } = renderForm();
     const file = jpeg();
+    await pressSource(user, 'camera');
     await user.upload(camera, file);
 
     expect(await photoShown()).toHaveAttribute('src', DATA_URL);
@@ -137,6 +143,7 @@ describe('PhotoForm: picking a photo', () => {
   it('keeps a photo at or below 640px wide at its own size', async () => {
     const { gallery, user } = renderForm();
     useBitmap(640, 1138);
+    await pressSource(user, 'gallery');
     await user.upload(gallery, jpeg());
     await photoShown();
     expect(drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 640, 1138);
@@ -290,6 +297,7 @@ describe('PhotoForm: photo add analytics', () => {
   it('counts a file from the future (device clock skew) as under_1m', async () => {
     useFixedNow();
     const { gallery, user } = renderForm();
+    await pressSource(user, 'gallery');
     await user.upload(gallery, jpeg(undefined, NOW + 3600 * 1000));
     await photoShown();
     expect(trackEvent).toHaveBeenCalledWith('photo_add_success', { method: 'gallery', photo_age: 'under_1m' });
@@ -297,7 +305,7 @@ describe('PhotoForm: photo add analytics', () => {
 
   it('sends too_large, and no success, for a file over 10MB', async () => {
     const { gallery, user } = renderForm();
-    await user.click(screen.getByRole('button', { name: 'ギャラリーから選択' }));
+    await pressSource(user, 'gallery');
     await user.upload(gallery, jpeg(MAX_BYTES + 1));
     expect(alertSpy).toHaveBeenCalledWith('ファイルサイズは10MB以下にしてください');
     expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
@@ -309,7 +317,7 @@ describe('PhotoForm: photo add analytics', () => {
   it('sends compress_error, and no success, when the image cannot be decoded', async () => {
     const { camera, user } = renderForm();
     createImageBitmap.mockRejectedValue(new Error('decode failed'));
-    await user.click(screen.getByRole('button', { name: '撮影' }));
+    await pressSource(user, 'camera');
     await user.upload(camera, jpeg());
     await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('ファイルの読み込みに失敗しました'));
     expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
@@ -321,36 +329,84 @@ describe('PhotoForm: photo add analytics', () => {
   it('sends compress_error when the canvas has no 2D context', async () => {
     const { gallery, user } = renderForm();
     getContext.mockReturnValue(null);
+    await pressSource(user, 'gallery');
     await user.upload(gallery, jpeg());
     await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
     expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_attempt', { method: 'gallery' }],
       ['photo_add_failure', { method: 'gallery', reason: 'compress_error' }],
     ]);
   });
 
-  it.each(['camera', 'gallery'] as const)('sends cancelled when the %s picker is closed without a file', (method) => {
-    const { camera, gallery } = renderForm();
+  it.each(['camera', 'gallery'] as const)('sends cancelled when the %s picker is closed without a file', async (method) => {
+    const { camera, gallery, user } = renderForm();
+    await pressSource(user, method);
     fireEvent(method === 'camera' ? camera : gallery, new Event('cancel'));
     expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_attempt', { method }],
       ['photo_add_failure', { method, reason: 'cancelled' }],
     ]);
     expect(createImageBitmap).not.toHaveBeenCalled();
     expect(alertSpy).not.toHaveBeenCalled();
   });
 
-  it('sends one cancelled per close and nothing after the form is gone', () => {
-    const { gallery } = renderForm();
+  it('sends a single outcome per attempt even if cancel fires twice', async () => {
+    const { gallery, user } = renderForm();
+    await pressSource(user, 'gallery');
     fireEvent(gallery, new Event('cancel'));
     fireEvent(gallery, new Event('cancel'));
-    expect(trackEvent).toHaveBeenCalledTimes(2);
-    cleanup();
-    fireEvent(gallery, new Event('cancel'));
-    expect(trackEvent).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_attempt', { method: 'gallery' }],
+      ['photo_add_failure', { method: 'gallery', reason: 'cancelled' }],
+    ]);
   });
 
-  it('sends neither success nor failure when a change carries no file', () => {
-    const { camera } = renderForm();
-    fireEvent.change(camera, { target: { files: [] } });
+  it('sends no cancelled after the attempt already ended in success', async () => {
+    const { camera, user } = renderForm();
+    await pressSource(user, 'camera');
+    await user.upload(camera, jpeg());
+    await photoShown();
+    fireEvent(camera, new Event('cancel'));
+    expect(trackEvent).toHaveBeenCalledTimes(2);
+    expect(trackEvent).not.toHaveBeenCalledWith('photo_add_failure', expect.anything());
+  });
+
+  it('settles only the attempt of the input that was opened last', async () => {
+    const { camera, gallery, user } = renderForm();
+    await pressSource(user, 'camera');
+    await pressSource(user, 'gallery');
+    fireEvent(camera, new Event('cancel'));
+    await user.upload(gallery, jpeg());
+    await photoShown();
+    expect(vi.mocked(trackEvent).mock.calls.map(([name]) => name)).toEqual([
+      'photo_add_attempt',
+      'photo_add_attempt',
+      'photo_add_success',
+    ]);
+    expect(trackEvent).toHaveBeenLastCalledWith('photo_add_success', { method: 'gallery', photo_age: 'under_1m' });
+  });
+
+  it('sends no outcome without an attempt, but still adds the photo', async () => {
+    const { gallery, user } = renderForm();
+    fireEvent(gallery, new Event('cancel'));
+    await user.upload(gallery, jpeg());
+    await photoShown();
     expect(trackEvent).not.toHaveBeenCalled();
+    expect(submitButton()).toBeEnabled();
+  });
+
+  it('stops listening for cancel once the form is gone', async () => {
+    const { gallery, user } = renderForm();
+    await pressSource(user, 'gallery');
+    cleanup();
+    fireEvent(gallery, new Event('cancel'));
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends neither success nor failure when a change carries no file', async () => {
+    const { camera, user } = renderForm();
+    await pressSource(user, 'camera');
+    fireEvent.change(camera, { target: { files: [] } });
+    expect(trackEvent).toHaveBeenCalledTimes(1);
   });
 });
