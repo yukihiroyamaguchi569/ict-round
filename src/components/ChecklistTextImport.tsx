@@ -31,7 +31,7 @@ function TextImportGuide() {
 }
 
 function TextImportPreview({ categories, itemCount }: { categories: DraftCategory[]; itemCount: number }) {
-  if (itemCount === 0) {
+  if (categories.length === 0) {
     return <p className="text-xs text-text-faint">貼り付けると、ここに振り分けの結果が出ます。</p>;
   }
   return (

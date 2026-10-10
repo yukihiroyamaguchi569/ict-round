@@ -26,8 +26,8 @@ const RATING_AFTER_SENTENCE = new RegExp(`([。．.）)])\\s*${RATING}$`);
 /** A rating separated by a space at the end of a line: "…いる A" */
 const RATING_AFTER_SPACE = new RegExp(`\\s+${RATING}$`);
 /**
- * A rating stuck to Japanese text: "…行うA". Dash-like marks are left out because "ー" ends katakana
- * words; the cost is that a word such as "ビタミンC" at the end of a line loses its letter.
+ * A rating stuck to Japanese text: "…しているA". Dash-like marks are left out because "ー" ends
+ * katakana words. Only removed when the rest ends like a sentence, so "病棟A" or "ビタミンC" stay.
  */
 const RATING_AFTER_JAPANESE = /([\u3040-\u30ff\u3400-\u9fff」])[ABCＡＢＣ○◯〇×✕✖△▲]$/;
 
@@ -61,11 +61,9 @@ export function isNoiseLine(line: string): boolean {
 
 /** Removes a rating left at the end of an item line ("…いる． A" → "…いる．"). */
 export function stripTrailingRating(line: string): string {
-  return line
-    .replace(RATING_AFTER_SENTENCE, '$1')
-    .replace(RATING_AFTER_SPACE, '')
-    .replace(RATING_AFTER_JAPANESE, '$1')
-    .trim();
+  const spaced = line.replace(RATING_AFTER_SENTENCE, '$1').replace(RATING_AFTER_SPACE, '').trim();
+  const glued = spaced.replace(RATING_AFTER_JAPANESE, '$1');
+  return looksLikeSentence(glued) ? glued : spaced;
 }
 
 /** Whether text ends like a sentence (full stop or predicate), as checklist items do. */
@@ -146,9 +144,12 @@ class CategoryCollector {
   }
 }
 
-function readLines(lines: string[], collector: CategoryCollector): void {
-  // A bare mark ("■") names nothing, so it does not switch to marks-only reading
-  const marksOnly = lines.some((line) => CATEGORY_MARK.test(line) && line.replace(CATEGORY_MARK, '') !== '');
+/** Whether the user marked any line as a category ("■手指衛生"); a bare mark ("■") names nothing. */
+function hasMarkedLine(lines: string[]): boolean {
+  return lines.some((line) => CATEGORY_MARK.test(line) && line.replace(CATEGORY_MARK, '') !== '');
+}
+
+function readLines(lines: string[], collector: CategoryCollector, marksOnly: boolean): void {
   for (const line of lines) {
     if (isNoiseLine(line)) continue;
     const kind = classifyLine(stripTrailingRating(line), marksOnly);
@@ -164,18 +165,28 @@ function readLines(lines: string[], collector: CategoryCollector): void {
   }
 }
 
-/**
- * Whether the first column of the data rows is a row number ("No."): every row has a number there,
- * all different, with a category and an item after it. Category names that happen to be numbers
- * repeat, are left blank in merged cells, or are followed by an item and only a rating column
- * (the third cells all ratings or blank), so they are not taken for a number column.
- */
-export function hasNumberColumn(rows: string[][]): boolean {
+/** Every row starts with a number, all different, followed by at least two more cells. */
+function startsWithDistinctNumbers(rows: string[][]): boolean {
   const firsts = rows.map((cells) => cells[0]);
   return (
     rows.length > 0 &&
     rows.every((cells) => cells.length >= 3 && /^\d+$/.test(cells[0])) &&
-    new Set(firsts).size === firsts.length &&
+    new Set(firsts).size === firsts.length
+  );
+}
+
+/**
+ * Whether the first column of the data rows is a row number ("No."): distinct numbers, then a
+ * category column and an item column. Category names that happen to be numbers repeat, are left
+ * blank in merged cells, or are followed by an item (a sentence in the second column) and only a
+ * rating column (the third cells all ratings or blank), so they are not taken for a number column.
+ * A table of numbered categories with one item each and a remark column is indistinguishable from
+ * a numbered table when the items do not end like sentences.
+ */
+export function hasNumberColumn(rows: string[][]): boolean {
+  return (
+    startsWithDistinctNumbers(rows) &&
+    rows.every((cells) => !looksLikeSentence(cells[1])) &&
     !rows.every((cells) => cells[2] === '' || RATING_ONLY.test(cells[2]))
   );
 }
@@ -196,7 +207,7 @@ export function unquoteCells(text: string): string {
   );
 }
 
-function readTable(lines: string[], collector: CategoryCollector): void {
+function readTable(lines: string[], collector: CategoryCollector, marksOnly: boolean): void {
   const rows = lines.map((line) => (line.includes('\t') ? line.split('\t').map(normalizeLine) : null));
   const isHeaderRow = (cells: string[]) => cells.some(isHeaderWord);
   const dataRows = rows.filter(
@@ -207,7 +218,7 @@ function readTable(lines: string[], collector: CategoryCollector): void {
   lines.forEach((line, i) => {
     const cells = rows[i];
     // A line without cells (a title, or text typed in by hand) is read like recognised text
-    if (!cells) return readLines([line], collector);
+    if (!cells) return readLines([line], collector, marksOnly);
     if (isHeaderRow(cells)) return;
     const [category = '', item = ''] = cells.slice(skip);
     // An empty category cell continues the category above (merged cells)
@@ -235,7 +246,12 @@ export function detectTextFormat(text: string): TextFormat {
  */
 export function parseChecklistText(text: string): DraftCategory[] {
   const collector = new CategoryCollector();
-  if (detectTextFormat(text) === 'table') readTable(toLines(unquoteCells(text)), collector);
-  else readLines(toLines(text), collector);
+  if (detectTextFormat(text) === 'table') {
+    const lines = toLines(unquoteCells(text));
+    readTable(lines, collector, hasMarkedLine(lines));
+  } else {
+    const lines = toLines(text);
+    readLines(lines, collector, hasMarkedLine(lines));
+  }
   return collector.result();
 }

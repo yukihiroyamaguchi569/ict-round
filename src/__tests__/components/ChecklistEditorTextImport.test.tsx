@@ -138,6 +138,15 @@ describe('ChecklistEditor text import', () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('shows a category without items in the preview but keeps 読み込む disabled', async () => {
+    const { user } = setup();
+    await openAndPaste(user, '手袋交換');
+    const preview = screen.getByRole('region', { name: '振り分けの結果' });
+    expect(within(preview).getByText('1カテゴリ・0項目')).toBeInTheDocument();
+    expect(within(preview).getByText('（項目なし）')).toBeInTheDocument();
+    expect(button('読み込む')).toBeDisabled();
+  });
+
   it('keeps 読み込む disabled while the text has no items', async () => {
     const { user } = setup();
     await openAndPaste(user, 'ジャンル\nA\n- 1 -');

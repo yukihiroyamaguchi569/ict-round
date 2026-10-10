@@ -191,11 +191,19 @@ describe('parseChecklistText: tables (tab-separated)', () => {
   });
 
   it('reads a line without tabs inside a table by the line rules (a title, a category typed by hand)', () => {
-    const text = lines('■ 感染対策', '\t手袋がある．', '病棟ラウンド表', '手指衛生\t消毒剤がある．');
+    const text = lines('病棟ラウンド表', '■ 感染対策', '\t手袋がある．', '手指衛生\t消毒剤がある．');
     expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '', items: ['病棟ラウンド表'] },
       { name: '感染対策', items: ['手袋がある．'] },
-      { name: '病棟ラウンド表', items: [] },
       { name: '手指衛生', items: ['消毒剤がある．'] },
+    ]);
+  });
+
+  it('guesses categories from the shape of lines without tabs when no line in the table is marked', () => {
+    const text = lines('病棟ラウンド表', '手指衛生\t消毒剤がある．', '手袋を交換している．');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '病棟ラウンド表', items: [] },
+      { name: '手指衛生', items: ['消毒剤がある．', '手袋を交換している．'] },
     ]);
   });
 
@@ -273,8 +281,8 @@ describe('parseChecklistText: recognised lines', () => {
   });
 
   it('removes a rating stuck to the end of the item text', () => {
-    expect(simplify(parseChecklistText(lines('■手指衛生', '手指消毒を行うA', '手袋を交換している○')))).toEqual([
-      { name: '手指衛生', items: ['手指消毒を行う', '手袋を交換している'] },
+    expect(simplify(parseChecklistText(lines('■手指衛生', '手指消毒をしているA', '手袋を交換している○', '病棟A')))).toEqual([
+      { name: '手指衛生', items: ['手指消毒をしている', '手袋を交換している', '病棟A'] },
     ]);
   });
 
@@ -351,13 +359,13 @@ describe('stripTrailingRating', () => {
     ['（交換目安：2週間毎） B', '（交換目安：2週間毎）'],
     ['（交換目安：2週間毎）×', '（交換目安：2週間毎）'],
     ['消毒剤がある －', '消毒剤がある'],
-    ['手指消毒を行うA', '手指消毒を行う'],
-    ['手指消毒を行うＢ', '手指消毒を行う'],
+    ['手指消毒をしているA', '手指消毒をしている'],
+    ['記録があるＢ', '記録がある'],
     ['手袋を交換している×', '手袋を交換している'],
-    ['表示「済」○', '表示「済」'],
+    ['表示を確認すること○', '表示を確認すること'],
   ])('turns %s into %s', (line, expected) => expect(stripTrailingRating(line)).toBe(expected));
 
-  it.each(['PPE', 'カバー', 'ゴミボックスー', '手指衛生 PPE', '消毒剤がある．', 'ABC'])('leaves %s as it is', (line) =>
+  it.each(['PPE', 'カバー', 'ゴミボックスー', '手指衛生 PPE', '消毒剤がある．', 'ABC', '病棟A', 'ビタミンC', '手指消毒を行うA', '表示「済」○'])('leaves %s as it is', (line) =>
     expect(stripTrailingRating(line)).toBe(line),
   );
 });
@@ -414,6 +422,7 @@ describe('hasNumberColumn', () => {
     ['a blank first cell (merged number categories)', [['1', 'a', 'A'], ['', 'b', 'B']]],
     ['a row of two cells', [['1', 'a', 'A'], ['2', 'b']]],
     ['a first cell that is not only digits', [['1', '手指衛生', 'a'], ['2.', '環境', 'b']]],
+    ['a sentence in the second column (numbers as category names)', [['1', '手洗いを行う．', '備考'], ['2', '清掃されている', '要再確認']]],
     ['only ratings or blanks in the third column (numbers as category names)', [['1', 'a．', 'A'], ['2', 'b．', ''], ['3', 'c．', '○']]],
   ])('is false with %s', (_, rows) => {
     expect(hasNumberColumn(rows)).toBe(false);
