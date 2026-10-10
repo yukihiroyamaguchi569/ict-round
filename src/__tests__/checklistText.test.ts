@@ -131,6 +131,32 @@ describe('parseChecklistText: tables (tab-separated)', () => {
     ]);
   });
 
+  it('joins the lines of a quoted cell with line breaks instead of splitting the row', () => {
+    const text = lines(
+      '手指衛生\t"洗浄用スポンジは乾燥し易い様に保管．',
+      '原則タワシはNG．"\tA',
+      '\t"手指消毒剤に""開封日""を書く．"\tB',
+      '"環境\r\n整備"\t清掃されている．',
+    );
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '手指衛生', items: ['洗浄用スポンジは乾燥し易い様に保管．原則タワシはNG．', '手指消毒剤に"開封日"を書く．'] },
+      { name: '環境整備', items: ['清掃されている．'] },
+    ]);
+  });
+
+  it('leaves quotes inside a cell that is not wrapped in quotes', () => {
+    expect(simplify(parseChecklistText('手指衛生\t"5つのタイミング"を守る．\tA'))).toEqual([
+      { name: '手指衛生', items: ['"5つのタイミング"を守る．'] },
+    ]);
+  });
+
+  it('keeps a number as the category name in a two-column table', () => {
+    expect(simplify(parseChecklistText(lines('1\t手洗いを行う．', '2\t記録する．')))).toEqual([
+      { name: '1', items: ['手洗いを行う．'] },
+      { name: '2', items: ['記録する．'] },
+    ]);
+  });
+
   it('reads a line without tabs inside a table by the line rules (a title, a category typed by hand)', () => {
     const text = lines('■ 感染対策', '\t手袋がある．', '病棟ラウンド表', '手指衛生\t消毒剤がある．');
     expect(simplify(parseChecklistText(text))).toEqual([
@@ -324,8 +350,10 @@ describe('classifyLine', () => {
 });
 
 describe('rowCells', () => {
-  it('drops leading number cells but keeps a single number cell', () => {
+  it('drops leading number cells while a category and an item cell remain after them', () => {
     expect(rowCells('1\t2\t手指衛生\t消毒剤がある．')).toEqual(['手指衛生', '消毒剤がある．']);
+    expect(rowCells('1\t手指衛生\t消毒剤がある．\tA')).toEqual(['手指衛生', '消毒剤がある．', 'A']);
+    expect(rowCells('1\t消毒剤がある．')).toEqual(['1', '消毒剤がある．']);
     expect(rowCells('12')).toEqual(['12']);
   });
 });

@@ -137,11 +137,28 @@ function readLines(lines: string[], collector: CategoryCollector): void {
   }
 }
 
-/** Cells of one tab-separated row, with a leading number column ("1", "2", …) dropped. */
+/**
+ * Cells of one tab-separated row, with a leading number column ("1", "2", …) dropped. A number
+ * column only exists beside both a category and an item, so a row of two cells keeps a number
+ * in its first cell as the category name.
+ */
 export function rowCells(line: string): string[] {
-  const cells = line.split('\t').map((cell) => normalizeLine(cell.replace(/^"(.*)"$/, '$1')));
-  while (cells.length > 1 && /^\d+$/.test(cells[0])) cells.shift();
+  const cells = line.split('\t').map(normalizeLine);
+  while (cells.length > 2 && /^\d+$/.test(cells[0])) cells.shift();
   return cells;
+}
+
+/**
+ * A cell Excel wrapped in quotes because it holds a line break, a tab or a quote:
+ * it starts a row or follows a tab, and ends at a tab, a line break or the end of the text.
+ */
+const QUOTED_CELL = /(^|[\t\n])"((?:[^"]|"")*)"(?=[\t\r\n]|$)/g;
+
+/** Unwraps quoted cells so that a line break inside a cell does not split the row; the broken lines are joined. */
+export function unquoteCells(text: string): string {
+  return text.replace(QUOTED_CELL, (_, lead: string, body: string) =>
+    lead + body.replace(/""/g, '"').replace(/\r\n|\r|\n/g, ''),
+  );
 }
 
 function readTable(lines: string[], collector: CategoryCollector): void {
@@ -178,8 +195,7 @@ export function detectTextFormat(text: string): TextFormat {
  */
 export function parseChecklistText(text: string): DraftCategory[] {
   const collector = new CategoryCollector();
-  const lines = toLines(text);
-  if (detectTextFormat(text) === 'table') readTable(lines, collector);
-  else readLines(lines, collector);
+  if (detectTextFormat(text) === 'table') readTable(toLines(unquoteCells(text)), collector);
+  else readLines(toLines(text), collector);
   return collector.result();
 }
