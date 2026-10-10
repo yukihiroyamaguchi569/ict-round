@@ -23,6 +23,24 @@ function takeAttempt(pending: PendingAttempt, method: PhotoSource): TrackOutcome
   return trackEvent;
 }
 
+const REJECT_MESSAGES = {
+  too_large: 'ファイルサイズは10MB以下にしてください',
+  compress_error: 'ファイルの読み込みに失敗しました',
+} as const;
+
+/** Drops a picked file that cannot be used, records why and tells the user. */
+function rejectFile(
+  input: HTMLInputElement,
+  trackOutcome: TrackOutcome,
+  failure: { method: PhotoSource; reason: keyof typeof REJECT_MESSAGES },
+) {
+  // Clear the rejected file so picking the same file again fires change, not cancel
+  // (which would also count the retry as cancelled).
+  input.value = '';
+  trackOutcome('photo_add_failure', failure);
+  alert(REJECT_MESSAGES[failure.reason]);
+}
+
 /**
  * Records closing the picker / camera without a file. Uses the input's native cancel event because React
  * does not dispatch onCancel for <input>. Browsers without that event send nothing, which is accepted.
@@ -55,21 +73,20 @@ export function usePhotoDraft(onAdd: (photo: Photo) => void) {
   };
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>, method: PhotoSource) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file) return;
     const pickedAt = Date.now();
     const trackOutcome = takeAttempt(pendingAttempt, method);
     if (isPhotoFileTooLarge(file.size)) {
-      trackOutcome('photo_add_failure', { method, reason: 'too_large' });
-      alert('ファイルサイズは10MB以下にしてください');
+      rejectFile(input, trackOutcome, { method, reason: 'too_large' });
       return;
     }
     let image: Awaited<ReturnType<typeof compressImage>>;
     try {
       image = await compressImage(file);
     } catch {
-      trackOutcome('photo_add_failure', { method, reason: 'compress_error' });
-      alert('ファイルの読み込みに失敗しました');
+      rejectFile(input, trackOutcome, { method, reason: 'compress_error' });
       return;
     }
     // Only the coarse age bucket is sent: never the time, name, size or contents of the file.

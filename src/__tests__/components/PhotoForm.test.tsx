@@ -350,6 +350,28 @@ describe('PhotoForm: photo add analytics', () => {
     expect(alertSpy).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['too_large', () => jpeg(MAX_BYTES + 1)],
+    ['compress_error', () => { createImageBitmap.mockRejectedValueOnce(new Error('decode failed')); return jpeg(); }],
+  ])('clears the input after %s so the same file can be retried as a new attempt', async (reason, makeFile) => {
+    const { gallery, user } = renderForm();
+    await pressSource(user, 'gallery');
+    await user.upload(gallery, makeFile());
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
+    expect(gallery.value).toBe('');
+    expect(gallery.files).toHaveLength(0);
+
+    await pressSource(user, 'gallery');
+    await user.upload(gallery, jpeg());
+    await photoShown();
+    expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_attempt', { method: 'gallery' }],
+      ['photo_add_failure', { method: 'gallery', reason }],
+      ['photo_add_attempt', { method: 'gallery' }],
+      ['photo_add_success', { method: 'gallery', photo_age: 'under_1m' }],
+    ]);
+  });
+
   it('sends a single outcome per attempt even if cancel fires twice', async () => {
     const { gallery, user } = renderForm();
     await pressSource(user, 'gallery');
