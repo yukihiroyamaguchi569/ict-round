@@ -528,10 +528,10 @@ interface RoundExport {
 
 - 実装: `src/analytics.ts`
 - 測定 ID はビルド時の環境変数 `VITE_GA4_MEASUREMENT_ID` から埋め込みます
-- 環境変数が未設定のビルドでは gtag.js を読み込まず、解析は一切動作しません（`initAnalytics()` が即 return）
+- 環境変数が未設定のビルドでは、アプリ本体と公開文書（`/docs/*`）は gtag.js を読み込まず、解析は一切動作しません（アプリ本体では `initAnalytics()` が即 return）
 - 公開環境では GitHub Actions のシークレット経由で測定 ID を設定しています（`.github/workflows/deploy.yml`）
-- gtag.js は本番のホスト（`ict-round.conect.llc`）で開いたときにだけ読み込みます。ホスト名は完全一致で判定します。プレビュー環境や手元で動かす本番ビルド（`npm run preview` など）では読み込まず、解析イベントを送信しません。開発サーバー（`npm run dev`）でのみ、動作確認のため DebugView を有効にして読み込みます
-- `/about` と `/updates` は React アプリとは独立に、HTML 内へ gtag を直接記述しています。公開文書（`/docs/*`）にもビルド時に同じ形で埋め込みます。いずれも本番のホストのときだけ gtag.js を読み込みます
+- gtag.js は本番のホスト（`ict-round.conect.llc`）で開いたときにだけ読み込みます。ホスト名は完全一致で判定します。プレビュー環境や手元で動かす本番ビルド（`npm run preview` など）では読み込まず、解析イベントを送信しません。例外として、アプリ本体は開発サーバー（`npm run dev`）でも、動作確認のため DebugView を有効にして読み込みます
+- `/about` と `/updates` は React アプリとは独立に、測定 ID を含む gtag を HTML 内へ直接記述しています。公開文書（`/docs/*`）にはビルド時に同じ形で埋め込みます。これらのページは開発サーバーを含め、本番のホスト以外では gtag.js を読み込みません
 - 統合ページ（`/merge.html`）では gtag を読み込まず、解析は動作しません
 
 #### 7.4.2 送信するイベント
