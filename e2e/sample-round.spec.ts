@@ -2,11 +2,11 @@ import { readFileSync } from 'node:fs';
 import JSZip from 'jszip';
 import { test, expect, overallProgress } from './helpers';
 
-test('サンプルで試すと報告書を出力でき、トップに戻っても保存済みラウンドは増えない', async ({ page }) => {
+test('サンプルデータで試すと報告書を出力でき、トップに戻っても保存済みラウンドは増えない', async ({ page }) => {
   await page.goto('/');
 
   // No saved rounds yet, so the sample is offered prominently under the start form.
-  await page.getByRole('button', { name: /サンプルで試す.*入力済みの例/ }).click();
+  await page.getByRole('button', { name: /サンプルデータで試す.*入力済みの例/ }).click();
 
   await expect(page.getByText('サンプルです（保存されません）')).toBeVisible();
   await expect(page.getByText('参加者: サンプル 太郎・【サンプル】3階東病棟')).toBeVisible();

@@ -110,7 +110,7 @@ Cookie は、第3章のアクセス解析においてのみ設定されます。
 
 | 通信先 | 目的 |
 |--------|------|
-| 配信元ホスト（`ict-round.conect.llc`） | アプリ本体の配信、更新履歴データ（`/updates/releases.json`）と「サンプルで試す」の写真（`/sample/`）の取得 |
+| 配信元ホスト（`ict-round.conect.llc`） | アプリ本体の配信、更新履歴データ（`/updates/releases.json`）と「サンプルデータで試す」の写真（`/sample/`）の取得 |
 | `fonts.googleapis.com` / `fonts.gstatic.com` | 表示フォントの取得 |
 | `www.googletagmanager.com` / `www.google-analytics.com` | アクセス解析 |
 

@@ -173,7 +173,7 @@ function StartForm({ initialName, savedRoundsCount, onStart, onViewSaved }: Star
  */
 function SampleTryButton({ prominent = false, onStartSample }: { prominent?: boolean; onStartSample: () => Promise<void> }) {
   const [pending, setPending] = useState(false);
-  const label = pending ? '準備中…' : 'サンプルで試す';
+  const label = pending ? '準備中…' : 'サンプルデータで試す';
 
   const handleClick = () => {
     setPending(true);

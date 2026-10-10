@@ -28,7 +28,7 @@ beforeEach(() => vi.mocked(trackEvent).mockClear());
 const SAMPLE_BANNER = 'サンプルです（保存されません）';
 
 function sampleButton() {
-  return screen.getByRole('button', { name: /サンプルで試す/ });
+  return screen.getByRole('button', { name: /サンプルデータで試す/ });
 }
 
 /** Starts the sample and waits for the round screen (photo loading is asynchronous). */
@@ -60,7 +60,7 @@ describe('App sample round: start screen', () => {
   it('keeps the sample as a quiet link once a round has been saved', () => {
     localStorage.setItem(ROUNDS_KEY, JSON.stringify([savedRound()]));
     renderApp();
-    expect(sampleButton()).toHaveAccessibleName('サンプルで試す');
+    expect(sampleButton()).toHaveAccessibleName('サンプルデータで試す');
   });
 });
 
