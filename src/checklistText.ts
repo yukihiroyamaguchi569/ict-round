@@ -152,7 +152,8 @@ function hasMarkedLine(lines: string[]): boolean {
 function readLines(lines: string[], collector: CategoryCollector, marksOnly: boolean): void {
   for (const line of lines) {
     if (isNoiseLine(line)) continue;
-    const kind = classifyLine(stripTrailingRating(line), marksOnly);
+    // A marked line is a category name, so a trailing letter there ("■ 病棟 A") is not a rating
+    const kind = classifyLine(CATEGORY_MARK.test(line) ? line : stripTrailingRating(line), marksOnly);
     // A bare mark or number ("■", "1.") names nothing; keep the current category
     if (kind.kind === 'category') {
       if (kind.name) collector.setCategory(kind.name);

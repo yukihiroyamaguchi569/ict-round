@@ -280,6 +280,13 @@ describe('parseChecklistText: recognised lines', () => {
     ]);
   });
 
+  it('keeps a trailing letter in a marked category name', () => {
+    expect(simplify(parseChecklistText(lines('■ 病棟 A', '清掃されている． A', '■ 病棟 B', '記録がある． B')))).toEqual([
+      { name: '病棟 A', items: ['清掃されている．'] },
+      { name: '病棟 B', items: ['記録がある．'] },
+    ]);
+  });
+
   it('removes a rating stuck to the end of the item text', () => {
     expect(simplify(parseChecklistText(lines('■手指衛生', '手指消毒をしているA', '手袋を交換している○', '病棟A')))).toEqual([
       { name: '手指衛生', items: ['手指消毒をしている', '手袋を交換している', '病棟A'] },
