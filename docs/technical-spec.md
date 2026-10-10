@@ -4,7 +4,7 @@
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
 **最終更新日:** 2026年10月10日  
-**対象バージョン:** 1.19.1
+**対象バージョン:** 1.19.2
 
 ---
 
@@ -544,7 +544,8 @@ interface RoundExport {
 | `pwa_install_prompt_result` | インストールプロンプトの結果 | `outcome` |
 | `pwa_install_banner_dismiss` | バナーを閉じた時 | `method` |
 | `photo_add_attempt` | 写真追加画面で「撮影」または「ギャラリーから選択」を押した時 | `method`（`camera` / `gallery`） |
-| `photo_add_success` | 選択した写真の読み込みに成功した時 | `method`（`camera` / `gallery`） |
+| `photo_add_success` | 選択した写真の読み込みに成功した時 | `method`（`camera` / `gallery`）、`photo_age`（ファイルの最終更新時刻から選択時までの経過時間の区分。1 分以内 `under_1m` / 10 分以内 `1m_10m` / それより前 `over_10m`。端末の時計のずれで未来の時刻になった場合は `under_1m`。時刻そのものは送信しない） |
+| `photo_add_failure` | 写真の追加が完了しなかった時。1 回の `photo_add_attempt` に対し、`photo_add_success` と合わせて最大 1 回 | `method`（`camera` / `gallery`）、`reason`（ファイルが 10MB を超えた `too_large` / 写真の読み込み・縮小に失敗した `compress_error` / 選択画面やカメラを閉じた `cancelled`。`cancelled` はファイル選択の `cancel` イベントに対応したブラウザでのみ送信） |
 | `checklist_import_open` | チェックリスト取り込みダイアログを開いた時 | なし |
 | `checklist_import_error` | 取り込むファイルの読み込みに失敗した時 | `file_type`（`csv` / `xlsx`） |
 | `checklist_import_success` | 取り込んだチェックリストを保存した時 | `file_type`（`csv` / `xlsx`） |
@@ -557,7 +558,7 @@ interface RoundExport {
 | `app_share` | 「同僚に紹介する」のダイアログで、メール・LINE・X を押した時、リンクのコピーに成功した時、その他のアプリの共有が完了した時（共有をキャンセルした場合は送信しない） | `method`（`email` / `line` / `x` / `copy` / `share`） |
 | `feedback_open` | お問い合わせフォームへのリンクを押した時（3.7） | `from`（開始画面の「ご意見・ご要望」 `start` / 報告書の画面の「使ってみた感想を送る」 `report`） |
 
-写真の追加・チェックリストの取り込みと作成・ラウンドの開始・報告書の出力・使い方の表示・アプリの紹介・お問い合わせフォームを開く操作に関するイベントは、操作の種類と押した場所、サンプルかどうかだけを送信します。写真、ファイル名、チェックリストの内容や件数、エラーメッセージは含みません。
+写真の追加・チェックリストの取り込みと作成・ラウンドの開始・報告書の出力・使い方の表示・アプリの紹介・お問い合わせフォームを開く操作に関するイベントは、操作の種類と押した場所、サンプルかどうか、写真の新しさの区分、写真の追加が完了しなかった理由の種類だけを送信します。写真、撮影日時、ファイル名、ファイルサイズ、チェックリストの内容や件数、エラーメッセージは含みません。
 
 上記に加え、GA4 が自動収集する `session_start`、`first_visit`、`user_engagement` が送信されます。
 ユーザープロパティとして `display_mode`（`standalone` / `browser`）を設定します。
