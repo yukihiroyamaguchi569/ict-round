@@ -117,7 +117,10 @@ describe('ReportPreview feedback link', () => {
     const user = renderPreview();
 
     await user.click(await screen.findByRole('button', { name: '共有' }));
-    await user.click(await screen.findByRole('button', { name: 'Word出力' }));
+    expect(await screen.findByText(/共有できませんでした。/)).toBeInTheDocument();
+    expect(screen.queryByText(LABEL)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Word出力' }));
 
     expect(feedbackLink()).toBeInTheDocument();
     vi.mocked(console.error).mockRestore();
