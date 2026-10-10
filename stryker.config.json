@@ -4,6 +4,7 @@
   "mutate": [
     "src/checklistEditor.ts",
     "src/checklistImport.ts",
+    "src/checklistText.ts",
     "src/checklistStorage.ts",
     "src/roundDirty.ts",
     "src/whatsNew.ts",
