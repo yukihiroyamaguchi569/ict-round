@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PhotoForm from '../../components/PhotoForm';
 import { ThemeProvider } from '../../ThemeContext';
@@ -62,8 +62,8 @@ function renderForm(linkedItemId?: string) {
   return { onAdd, onCancel, camera, gallery, user: userEvent.setup() };
 }
 
-function jpeg(size?: number) {
-  const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
+function jpeg(size?: number, lastModified?: number) {
+  const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg', lastModified });
   if (size !== undefined) Object.defineProperty(file, 'size', { value: size });
   return file;
 }
@@ -129,7 +129,7 @@ describe('PhotoForm: picking a photo', () => {
     expect([canvas.width, canvas.height]).toEqual([640, 480]);
     expect(toDataURL).toHaveBeenCalledWith('image/jpeg', 0.8);
     expect(bitmap.close).toHaveBeenCalledTimes(1);
-    expect(trackEvent).toHaveBeenCalledWith('photo_add_success', { method: 'camera' });
+    expect(trackEvent).toHaveBeenCalledWith('photo_add_success', { method: 'camera', photo_age: 'under_1m' });
     expect(alertSpy).not.toHaveBeenCalled();
     expect(submitButton()).toBeEnabled();
   });
@@ -140,7 +140,7 @@ describe('PhotoForm: picking a photo', () => {
     await user.upload(gallery, jpeg());
     await photoShown();
     expect(drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 640, 1138);
-    expect(trackEvent).toHaveBeenCalledWith('photo_add_success', { method: 'gallery' });
+    expect(trackEvent).toHaveBeenCalledWith('photo_add_success', { method: 'gallery', photo_age: 'under_1m' });
   });
 
   it('rounds the scaled height', async () => {
@@ -259,5 +259,98 @@ describe('PhotoForm: saving', () => {
     await user.click(screen.getByRole('button', { name: /もどる|戻る/ }));
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onAdd).not.toHaveBeenCalled();
+  });
+});
+
+describe('PhotoForm: photo add analytics', () => {
+  const NOW = new Date(2026, 9, 10, 9, 0, 0).getTime();
+
+  function useFixedNow() {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+  }
+
+  it.each([
+    [30 * 1000, 'under_1m'],
+    [5 * 60 * 1000, '1m_10m'],
+    [3 * 3600 * 1000, 'over_10m'],
+  ])('sends only the method and the age bucket on success (file %i ms old -> %s)', async (ageMs, bucket) => {
+    useFixedNow();
+    const { camera, user } = renderForm();
+    await user.click(screen.getByRole('button', { name: '撮影' }));
+    await user.upload(camera, jpeg(2048, NOW - ageMs));
+    await photoShown();
+    // Exactly one attempt and one success, carrying no time, file name or size.
+    expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_attempt', { method: 'camera' }],
+      ['photo_add_success', { method: 'camera', photo_age: bucket }],
+    ]);
+  });
+
+  it('counts a file from the future (device clock skew) as under_1m', async () => {
+    useFixedNow();
+    const { gallery, user } = renderForm();
+    await user.upload(gallery, jpeg(undefined, NOW + 3600 * 1000));
+    await photoShown();
+    expect(trackEvent).toHaveBeenCalledWith('photo_add_success', { method: 'gallery', photo_age: 'under_1m' });
+  });
+
+  it('sends too_large, and no success, for a file over 10MB', async () => {
+    const { gallery, user } = renderForm();
+    await user.click(screen.getByRole('button', { name: 'ギャラリーから選択' }));
+    await user.upload(gallery, jpeg(MAX_BYTES + 1));
+    expect(alertSpy).toHaveBeenCalledWith('ファイルサイズは10MB以下にしてください');
+    expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_attempt', { method: 'gallery' }],
+      ['photo_add_failure', { method: 'gallery', reason: 'too_large' }],
+    ]);
+  });
+
+  it('sends compress_error, and no success, when the image cannot be decoded', async () => {
+    const { camera, user } = renderForm();
+    createImageBitmap.mockRejectedValue(new Error('decode failed'));
+    await user.click(screen.getByRole('button', { name: '撮影' }));
+    await user.upload(camera, jpeg());
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('ファイルの読み込みに失敗しました'));
+    expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_attempt', { method: 'camera' }],
+      ['photo_add_failure', { method: 'camera', reason: 'compress_error' }],
+    ]);
+  });
+
+  it('sends compress_error when the canvas has no 2D context', async () => {
+    const { gallery, user } = renderForm();
+    getContext.mockReturnValue(null);
+    await user.upload(gallery, jpeg());
+    await waitFor(() => expect(alertSpy).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_failure', { method: 'gallery', reason: 'compress_error' }],
+    ]);
+  });
+
+  it.each(['camera', 'gallery'] as const)('sends cancelled when the %s picker is closed without a file', (method) => {
+    const { camera, gallery } = renderForm();
+    fireEvent(method === 'camera' ? camera : gallery, new Event('cancel'));
+    expect(vi.mocked(trackEvent).mock.calls).toStrictEqual([
+      ['photo_add_failure', { method, reason: 'cancelled' }],
+    ]);
+    expect(createImageBitmap).not.toHaveBeenCalled();
+    expect(alertSpy).not.toHaveBeenCalled();
+  });
+
+  it('sends one cancelled per close and nothing after the form is gone', () => {
+    const { gallery } = renderForm();
+    fireEvent(gallery, new Event('cancel'));
+    fireEvent(gallery, new Event('cancel'));
+    expect(trackEvent).toHaveBeenCalledTimes(2);
+    cleanup();
+    fireEvent(gallery, new Event('cancel'));
+    expect(trackEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends neither success nor failure when a change carries no file', () => {
+    const { camera } = renderForm();
+    fireEvent.change(camera, { target: { files: [] } });
+    expect(trackEvent).not.toHaveBeenCalled();
   });
 });
