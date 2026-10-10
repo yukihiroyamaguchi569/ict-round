@@ -129,7 +129,7 @@ src/
   ThemeContext.tsx         React context providing the current theme
   icons.ts                 App icon definitions (ran / meguru) and localStorage persistence
   IconContext.tsx          React context providing the current icon
-  analytics.ts             GA4 initialization and trackEvent (never sends round input data)
+  analytics.ts             GA4 initialization on the production host only (shouldLoadAnalytics) and trackEvent (never sends round input data)
   appShare.ts              App introduction: wording in one place, fixed production About URL with UTM per destination, mail / LINE / X / share sheet data
   feedback.ts              Inquiry form URL pre-filled with the app version and the device (detectDevice from User-Agent and touch points); never round data
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
