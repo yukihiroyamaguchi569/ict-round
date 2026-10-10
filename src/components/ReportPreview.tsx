@@ -1,7 +1,7 @@
 import { useTheme } from '../ThemeContext';
 import type { RoundData, ChecklistCategory } from '../types';
 import { useReportFile } from '../useReportFile';
-import { ReportExportButton, ReportExportNotices } from './ReportExport';
+import { ReportExportButton, ReportExportNotices, ReportFeedbackNotice } from './ReportExport';
 import ReportDocument from './ReportDocument';
 
 interface Props {
@@ -30,6 +30,7 @@ export default function ReportPreview({ roundData, categories, isSample = false,
       </div>
 
       <ReportExportNotices buildError={file.buildError} shareFailed={file.shareFailed} />
+      <ReportFeedbackNotice exported={file.exported} />
 
       {/* Report preview */}
       <div className="animate-page px-4 py-5 pb-10">

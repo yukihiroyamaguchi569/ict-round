@@ -1,4 +1,5 @@
 import type { ReportFile } from '../useReportFile';
+import FeedbackLink from './FeedbackLink';
 
 /** ヘッダーの出力ボタン。共有できる端末では「共有」、共有非対応か共有に失敗したら「Word出力」 */
 export function ReportExportButton({ file }: { file: ReportFile }) {
@@ -56,5 +57,17 @@ export function ReportExportNotices({ buildError, shareFailed }: { buildError: s
         </div>
       )}
     </>
+  );
+}
+
+/** A quiet invitation to send feedback, shown only after the report has been shared or downloaded. */
+export function ReportFeedbackNotice({ exported }: { exported: boolean }) {
+  if (!exported) return null;
+  return (
+    <div className="px-5 pt-3 max-w-2xl mx-auto text-right">
+      <FeedbackLink from="report" className="text-xs text-text-muted underline underline-offset-2 hover:text-text transition-colors">
+        使ってみた感想を送る
+      </FeedbackLink>
+    </div>
   );
 }
