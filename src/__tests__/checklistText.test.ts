@@ -194,6 +194,7 @@ describe('parseChecklistText: tables (tab-separated)', () => {
     const text = lines('■ 感染対策', '\t手袋がある．', '病棟ラウンド表', '手指衛生\t消毒剤がある．');
     expect(simplify(parseChecklistText(text))).toEqual([
       { name: '感染対策', items: ['手袋がある．'] },
+      { name: '病棟ラウンド表', items: [] },
       { name: '手指衛生', items: ['消毒剤がある．'] },
     ]);
   });
@@ -235,7 +236,7 @@ describe('parseChecklistText: recognised lines', () => {
 
   it('drops header, rating and page number lines, and blank lines', () => {
     const text = lines(
-      '感染対策ラウンド チェック項目',
+      'ジャンル',
       '',
       'ジャンル チェック項目 評価',
       '手指衛生',
@@ -255,9 +256,25 @@ describe('parseChecklistText: recognised lines', () => {
     ]);
   });
 
-  it('keeps a category with no items out of the result', () => {
-    expect(simplify(parseChecklistText(lines('手指衛生', '環境', '清掃されている．')))).toEqual([
+  it('keeps a category with no items, so a short item taken for a category still shows', () => {
+    expect(simplify(parseChecklistText(lines('手指衛生', '手指消毒を行う。', '手袋交換', '環境', '清掃されている．')))).toEqual([
+      { name: '手指衛生', items: ['手指消毒を行う。'] },
+      { name: '手袋交換', items: [] },
       { name: '環境', items: ['清掃されている．'] },
+    ]);
+  });
+
+  it('reads only marked lines as categories once any line is marked, and every other line as an item', () => {
+    const text = lines('■手指衛生', '手指消毒を行う。', '手袋交換', '1. 掲示', '■ 環境', '清掃されている． A', '1.');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '手指衛生', items: ['手指消毒を行う。', '手袋交換', '掲示'] },
+      { name: '環境', items: ['清掃されている．'] },
+    ]);
+  });
+
+  it('removes a rating stuck to the end of the item text', () => {
+    expect(simplify(parseChecklistText(lines('■手指衛生', '手指消毒を行うA', '手袋を交換している○')))).toEqual([
+      { name: '手指衛生', items: ['手指消毒を行う', '手袋を交換している'] },
     ]);
   });
 
@@ -334,9 +351,13 @@ describe('stripTrailingRating', () => {
     ['（交換目安：2週間毎） B', '（交換目安：2週間毎）'],
     ['（交換目安：2週間毎）×', '（交換目安：2週間毎）'],
     ['消毒剤がある －', '消毒剤がある'],
+    ['手指消毒を行うA', '手指消毒を行う'],
+    ['手指消毒を行うＢ', '手指消毒を行う'],
+    ['手袋を交換している×', '手袋を交換している'],
+    ['表示「済」○', '表示「済」'],
   ])('turns %s into %s', (line, expected) => expect(stripTrailingRating(line)).toBe(expected));
 
-  it.each(['PPE', 'カバー', '手指衛生 PPE', '消毒剤がある．'])('leaves %s as it is', (line) =>
+  it.each(['PPE', 'カバー', 'ゴミボックスー', '手指衛生 PPE', '消毒剤がある．', 'ABC'])('leaves %s as it is', (line) =>
     expect(stripTrailingRating(line)).toBe(line),
   );
 });

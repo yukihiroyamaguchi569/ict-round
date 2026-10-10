@@ -10,7 +10,7 @@ vi.mock('../../analytics', () => ({ trackEvent: vi.fn() }));
 
 const OPEN = '表のテキストを貼り付けて読み込む';
 const TABLE = '手指衛生\t消毒剤がある．\tA\n\t掲示がある．\tB\n環境\t清掃されている．\tA';
-const LINES = '■手指衛生\n消毒剤がある．\nA\n環境 清掃されている． B';
+const LINES = '■手指衛生\n消毒剤がある．\nA\n■環境\n清掃されている． B';
 
 function setup(initialDraft: EditorDraft = emptyDraft()) {
   const onSave = vi.fn<(c: SavedChecklist) => void>();
@@ -57,10 +57,13 @@ describe('ChecklistEditor text import', () => {
     expect(within(preview).getByText('薬品')).toBeInTheDocument();
   });
 
-  it('shows items without a category under a placeholder name', async () => {
+  it('shows items without a category under a placeholder name, and a category without items as such', async () => {
     const { user } = setup();
-    await openAndPaste(user, '消毒剤がある．');
+    await openAndPaste(user, '消毒剤がある．\n手袋交換');
     expect(screen.getByText('（カテゴリ名なし）')).toBeInTheDocument();
+    expect(screen.getByText('手袋交換')).toBeInTheDocument();
+    expect(screen.getByText('（項目なし）')).toBeInTheDocument();
+    expect(screen.getByText('2カテゴリ・1項目')).toBeInTheDocument();
   });
 
   it('replaces an empty draft on import, closes the panel and sends only the format', async () => {

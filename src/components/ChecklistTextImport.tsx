@@ -43,11 +43,15 @@ function TextImportPreview({ categories, itemCount }: { categories: DraftCategor
         {categories.map((cat) => (
           <li key={cat.key} className="text-xs">
             <p className="font-bold text-text">{cat.name || '（カテゴリ名なし）'}</p>
-            <ul className="pl-3 text-text-muted space-y-0.5">
-              {cat.items.map((item) => (
-                <li key={item.key}>・{item.description}</li>
-              ))}
-            </ul>
+            {cat.items.length === 0 ? (
+              <p className="pl-3 text-text-faint">（項目なし）</p>
+            ) : (
+              <ul className="pl-3 text-text-muted space-y-0.5">
+                {cat.items.map((item) => (
+                  <li key={item.key}>・{item.description}</li>
+                ))}
+              </ul>
+            )}
           </li>
         ))}
       </ul>
@@ -83,7 +87,7 @@ export default function ChecklistTextImport({ panel }: Props) {
         className="w-full bg-base border-2 border-line rounded-t px-3 py-2 text-sm text-text placeholder:text-text-faint"
       />
       <p className="text-[11px] text-text-faint leading-relaxed">
-        カテゴリと項目の振り分けが違うときは、上の欄で直してください。行頭に ■ を付けた行はカテゴリになります。入力済みの項目があれば、読み込んだ項目はその後ろに加わります。保存する前に直せます。
+        カテゴリと項目の振り分けが違うときは、上の欄で直してください。行頭に ■ を付けた行はカテゴリになります（■ を付けると、■ のない行はすべて項目になります）。入力済みの項目があれば、読み込んだ項目はその後ろに加わります。保存する前に直せます。
       </p>
       <TextImportPreview categories={panel.preview} itemCount={panel.itemCount} />
       <div className="flex gap-3">

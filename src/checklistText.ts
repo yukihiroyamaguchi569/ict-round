@@ -25,6 +25,11 @@ const RATING_ONLY = new RegExp(`^${RATING}$`);
 const RATING_AFTER_SENTENCE = new RegExp(`([。．.）)])\\s*${RATING}$`);
 /** A rating separated by a space at the end of a line: "…いる A" */
 const RATING_AFTER_SPACE = new RegExp(`\\s+${RATING}$`);
+/**
+ * A rating stuck to Japanese text: "…行うA". Dash-like marks are left out because "ー" ends katakana
+ * words; the cost is that a word such as "ビタミンC" at the end of a line loses its letter.
+ */
+const RATING_AFTER_JAPANESE = /([\u3040-\u30ff\u3400-\u9fff」])[ABCＡＢＣ○◯〇×✕✖△▲]$/;
 
 /** Page number lines: "3", "- 3 -", "3/5", "P.3", "3ページ". */
 const PAGE_NUMBERS = [/^[-－]?\s*\d+\s*[-－]?$/, /^\d+\s*[/／]\s*\d+$/, /^p\.?\s*\d+$/i, /^\d+\s*(?:ページ|頁)$/];
@@ -56,7 +61,11 @@ export function isNoiseLine(line: string): boolean {
 
 /** Removes a rating left at the end of an item line ("…いる． A" → "…いる．"). */
 export function stripTrailingRating(line: string): string {
-  return line.replace(RATING_AFTER_SENTENCE, '$1').replace(RATING_AFTER_SPACE, '').trim();
+  return line
+    .replace(RATING_AFTER_SENTENCE, '$1')
+    .replace(RATING_AFTER_SPACE, '')
+    .replace(RATING_AFTER_JAPANESE, '$1')
+    .trim();
 }
 
 /** Whether text ends like a sentence (full stop or predicate), as checklist items do. */
@@ -85,14 +94,17 @@ function splitRow(line: string): LineKind | null {
 }
 
 /**
- * Classifies one normalised, non-noise line of recognised text. A marked line is a category;
- * a numbered line is a category unless it ends like a sentence (then the number is dropped).
+ * Classifies one normalised, non-noise line of recognised text. A marked line is a category.
+ * With marksOnly (the text has marked lines, so the user has said which lines are categories)
+ * every other line is an item. Otherwise a numbered line is a category unless it ends like a
+ * sentence (then the number is dropped), and the remaining lines are guessed by their shape.
  */
-export function classifyLine(line: string): LineKind {
+export function classifyLine(line: string, marksOnly = false): LineKind {
   if (CATEGORY_MARK.test(line)) {
     return { kind: 'category', name: line.replace(CATEGORY_MARK, '').replace(/】/g, ' ').trim() };
   }
   const body = line.replace(HEADING_NUMBER, '');
+  if (marksOnly) return { kind: 'item', text: body };
   if (body !== line && !looksLikeSentence(body)) return { kind: 'category', name: body };
 
   const row = splitRow(body);
@@ -100,20 +112,33 @@ export function classifyLine(line: string): LineKind {
   return looksLikeCategory(body) ? { kind: 'category', name: body } : { kind: 'item', text: body };
 }
 
-/** Collects items into categories in order of first appearance; the same name is one category. */
+/**
+ * Collects items into categories in order of first appearance; the same name is one category.
+ * A category stays even with no items, so a line wrongly taken for a category shows in the preview
+ * instead of disappearing (the editor leaves empty categories out on save).
+ */
 class CategoryCollector {
   private readonly categories: DraftCategory[] = [];
   private readonly byName = new Map<string, DraftCategory>();
-  current = '';
+  private current = '';
 
-  add(text: string): void {
-    let category = this.byName.get(this.current);
+  private categoryNamed(name: string): DraftCategory {
+    let category = this.byName.get(name);
     if (!category) {
-      category = { key: newKey(), name: this.current, items: [] };
-      this.byName.set(this.current, category);
+      category = { key: newKey(), name, items: [] };
+      this.byName.set(name, category);
       this.categories.push(category);
     }
-    category.items.push({ key: newKey(), description: text });
+    return category;
+  }
+
+  setCategory(name: string): void {
+    this.current = name;
+    this.categoryNamed(name);
+  }
+
+  add(text: string): void {
+    this.categoryNamed(this.current).items.push({ key: newKey(), description: text });
   }
 
   result(): DraftCategory[] {
@@ -122,16 +147,18 @@ class CategoryCollector {
 }
 
 function readLines(lines: string[], collector: CategoryCollector): void {
+  // A bare mark ("■") names nothing, so it does not switch to marks-only reading
+  const marksOnly = lines.some((line) => CATEGORY_MARK.test(line) && line.replace(CATEGORY_MARK, '') !== '');
   for (const line of lines) {
     if (isNoiseLine(line)) continue;
-    const kind = classifyLine(stripTrailingRating(line));
+    const kind = classifyLine(stripTrailingRating(line), marksOnly);
     // A bare mark or number ("■", "1.") names nothing; keep the current category
     if (kind.kind === 'category') {
-      if (kind.name) collector.current = kind.name;
+      if (kind.name) collector.setCategory(kind.name);
     } else if (kind.kind === 'row') {
-      collector.current = kind.category;
+      collector.setCategory(kind.category);
       collector.add(kind.text);
-    } else {
+    } else if (kind.text) {
       collector.add(kind.text);
     }
   }
@@ -184,7 +211,7 @@ function readTable(lines: string[], collector: CategoryCollector): void {
     if (isHeaderRow(cells)) return;
     const [category = '', item = ''] = cells.slice(skip);
     // An empty category cell continues the category above (merged cells)
-    if (category) collector.current = category;
+    if (category) collector.setCategory(category);
     if (item) collector.add(item);
   });
 }
