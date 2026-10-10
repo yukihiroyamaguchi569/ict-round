@@ -121,6 +121,7 @@ src/
   roundUsage.ts            localStorage mark that a real round was saved or exported on this device, and whether the start screen features the sample
   roundData.ts             Pure round updates (start, rating, photos, evaluation, participant name), Photo and SavedRound building and the save-error message
   photoImage.ts            Photo file size limit, scaled size, and canvas shrinking with the EXIF orientation applied (compressImage)
+  photoAge.ts              photoAgeBucket: rounds a picked file's age (lastModified vs now) into the analytics bucket under_1m / 1m_10m / over_10m
   localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
   docx.ts                  Builds the report .docx from per-section builders (cover, checklist table, photos, evaluation), the report title (marked for the sample) and shared docx helpers
@@ -141,7 +142,7 @@ src/
   useChecklistLibrary.ts   Hook for the checklist library and the active checklist, synced with localStorage
   useAppShare.ts           Hook for the "introduce to a colleague" dialog: open / close, copy the link, the OS share sheet, and the app_share events
   useWhatsNew.ts           Hook fetching unseen release notes once at launch and recording them as seen on close
-  usePhotoDraft.ts         Hook for the photo being added: pick, shrink, comment, and hand the built Photo to onAdd
+  usePhotoDraft.ts         Hook for the photo being added: pick, shrink, comment, and hand the built Photo to onAdd; photo_add_attempt / success (with the age bucket) / failure (too_large / compress_error / cancelled via the input's native cancel event) events
   useChecklistImport.ts    Hook reading a chosen CSV / .xlsx into a preview and saving it as a new checklist
   useChecklistPicker.ts    Hook for the checklist picker: add options / import dialog / editor open state, add-then-select on save, delete confirm
   useChecklistEditor.ts    Hook for the checklist editor: draft, category edits, discard confirm on cancel, validation on save, and the open / save events
