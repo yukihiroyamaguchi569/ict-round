@@ -7,7 +7,7 @@ import {
   looksLikeCategory,
   normalizeLine,
   parseChecklistText,
-  rowCells,
+  hasNumberColumn,
   stripTrailingRating,
 } from '../checklistText';
 import { CHECKLIST_CATEGORIES } from '../checklistData';
@@ -90,8 +90,25 @@ describe('parseChecklistText: tables (tab-separated)', () => {
   });
 
   it('drops a leading number column', () => {
-    const text = lines('No.\tジャンル\tチェック項目', '1\t手指衛生\t消毒剤がある．', '2\t\t掲示がある．');
-    expect(simplify(parseChecklistText(text))).toEqual([{ name: '手指衛生', items: ['消毒剤がある．', '掲示がある．'] }]);
+    const text = lines('No.\tジャンル\tチェック項目\t評価', '1\t手指衛生\t消毒剤がある．\tA', '2\t\t掲示がある．\tB', '3\t環境\t清掃されている．');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '手指衛生', items: ['消毒剤がある．', '掲示がある．'] },
+      { name: '環境', items: ['清掃されている．'] },
+    ]);
+  });
+
+  it('keeps numbers used as category names in a table with a rating column', () => {
+    const text = lines('1\t手洗いを行う．\tA', '1\t記録する．\tB', '2\t清掃されている．\tA');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '1', items: ['手洗いを行う．', '記録する．'] },
+      { name: '2', items: ['清掃されている．'] },
+    ]);
+  });
+
+  it('keeps a tab inside a quoted cell in the cell, as a space', () => {
+    expect(simplify(parseChecklistText('手指衛生\t"消毒剤\tを確認する．"\tA'))).toEqual([
+      { name: '手指衛生', items: ['消毒剤 を確認する．'] },
+    ]);
   });
 
   it('skips header rows wherever they appear (a header repeated after a page break)', () => {
@@ -349,11 +366,18 @@ describe('classifyLine', () => {
   });
 });
 
-describe('rowCells', () => {
-  it('drops leading number cells while a category and an item cell remain after them', () => {
-    expect(rowCells('1\t2\t手指衛生\t消毒剤がある．')).toEqual(['手指衛生', '消毒剤がある．']);
-    expect(rowCells('1\t手指衛生\t消毒剤がある．\tA')).toEqual(['手指衛生', '消毒剤がある．', 'A']);
-    expect(rowCells('1\t消毒剤がある．')).toEqual(['1', '消毒剤がある．']);
-    expect(rowCells('12')).toEqual(['12']);
+describe('hasNumberColumn', () => {
+  it('is true when every row starts with a different number followed by two more cells', () => {
+    expect(hasNumberColumn([['1', '手指衛生', 'a'], ['2', '', 'b'], ['10', '環境', 'c', 'A']])).toBe(true);
+  });
+
+  it.each<[string, string[][]]>([
+    ['no rows', []],
+    ['a repeated number (numbers used as category names)', [['1', 'a', 'A'], ['1', 'b', 'B']]],
+    ['a blank first cell (merged number categories)', [['1', 'a', 'A'], ['', 'b', 'B']]],
+    ['a row of two cells', [['1', 'a', 'A'], ['2', 'b']]],
+    ['a first cell that is not only digits', [['1', 'a', 'A'], ['2.', 'b', 'B']]],
+  ])('is false with %s', (_, rows) => {
+    expect(hasNumberColumn(rows)).toBe(false);
   });
 });

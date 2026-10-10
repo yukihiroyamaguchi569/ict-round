@@ -138,14 +138,17 @@ function readLines(lines: string[], collector: CategoryCollector): void {
 }
 
 /**
- * Cells of one tab-separated row, with a leading number column ("1", "2", …) dropped. A number
- * column only exists beside both a category and an item, so a row of two cells keeps a number
- * in its first cell as the category name.
+ * Whether the first column of the data rows is a row number ("No."): every row has a number there,
+ * all different, with a category and an item after it. Category names that happen to be numbers
+ * repeat or are left blank in merged cells, so they are not taken for a number column.
  */
-export function rowCells(line: string): string[] {
-  const cells = line.split('\t').map(normalizeLine);
-  while (cells.length > 2 && /^\d+$/.test(cells[0])) cells.shift();
-  return cells;
+export function hasNumberColumn(rows: string[][]): boolean {
+  const firsts = rows.map((cells) => cells[0]);
+  return (
+    rows.length > 0 &&
+    rows.every((cells) => cells.length >= 3 && /^\d+$/.test(cells[0])) &&
+    new Set(firsts).size === firsts.length
+  );
 }
 
 /**
@@ -154,26 +157,32 @@ export function rowCells(line: string): string[] {
  */
 const QUOTED_CELL = /(^|[\t\n])"((?:[^"]|"")*)"(?=[\t\r\n]|$)/g;
 
-/** Unwraps quoted cells so that a line break inside a cell does not split the row; the broken lines are joined. */
+/**
+ * Unwraps quoted cells so that a line break or a tab inside a cell does not split the row or the cell;
+ * broken lines are joined and a tab becomes a space.
+ */
 export function unquoteCells(text: string): string {
   return text.replace(QUOTED_CELL, (_, lead: string, body: string) =>
-    lead + body.replace(/""/g, '"').replace(/\r\n|\r|\n/g, ''),
+    lead + body.replace(/""/g, '"').replace(/\r\n|\r|\n/g, '').replace(/\t/g, ' '),
   );
 }
 
 function readTable(lines: string[], collector: CategoryCollector): void {
-  for (const line of lines) {
-    if (!line.includes('\t')) {
-      // A line without cells (a title, or text typed in by hand) is read like recognised text
-      readLines([line], collector);
-      continue;
-    }
-    const [category = '', item = ''] = rowCells(line);
-    if (isHeaderWord(category) || isHeaderWord(item)) continue;
+  const rows = lines.map((line) => (line.includes('\t') ? line.split('\t').map(normalizeLine) : null));
+  const isHeaderRow = (cells: string[]) => cells.some(isHeaderWord);
+  const dataRows = rows.filter((cells): cells is string[] => cells !== null && !isHeaderRow(cells));
+  const skip = hasNumberColumn(dataRows) ? 1 : 0;
+
+  lines.forEach((line, i) => {
+    const cells = rows[i];
+    // A line without cells (a title, or text typed in by hand) is read like recognised text
+    if (!cells) return readLines([line], collector);
+    if (isHeaderRow(cells)) return;
+    const [category = '', item = ''] = cells.slice(skip);
     // An empty category cell continues the category above (merged cells)
     if (category) collector.current = category;
     if (item) collector.add(item);
-  }
+  });
 }
 
 /** Splits text into normalised, non-empty lines. */
