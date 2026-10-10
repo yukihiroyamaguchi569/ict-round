@@ -124,14 +124,22 @@ const STYLE = `
   }
 `;
 
+// Loads gtag.js on the production host only, so preview deployments and local builds
+// do not report to GA4. Keep the host in sync with PRODUCTION_HOSTNAME in src/analytics.ts
+// (the generated pages are not bundled, so the constant cannot be imported here).
 function gtagSnippet() {
   if (!GA4_ID) return '';
-  return `  <script async src="https://www.googletagmanager.com/gtag/js?id=${GA4_ID}"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '${GA4_ID}');
+  return `  <script>
+    if (location.hostname === 'ict-round.conect.llc') {
+      var gtagScript = document.createElement('script');
+      gtagScript.async = true;
+      gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=${GA4_ID}';
+      document.head.appendChild(gtagScript);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function(){dataLayer.push(arguments);};
+      gtag('js', new Date());
+      gtag('config', '${GA4_ID}');
+    }
   </script>
 `;
 }
