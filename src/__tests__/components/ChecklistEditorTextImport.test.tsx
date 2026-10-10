@@ -14,8 +14,9 @@ const LINES = '■手指衛生\n消毒剤がある．\nA\n環境 清掃されて
 
 function setup(initialDraft: EditorDraft = emptyDraft()) {
   const onSave = vi.fn<(c: SavedChecklist) => void>();
-  render(<ChecklistEditor initialDraft={initialDraft} source="new" onSave={onSave} onCancel={vi.fn()} />);
-  return { onSave, user: userEvent.setup() };
+  const onCancel = vi.fn();
+  render(<ChecklistEditor initialDraft={initialDraft} source="new" onSave={onSave} onCancel={onCancel} />);
+  return { onSave, onCancel, user: userEvent.setup() };
 }
 
 const button = (name: string) => screen.getByRole('button', { name });
@@ -28,6 +29,7 @@ async function openAndPaste(user: ReturnType<typeof userEvent.setup>, text: stri
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.mocked(trackEvent).mockClear();
 });
 
@@ -106,6 +108,31 @@ describe('ChecklistEditor text import', () => {
     expect(trackEvent).not.toHaveBeenCalledWith('checklist_text_import', expect.anything());
     await user.click(button(OPEN));
     expect(textbox('貼り付けるテキスト')).toHaveValue('');
+  });
+
+  it('asks before closing the editor with pasted text not yet imported, and stays open when declined', async () => {
+    const { onCancel, user } = setup();
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    await openAndPaste(user, TABLE);
+    await user.click(button('キャンセル'));
+
+    expect(confirmSpy).toHaveBeenCalledWith('編集内容を破棄して閉じますか？');
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(textbox('貼り付けるテキスト')).toHaveValue(TABLE);
+
+    confirmSpy.mockReturnValue(true);
+    await user.click(button('閉じる'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the editor without asking when the panel is open but empty', async () => {
+    const { onCancel, user } = setup();
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    await openAndPaste(user, ' \n ');
+    await user.click(button('キャンセル'));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it('keeps 読み込む disabled while the text has no items', async () => {

@@ -1,8 +1,9 @@
 import type { DraftCategory } from '../checklistEditor';
-import { useChecklistTextImport } from '../useChecklistTextImport';
+import type { useChecklistTextImport } from '../useChecklistTextImport';
 
 interface Props {
-  onImport: (categories: DraftCategory[]) => void;
+  // Held by the editor, which also checks for pasted text not yet imported when it closes
+  panel: ReturnType<typeof useChecklistTextImport>;
 }
 
 const TITLE = '表のテキストを貼り付けて読み込む';
@@ -55,9 +56,7 @@ function TextImportPreview({ categories, itemCount }: { categories: DraftCategor
 }
 
 /** Collapsible section of the checklist editor that turns pasted table text into categories and items. */
-export default function ChecklistTextImport({ onImport }: Props) {
-  const panel = useChecklistTextImport(onImport);
-
+export default function ChecklistTextImport({ panel }: Props) {
   if (!panel.open) {
     return (
       <button

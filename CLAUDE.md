@@ -159,7 +159,7 @@ src/
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
     ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen (logic in useChecklistEditor)
-    ChecklistTextImport.tsx  Collapsible section of the editor to paste table text (how-to for iPhone / Android / Excel, text area, split preview, import button); logic in useChecklistTextImport
+    ChecklistTextImport.tsx  Collapsible section of the editor to paste table text (how-to for iPhone / Android / Excel, text area, split preview, import button); state from useChecklistTextImport, held by ChecklistEditor so closing the editor also asks about pasted text not yet imported
     ThemeSelector.tsx      Theme and icon picker (shown on the start screen)
     InstallBanner.tsx      PWA install prompt banner
     RoundScreens.tsx       Screens of a round in progress: main screen, add-photo, report, leave confirmation; mounted fresh per round

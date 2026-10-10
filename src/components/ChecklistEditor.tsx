@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SavedChecklist } from '../types';
 import { emptyItem, moveItem, type DraftCategory, type EditorDraft } from '../checklistEditor';
 import { useChecklistEditor } from '../useChecklistEditor';
+import { useChecklistTextImport } from '../useChecklistTextImport';
 import ChecklistTextImport from './ChecklistTextImport';
 
 interface Props {
@@ -174,10 +175,12 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
   const editor = useChecklistEditor(initialDraft, source, onSave, onCancel);
   const { draft, addedCategoryKey } = editor;
   const { categories } = draft;
+  const textImport = useChecklistTextImport(editor.importCategories);
+  const cancel = () => editor.handleCancel(textImport.text.trim() !== '');
 
   return (
     <div className="fixed inset-0 z-50 bg-base flex flex-col">
-      <EditorHeader source={source} onClose={editor.handleCancel} />
+      <EditorHeader source={source} onClose={cancel} />
 
       <div className="overflow-y-auto flex-1">
         <div className="w-full max-w-md mx-auto px-4 py-4 space-y-3">
@@ -195,7 +198,7 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
             />
           </div>
 
-          <ChecklistTextImport onImport={editor.importCategories} />
+          <ChecklistTextImport panel={textImport} />
 
           <p className="text-[11px] text-text-faint leading-relaxed">
             空欄の項目と、項目のないカテゴリは保存時に省かれます。
@@ -226,7 +229,7 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
         </div>
       </div>
 
-      <EditorFooter error={editor.error} onCancel={editor.handleCancel} onSave={editor.handleSave} />
+      <EditorFooter error={editor.error} onCancel={cancel} onSave={editor.handleSave} />
     </div>
   );
 }

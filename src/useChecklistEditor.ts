@@ -50,8 +50,9 @@ export function useChecklistEditor(
 
   const importCategories = (imported: DraftCategory[]) => setDraft((d) => addImportedCategories(d, imported));
 
-  const handleCancel = () => {
-    const dirty = JSON.stringify(draft) !== initialJson.current;
+  /** hasPendingText: text pasted into the import panel but not imported yet, which closing would also lose. */
+  const handleCancel = (hasPendingText: boolean) => {
+    const dirty = hasPendingText || JSON.stringify(draft) !== initialJson.current;
     if (dirty && !confirm('編集内容を破棄して閉じますか？')) return;
     onCancel();
   };
