@@ -119,6 +119,19 @@ describe('parseChecklistText: items and category names wrapped in their cells', 
     ]);
   });
 
+  it('keeps a short item without a full stop apart from an unfinished long item', () => {
+    expect(simplify(parseChecklistText(lines('■環境', '病棟の入口に手指消毒剤を設置して', '確認する')))).toEqual([
+      { name: '環境', items: ['病棟の入口に手指消毒剤を設置して', '確認する'] },
+    ]);
+  });
+
+  it('keeps a short row with its own category after an unfinished long item', () => {
+    expect(simplify(parseChecklistText(lines('環境 病棟の入口に手指消毒剤を設置して', '薬 有．')))).toEqual([
+      { name: '環境', items: ['病棟の入口に手指消毒剤を設置して'] },
+      { name: '薬', items: ['有．'] },
+    ]);
+  });
+
   it('joins the end of a category name wrapped in its cell when the next row repeats the cut name', () => {
     const text = lines('汚物室・トイ 清潔が保たれている． A', 'レ', '汚物室・トイ 区別されている．', 'レ', '汚物室•トイ 置かない．', 'レ');
     expect(simplify(parseChecklistText(text))).toEqual([
@@ -176,6 +189,7 @@ describe('isWrappedItemTail', () => {
     [`${LONG}配置してい`, '1.'],
     [`${LONG}配置してい`, 'A．'],
     [`${LONG}配置してい`, 'レ'],
+    [`${LONG}配置してい`, 'いる'],
     ['清掃を実施', '確認する'],
     ['あ'.repeat(CATEGORY_MAX_LENGTH), 'る．'],
   ])('rejects %s followed by %s', (item, line) => expect(isWrappedItemTail(item, line)).toBe(false));

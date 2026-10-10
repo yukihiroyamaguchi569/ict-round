@@ -94,7 +94,8 @@ const TAIL_START = /^[\u3040-\u30ff\u3400-\u9fff]/;
 /**
  * Whether a line is the rest of the item above, wrapped in its table cell ("…してい" then "る．"):
  * the item fills its cell (longer than a category name) and stops mid-word, and the line is short,
- * starts with Japanese text and ends like a sentence. Two short items ("清掃を実施", "確認する") stay apart.
+ * starts with Japanese text and ends with a full stop (or a comma read in its place). Two short items
+ * ("清掃を実施", "確認する"), or a long one and a short one without a full stop, stay apart.
  */
 export function isWrappedItemTail(item: string, line: string): boolean {
   return (
@@ -103,7 +104,7 @@ export function isWrappedItemTail(item: string, line: string): boolean {
     !looksLikeSentence(item) &&
     line.length <= WRAP_TAIL_MAX_LENGTH &&
     TAIL_START.test(line) &&
-    looksLikeSentence(line)
+    SENTENCE_END.test(line)
   );
 }
 
@@ -240,7 +241,8 @@ function rowCategoryOf(line: ReadLine | undefined): string | undefined {
 function readLines(lines: string[], collector: CategoryCollector, marksOnly: boolean): void {
   const read = toReadLines(lines, marksOnly);
   read.forEach(({ text, kind }, i) => {
-    if (!CATEGORY_MARK.test(text) && collector.joinItemTail(text)) return;
+    // Only a line read as an item is a tail; a short row ("薬 有．") or a marked line keeps its category
+    if (kind.kind === 'item' && !CATEGORY_MARK.test(text) && collector.joinItemTail(text)) return;
     // A bare mark or number ("■", "1.") names nothing; keep the current category
     if (kind.kind === 'category') {
       const rowCategory = rowCategoryOf(read[i - 1]);
