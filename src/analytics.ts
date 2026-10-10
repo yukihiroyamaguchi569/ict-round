@@ -1,5 +1,10 @@
 const MEASUREMENT_ID = import.meta.env.VITE_GA4_MEASUREMENT_ID as string | undefined;
 const INSTALL_TRACKED_KEY = 'pwa_install_tracked';
+// The only host that reports to GA4. Preview deployments (*.pages.dev) and local
+// production builds must not mix test traffic into the usage data.
+// Keep in sync with the gtag snippets in public/about/index.html,
+// public/updates/index.html and scripts/build-docs.mjs (static pages are not bundled).
+export const PRODUCTION_HOSTNAME = 'ict-round.conect.llc';
 
 declare global {
   interface Navigator {
@@ -11,8 +16,15 @@ declare global {
   }
 }
 
+// Exact match only: lookalike hosts such as 'ict-round.conect.llc.example.com' must not pass.
+// The dev server (npm run dev) keeps loading GA4 so DebugView still works.
+export function shouldLoadAnalytics(hostname: string, isDev: boolean): boolean {
+  return isDev || hostname === PRODUCTION_HOSTNAME;
+}
+
 export function initAnalytics(): void {
   if (!MEASUREMENT_ID) return;
+  if (!shouldLoadAnalytics(window.location.hostname, import.meta.env.DEV)) return;
 
   const script = document.createElement('script');
   script.async = true;
