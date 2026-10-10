@@ -131,9 +131,10 @@ src/
   IconContext.tsx          React context providing the current icon
   analytics.ts             GA4 initialization and trackEvent (never sends round input data)
   appShare.ts              App introduction: wording in one place, fixed production About URL with UTM per destination, mail / LINE / X / share sheet data
+  feedback.ts              Inquiry form URL pre-filled with the app version and the device (detectDevice from User-Agent and touch points); never round data
   usePwaInstall.ts         Hook detecting PWA install availability (prompt / iOS manual)
   useInstallBanner.ts      Hook for the install banner: prompt vs iOS steps, hiding after acceptance or dismissal, and the analytics events
-  useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download; buildRoundExport and reportFileName pure helpers
+  useReportFile.ts         Hook pre-building the report .docx with embedded round data, share / download and whether either has completed; buildRoundExport and reportFileName pure helpers
   useSampleStart.ts        Hook starting the sample once its photos load; drops the start if a normal round was started or the start screen left meanwhile
   useRound.ts              Hook for the round in progress: round data and its updates, start / sample start / resume / save, unsaved-change check, participant name carried to the next start, round_start event; a sample round is never saved
   useSavedRounds.ts        Hook for saved rounds in localStorage: list, save (upsert), delete
@@ -148,8 +149,9 @@ src/
   vite-env.d.ts            Vite type references
   components/
     StartScreen.tsx        Start screen with the "what's new" dialog over it (keeps the start screen inert while open)
-    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the "try the sample" button (prominent with no saved rounds, otherwise in the bottom links), the merge page link card, bottom links (user guide / about / introduce to a colleague); holds useChecklistPicker and useAppShare and renders their dialogs outside .animate-page
+    RoundStart.tsx         Start screen: icon, title, version; inspector / ward name form with the saved rounds button, the "try the sample" button (prominent with no saved rounds, otherwise in the bottom links), the merge page link card, bottom links (user guide / about / introduce to a colleague / feedback, wrapping on narrow screens); holds useChecklistPicker and useAppShare and renders their dialogs outside .animate-page
     AppShareDialog.tsx     Dialog listing where to send the app's introduction (mail / LINE / X / copy link / other apps); state from useAppShare
+    FeedbackLink.tsx       New-tab link to the pre-filled inquiry form, recording feedback_open with where it was opened from
     ChecklistPicker.tsx    "Checklist to use" card: checklist rows (select / copy / delete) and add options; ChecklistPickerDialogs renders the import dialog / editor it opens (state from useChecklistPicker, passed in by RoundStart)
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
@@ -169,7 +171,7 @@ src/
     LeaveRoundDialog.tsx   Confirm save / discard when leaving a round with unsaved changes
     WhatsNewDialog.tsx     "What's new" dialog shown on the start screen after an app update
     ReportPreview.tsx      Report screen shell: back button, export button and notices, preview; composes the parts below
-    ReportExport.tsx       Share / Word export button and the build-failure / share-failure notices
+    ReportExport.tsx       Share / Word export button, the build-failure / share-failure notices, and the feedback link shown after an export
     ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp

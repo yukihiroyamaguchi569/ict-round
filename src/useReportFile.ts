@@ -54,6 +54,8 @@ export function useReportFile(roundData: RoundData, categories: ChecklistCategor
   // 二重タップで navigator.share() が並行実行されると、後発が InvalidStateError で
   // 落ちて「共有できませんでした」表示になるため、共有中は押せないようにする
   const [sharing, setSharing] = useState(false);
+  // Set once the report has been shared or downloaded; the feedback link waits for it
+  const [exported, setExported] = useState(false);
   // Fixed once when the preview opens, so the pre-built file name and the share text never disagree across midnight
   const [reportDate] = useState(localDateString);
   const canShare = canShareFiles();
@@ -93,6 +95,7 @@ export function useReportFile(roundData: RoundData, categories: ChecklistCategor
     }).then(() => {
       // Count only completed shares, same as main (PR #87): a cancelled share sheet is not an export.
       trackEvent('round_export', { method: 'share', sample: isSample });
+      setExported(true);
       if (!isSample) markRoundsUsed();
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -107,10 +110,11 @@ export function useReportFile(roundData: RoundData, categories: ChecklistCategor
     if (!shareFile) return;
     saveAs(shareFile, shareFile.name);
     trackEvent('round_export', { method: 'download', sample: isSample });
+    setExported(true);
     if (!isSample) markRoundsUsed();
   };
 
-  return { shareFile, shareFailed, buildError, sharing, canShare, handleShare, handleDownload };
+  return { shareFile, shareFailed, buildError, sharing, exported, canShare, handleShare, handleDownload };
 }
 
 export type ReportFile = ReturnType<typeof useReportFile>;

@@ -9,6 +9,7 @@ import { useChecklistPicker } from '../useChecklistPicker';
 import { useAppShare } from '../useAppShare';
 import { trackEvent } from '../analytics';
 import AppShareDialog from './AppShareDialog';
+import FeedbackLink from './FeedbackLink';
 
 interface Props {
   library: SavedChecklist[];
@@ -256,7 +257,8 @@ function MergeLinkCard() {
 }
 
 /**
- * Quiet links under the merge card: the user guide, the About page, and introducing the app to a colleague,
+ * Quiet links under the merge card: the user guide, the About page, introducing the app to a colleague and the inquiry form,
+ * wrapping onto more lines when they do not fit the width,
  * led by the sample when onStartSample is given (once it is no longer featured under the form).
  */
 function AboutShareLinks({
@@ -303,6 +305,9 @@ function AboutShareLinks({
         </svg>
         同僚に紹介する
       </button>
+      <FeedbackLink from="start" className="underline underline-offset-2 hover:text-text transition-colors">
+        ご意見・ご要望
+      </FeedbackLink>
     </div>
   );
 }
