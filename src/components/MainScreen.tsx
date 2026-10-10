@@ -9,6 +9,8 @@ type MainTab = 'checklist' | 'photos' | 'evaluation';
 
 interface Props {
   roundData: RoundData;
+  /** A sample round: no save button, and a banner saying it is not saved */
+  isSample?: boolean;
   categories: ChecklistCategory[];
   activeTab: MainTab;
   onTabChange: (tab: MainTab) => void;
@@ -25,6 +27,7 @@ interface Props {
 
 export default function MainScreen({
   roundData,
+  isSample = false,
   categories,
   activeTab,
   onTabChange,
@@ -48,6 +51,7 @@ export default function MainScreen({
       <MainHeader
         roundData={roundData}
         categories={categories}
+        isSample={isSample}
         onInspectorChange={onInspectorChange}
         onSave={onSave}
         onHome={onHome}

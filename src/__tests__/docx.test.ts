@@ -76,3 +76,16 @@ describe('buildDocxBlob（総評の出力）', () => {
     expect(paragraphs.slice(headingIndex + 1)).toEqual(['']);
   });
 });
+
+describe('buildDocxBlob（サンプルの表題）', () => {
+  it('サンプルの報告書は表題に【サンプル】を付ける', async () => {
+    const xml = await readDocumentXml(await buildDocxBlob(makeRoundData(''), [HYGIENE], true));
+    expect(paragraphTexts(xml)).toContain('【サンプル】感染対策ラウンド報告書');
+  });
+
+  it('通常の報告書の表題は変えない', async () => {
+    const xml = await readDocumentXml(await buildDocxBlob(makeRoundData(''), [HYGIENE]));
+    expect(paragraphTexts(xml)).toContain('感染対策ラウンド報告書');
+    expect(xml).not.toContain('【サンプル】');
+  });
+});

@@ -8,12 +8,13 @@ import { trackEvent } from '../analytics';
 interface Props {
   roundData: RoundData;
   categories: ChecklistCategory[];
+  isSample: boolean;
   onInspectorChange: (name: string) => void;
   onSave: () => boolean;
   onHome: () => void;
 }
 
-export default function MainHeader({ roundData, categories, onInspectorChange, onSave, onHome }: Props) {
+export default function MainHeader({ roundData, categories, isSample, onInspectorChange, onSave, onHome }: Props) {
   const { icon } = useIcon();
 
   return (
@@ -33,10 +34,16 @@ export default function MainHeader({ roundData, categories, onInspectorChange, o
         <div className="flex items-center gap-2 flex-shrink-0">
           <ProgressBadge checklistResults={roundData.checklistResults} categories={categories} />
           <HelpLink />
-          <SaveButton onSave={onSave} />
+          {/* A sample round is never saved */}
+          {!isSample && <SaveButton onSave={onSave} />}
           <ThemeSelector />
         </div>
       </div>
+      {isSample && (
+        <p className="mt-2 -mx-4 -mb-3 px-4 py-1.5 text-xs font-bold text-center" style={{ backgroundColor: 'var(--t-primary-light)', color: 'var(--t-primary)' }}>
+          サンプルです（保存されません）
+        </p>
+      )}
     </div>
   );
 }

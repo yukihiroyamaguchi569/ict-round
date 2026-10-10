@@ -29,15 +29,17 @@ export function PhotoFormStub({ linkedItemId, categories, onAdd, onCancel }: Pho
 interface ReportPreviewStubProps {
   roundData: unknown;
   categories: { category: string }[];
+  isSample: boolean;
   onBack: () => void;
 }
 
 /** Shows the round data and categories App passes so the tests can read them back. */
-export function ReportPreviewStub({ roundData, categories, onBack }: ReportPreviewStubProps) {
+export function ReportPreviewStub({ roundData, categories, isSample, onBack }: ReportPreviewStubProps) {
   return (
     <div>
       <pre data-testid="report-round">{JSON.stringify(roundData)}</pre>
       <p data-testid="report-categories">{categories.map((c) => c.category).join(',')}</p>
+      <p data-testid="report-sample">{String(isSample)}</p>
       <button type="button" onClick={onBack}>
         stub-back
       </button>

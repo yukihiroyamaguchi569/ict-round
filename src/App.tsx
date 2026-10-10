@@ -9,6 +9,9 @@ import { useChecklistLibrary } from './useChecklistLibrary';
 import { useSavedRounds } from './useSavedRounds';
 import { useRound } from './useRound';
 import { useWhatsNew } from './useWhatsNew';
+import { useSampleStart } from './useSampleStart';
+import { CHECKLIST_CATEGORIES } from './checklistData';
+import { hasUsedRounds, shouldFeatureSample } from './roundUsage';
 
 type Screen = 'start' | 'saved-rounds' | 'round';
 
@@ -18,8 +21,10 @@ function AppContent() {
   const saved = useSavedRounds();
   const round = useRound();
   const whatsNew = useWhatsNew();
+  const sample = useSampleStart(round.startSample, () => setScreen('round'));
 
   const handleStartRound = (name: string, wardName: string) => {
+    sample.abandon();
     round.start(checklists.activeChecklist, name, wardName);
     setScreen('round');
   };
@@ -46,9 +51,13 @@ function AppContent() {
         checklists={checklists}
         whatsNew={whatsNew}
         savedRoundsCount={saved.savedRounds.length}
+        // Read on every visit to the start screen so a save or export in the round just left counts
+        featureSample={shouldFeatureSample(hasUsedRounds(), saved.savedRounds.length)}
         initialName={round.carriedInspectorName}
         onStart={handleStartRound}
-        onViewSaved={() => setScreen('saved-rounds')}
+        onStartSample={sample.start}
+        // Leaving the start screen drops a sample still loading
+        onViewSaved={() => { sample.abandon(); setScreen('saved-rounds'); }}
       />
     );
   }
@@ -67,7 +76,8 @@ function AppContent() {
   return (
     <RoundScreens
       round={round}
-      categories={checklists.activeChecklist.categories}
+      /* The sample always uses the built-in checklist, whichever one is selected */
+      categories={round.isSample ? CHECKLIST_CATEGORIES : checklists.activeChecklist.categories}
       onSave={() => round.save(checklists.activeId, saved.save)}
       onExit={() => setScreen('start')}
     />

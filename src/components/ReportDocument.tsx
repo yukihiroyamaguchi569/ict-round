@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import type { RoundData, ChecklistCategory } from '../types';
 import { findItemById } from '../checklistData';
-import { RATING_HEX } from '../docx';
+import { RATING_HEX, reportTitle } from '../docx';
 
 interface Props {
   roundData: RoundData;
@@ -87,7 +87,7 @@ function ReportPhotos({ roundData, categories, totalPhotos }: Props & { totalPho
 }
 
 /** 画面上の報告書プレビュー。並びは出力する .docx と同じ */
-export default function ReportDocument({ roundData, categories }: Props) {
+export default function ReportDocument({ roundData, categories, isSample = false }: Props & { isSample?: boolean }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const ratedCount = roundData.checklistResults.filter((r) => r.rating !== null).length;
   const totalItems = roundData.checklistResults.length;
@@ -99,7 +99,7 @@ export default function ReportDocument({ roundData, categories }: Props) {
     <div ref={reportRef} className="card p-5 max-w-2xl mx-auto space-y-6">
       {/* Title */}
       <div className="text-center pb-4">
-        <h1 className="text-lg font-extrabold text-text">感染対策ラウンド報告書</h1>
+        <h1 className="text-lg font-extrabold text-text">{reportTitle(isSample)}</h1>
         <div className="w-12 h-1 bg-primary rounded-full mx-auto mt-3" />
       </div>
 
