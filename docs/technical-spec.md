@@ -544,7 +544,7 @@ interface RoundExport {
 | `pwa_install_prompt_result` | インストールプロンプトの結果 | `outcome` |
 | `pwa_install_banner_dismiss` | バナーを閉じた時 | `method` |
 | `photo_add_attempt` | 写真追加画面で「撮影」または「ギャラリーから選択」を押した時 | `method`（`camera` / `gallery`） |
-| `photo_add_success` | 選択した写真の読み込みに成功した時 | `method`（`camera` / `gallery`）、`photo_age`（ファイルの最終更新時刻から選択時までの経過時間の区分。1 分以内 `under_1m` / 10 分以内 `1m_10m` / それより前 `over_10m`。端末の時計のずれで未来の時刻になった場合は `under_1m`。時刻そのものは送信しない） |
+| `photo_add_success` | 選択した写真の読み込みに成功した時 | `method`（`camera` / `gallery`）、`photo_age`（ファイルの最終更新時刻から選択時までの経過時間の区分。1 分以内 `under_1m` / 10 分以内 `1m_10m` / それより前 `over_10m`。端末の時計のずれで未来の時刻になった場合は `under_1m`。時刻そのものは送信しない。ブラウザによってはギャラリーから選んだファイルの最終更新時刻が選択した時刻になるため、撮影時期を正確に表す値ではなく、`method` と組み合わせて傾向を見るための値） |
 | `photo_add_failure` | 写真の追加が完了しなかった時。1 回の `photo_add_attempt` に対し、`photo_add_success` と合わせて最大 1 回 | `method`（`camera` / `gallery`）、`reason`（ファイルが 10MB を超えた `too_large` / 写真の読み込み・縮小に失敗した `compress_error` / 選択画面やカメラを閉じた `cancelled`。`cancelled` はファイル選択の `cancel` イベントに対応したブラウザでのみ送信） |
 | `checklist_import_open` | チェックリスト取り込みダイアログを開いた時 | なし |
 | `checklist_import_error` | 取り込むファイルの読み込みに失敗した時 | `file_type`（`csv` / `xlsx`） |
