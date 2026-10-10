@@ -112,7 +112,8 @@ src/
   types.ts                 Shared types: Rating, checklist definitions, Photo, RoundData, SavedRound, RoundExport
   checklistData.ts         Built-in default checklist (CHECKLIST_CATEGORIES) and item lookup helpers
   checklistImport.ts       Parses user checklists from CSV / .xlsx; file type by extension, default name, SavedChecklist building
-  checklistEditor.ts       Editor draft model and conversion of a draft into a new checklist (validation, item IDs)
+  checklistEditor.ts       Editor draft model and conversion of a draft into a new checklist (validation, item IDs); empty-draft check and adding imported categories (replace an empty draft, otherwise append)
+  checklistText.ts         Splits pasted table text (Excel / Word tab-separated, or lines recognised from a photo by the OS) into draft categories; thresholds and patterns as constants
   localId.ts               newLocalId: local ID for photos and imported checklists (random + time, base 36)
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
@@ -145,7 +146,8 @@ src/
   usePhotoDraft.ts         Hook for the photo being added: pick, shrink, comment, and hand the built Photo to onAdd; photo_add_attempt / success (with the age bucket) / failure (too_large / compress_error / cancelled via the input's native cancel event) events
   useChecklistImport.ts    Hook reading a chosen CSV / .xlsx into a preview and saving it as a new checklist
   useChecklistPicker.ts    Hook for the checklist picker: add options / import dialog / editor open state, add-then-select on save, delete confirm
-  useChecklistEditor.ts    Hook for the checklist editor: draft, category edits, discard confirm on cancel, validation on save, and the open / save events
+  useChecklistEditor.ts    Hook for the checklist editor: draft, category edits, imported categories, discard confirm on cancel, validation on save, and the open / save events
+  useChecklistTextImport.ts  Hook for the editor's paste panel: open state, pasted text, live split preview, and the checklist_text_import event (format only)
   index.css                Tailwind entry, theme CSS variables, utility classes, animations
   vite-env.d.ts            Vite type references
   components/
@@ -157,6 +159,7 @@ src/
     SavedRoundsList.tsx    List of saved rounds to reopen or delete
     ChecklistImportDialog.tsx  Dialog to import a checklist file into the library
     ChecklistEditor.tsx    Full-screen editor to create or copy-and-edit a checklist on screen (logic in useChecklistEditor)
+    ChecklistTextImport.tsx  Collapsible section of the editor to paste table text (how-to for iPhone / Android / Excel, text area, split preview, import button); logic in useChecklistTextImport
     ThemeSelector.tsx      Theme and icon picker (shown on the start screen)
     InstallBanner.tsx      PWA install prompt banner
     RoundScreens.tsx       Screens of a round in progress: main screen, add-photo, report, leave confirmation; mounted fresh per round
