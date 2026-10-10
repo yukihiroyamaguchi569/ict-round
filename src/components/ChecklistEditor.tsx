@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { SavedChecklist } from '../types';
 import { emptyItem, moveItem, type DraftCategory, type EditorDraft } from '../checklistEditor';
 import { useChecklistEditor } from '../useChecklistEditor';
+import ChecklistTextImport from './ChecklistTextImport';
 
 interface Props {
   initialDraft: EditorDraft;
@@ -193,6 +194,8 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
               className="w-full bg-surface border-2 border-line rounded-t px-3 py-2.5 text-sm text-text placeholder:text-text-faint"
             />
           </div>
+
+          <ChecklistTextImport onImport={editor.importCategories} />
 
           <p className="text-[11px] text-text-faint leading-relaxed">
             空欄の項目と、項目のないカテゴリは保存時に省かれます。
