@@ -105,6 +105,22 @@ describe('parseChecklistText: tables (tab-separated)', () => {
     ]);
   });
 
+  it('keeps numbers used as category names with one item each and a rating column', () => {
+    const text = lines('1\t手洗いを行う．\tA', '2\t清掃されている．\tB');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '1', items: ['手洗いを行う．'] },
+      { name: '2', items: ['清掃されている．'] },
+    ]);
+  });
+
+  it('still finds the number column when the table has empty rows', () => {
+    const text = lines('1\t手指衛生\t消毒剤がある．\tA', '\t\t\t', '2\t環境\t清掃されている．\tB');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '手指衛生', items: ['消毒剤がある．'] },
+      { name: '環境', items: ['清掃されている．'] },
+    ]);
+  });
+
   it('keeps a tab inside a quoted cell in the cell, as a space', () => {
     expect(simplify(parseChecklistText('手指衛生\t"消毒剤\tを確認する．"\tA'))).toEqual([
       { name: '手指衛生', items: ['消毒剤 を確認する．'] },
@@ -376,7 +392,8 @@ describe('hasNumberColumn', () => {
     ['a repeated number (numbers used as category names)', [['1', 'a', 'A'], ['1', 'b', 'B']]],
     ['a blank first cell (merged number categories)', [['1', 'a', 'A'], ['', 'b', 'B']]],
     ['a row of two cells', [['1', 'a', 'A'], ['2', 'b']]],
-    ['a first cell that is not only digits', [['1', 'a', 'A'], ['2.', 'b', 'B']]],
+    ['a first cell that is not only digits', [['1', '手指衛生', 'a'], ['2.', '環境', 'b']]],
+    ['only ratings or blanks in the third column (numbers as category names)', [['1', 'a．', 'A'], ['2', 'b．', ''], ['3', 'c．', '○']]],
   ])('is false with %s', (_, rows) => {
     expect(hasNumberColumn(rows)).toBe(false);
   });

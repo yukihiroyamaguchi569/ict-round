@@ -140,14 +140,16 @@ function readLines(lines: string[], collector: CategoryCollector): void {
 /**
  * Whether the first column of the data rows is a row number ("No."): every row has a number there,
  * all different, with a category and an item after it. Category names that happen to be numbers
- * repeat or are left blank in merged cells, so they are not taken for a number column.
+ * repeat, are left blank in merged cells, or are followed by an item and only a rating column
+ * (the third cells all ratings or blank), so they are not taken for a number column.
  */
 export function hasNumberColumn(rows: string[][]): boolean {
   const firsts = rows.map((cells) => cells[0]);
   return (
     rows.length > 0 &&
     rows.every((cells) => cells.length >= 3 && /^\d+$/.test(cells[0])) &&
-    new Set(firsts).size === firsts.length
+    new Set(firsts).size === firsts.length &&
+    !rows.every((cells) => cells[2] === '' || RATING_ONLY.test(cells[2]))
   );
 }
 
@@ -170,7 +172,9 @@ export function unquoteCells(text: string): string {
 function readTable(lines: string[], collector: CategoryCollector): void {
   const rows = lines.map((line) => (line.includes('\t') ? line.split('\t').map(normalizeLine) : null));
   const isHeaderRow = (cells: string[]) => cells.some(isHeaderWord);
-  const dataRows = rows.filter((cells): cells is string[] => cells !== null && !isHeaderRow(cells));
+  const dataRows = rows.filter(
+    (cells): cells is string[] => cells !== null && !isHeaderRow(cells) && cells.some((cell) => cell !== ''),
+  );
   const skip = hasNumberColumn(dataRows) ? 1 : 0;
 
   lines.forEach((line, i) => {
