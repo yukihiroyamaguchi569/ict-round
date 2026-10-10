@@ -118,6 +118,7 @@ src/
   roundDirty.ts            Unsaved-change detection via round snapshots
   sampleRound.ts           Pure builder of the sample round (built-in checklist, fixed ratings / evaluation, sample participant and ward) and the bundled sample photo definitions
   samplePhotos.ts          Fetches the bundled sample photos (public/sample/) as data URLs with a timeout; a photo that fails is left out
+  roundUsage.ts            localStorage mark that a real round was saved or exported on this device, and whether the start screen features the sample
   roundData.ts             Pure round updates (start, rating, photos, evaluation, participant name), Photo and SavedRound building and the save-error message
   photoImage.ts            Photo file size limit, scaled size, and canvas shrinking with the EXIF orientation applied (compressImage)
   localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
@@ -181,7 +182,7 @@ src/
     mergeRounds.ts         Validates RoundExport and merges reports into department columns keyed by checklist item
     mergedDocx.ts          Builds the merged landscape .docx (item x department rating table, then evaluations and photos per department)
     mergedTableWidths.ts   Column width constants of the merged table and the readable department limit (shared by mergedDocx and mergeRounds)
-  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts; the App*.test.tsx files share components/appTestHelpers.tsx and stub the add-photo / report screens with components/appStubs.tsx); fixtures/ holds sample .xlsx, a tiny .jpg and roundDocx.ts (builds report .docx files with embedded round data)
+  __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts; the App*.test.tsx files share components/appTestHelpers.tsx and stub the add-photo / report screens with components/appStubs.tsx, except AppSampleFeatured.test.tsx which keeps the real report screen); fixtures/ holds sample .xlsx, a tiny .jpg and roundDocx.ts (builds report .docx files with embedded round data)
 merge.html                 HTML entry of the merge page (second Vite input in vite.config.ts)
 e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
 playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4317
