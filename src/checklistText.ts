@@ -1,4 +1,4 @@
-import { newKey, type DraftCategory } from './checklistEditor';
+import { newKey, type DraftCategory, type DraftItem } from './checklistEditor';
 
 // Splits pasted text of a checklist table into editor draft categories.
 // Two sources are expected: a table copied from Excel / Word (tab-separated cells), and
@@ -11,6 +11,12 @@ export type TextFormat = 'table' | 'lines';
 /** A line up to this many characters, without a sentence ending, is read as a category name. */
 export const CATEGORY_MAX_LENGTH = 15;
 
+/**
+ * The tail of an item wrapped in its table cell is at most this long: Live Text reads
+ * "…配置してい" and "る．" as two lines.
+ */
+export const WRAP_TAIL_MAX_LENGTH = 4;
+
 /** Header cells of a checklist table, e.g. the report's "ジャンル | チェック項目 | 評価". */
 const HEADER_WORDS = new Set([
   'ジャンル', 'カテゴリ', 'カテゴリー', 'カテゴリ名', '分類', '区分', '大項目',
@@ -22,7 +28,7 @@ const HEADER_WORDS = new Set([
 const RATING = '(?:[ABCＡＢＣ]|[○◯〇×✕✖△▲－\\-ー―])';
 const RATING_ONLY = new RegExp(`^${RATING}$`);
 /** A rating after an item's sentence ending, with or without a space: "…いる．A" */
-const RATING_AFTER_SENTENCE = new RegExp(`([。．.）)])\\s*${RATING}$`);
+const RATING_AFTER_SENTENCE = new RegExp(`([。．.、，,）)])\\s*${RATING}$`);
 /** A rating separated by a space at the end of a line: "…いる A" */
 const RATING_AFTER_SPACE = new RegExp(`\\s+${RATING}$`);
 /**
@@ -39,14 +45,23 @@ const CATEGORY_MARK = /^[■□●◆◇【#＃]+\s*/;
 /** A heading number at the start of a line: "1." "1．" "1、" "1)" "(1)" "（1）" "①". */
 const HEADING_NUMBER = /^(?:\d+[.．、)）]|[(（]\d+[)）]|[①-⑳])\s*/;
 
-/** The end of a sentence; items usually end with one. */
-const SENTENCE_END = /[。．.]$/;
+/**
+ * The end of a sentence; items usually end with one. A comma counts too: text recognised from a
+ * photo often reads "．" at the end of an item as "、" or "，", and a category name never ends with one.
+ */
+const SENTENCE_END = /[。．.、，,]$/;
 /** Predicate endings that mark an item even without a full stop: "…いる", "…ない". */
 const ITEM_ENDING = /(?:いる|ない|ある|する|れる|こと)$/;
 
-/** Tidies one line: full-width and repeated spaces become one space; tabs (empty cells) are kept. */
+/** Dots recognised in place of "・" (nakaguro): "汚物室•トイレ". */
+const NAKAGURO_LOOKALIKES = /[\u2022\u00b7\uff65]/g;
+
+/**
+ * Tidies one line: full-width and repeated spaces become one space; tabs (empty cells) are kept.
+ * Dots recognised in place of "・" become "・", so the same name read twice is one category.
+ */
 export function normalizeLine(line: string): string {
-  return line.replace(/[\u3000\u00a0 ]+/g, ' ').replace(/^ | $/g, '');
+  return line.replace(/[\u3000\u00a0 ]+/g, ' ').replace(/^ | $/g, '').replace(NAKAGURO_LOOKALIKES, '・');
 }
 
 function isHeaderWord(word: string): boolean {
@@ -69,6 +84,25 @@ export function stripTrailingRating(line: string): string {
 /** Whether text ends like a sentence (full stop or predicate), as checklist items do. */
 function looksLikeSentence(text: string): boolean {
   return SENTENCE_END.test(text) || ITEM_ENDING.test(text);
+}
+
+/** Text that stops in the middle of a word, as the first line of a wrapped item does: "…配置してい". */
+const OPEN_ENDING = /[\u3040-\u30ff\u3400-\u9fffA-Za-z0-9０-９]$/;
+/** The tail of a wrapped item starts with Japanese text, so a bare number ("1.") is never taken for one. */
+const TAIL_START = /^[\u3040-\u30ff\u3400-\u9fff]/;
+
+/**
+ * Whether a line is the rest of the item above, wrapped in its table cell ("…してい" then "る．"):
+ * the item stops mid-word, and the line is short, starts with Japanese text and ends like a sentence.
+ */
+export function isWrappedItemTail(item: string, line: string): boolean {
+  return (
+    OPEN_ENDING.test(item) &&
+    !looksLikeSentence(item) &&
+    line.length <= WRAP_TAIL_MAX_LENGTH &&
+    TAIL_START.test(line) &&
+    looksLikeSentence(line)
+  );
 }
 
 /** Whether a piece of text reads as a category name: short, and not ending like a sentence. */
@@ -118,7 +152,10 @@ export function classifyLine(line: string, marksOnly = false): LineKind {
 class CategoryCollector {
   private readonly categories: DraftCategory[] = [];
   private readonly byName = new Map<string, DraftCategory>();
+  /** Names read with their end wrapped off ("汚物室・トイ") mapped to the whole name ("汚物室・トイレ"). */
+  private readonly wrappedNames = new Map<string, string>();
   private current = '';
+  private lastItem: DraftItem | null = null;
 
   private categoryNamed(name: string): DraftCategory {
     let category = this.byName.get(name);
@@ -131,12 +168,41 @@ class CategoryCollector {
   }
 
   setCategory(name: string): void {
-    this.current = name;
-    this.categoryNamed(name);
+    this.current = this.wrappedNames.get(name) ?? name;
+    this.categoryNamed(this.current);
+    this.lastItem = null;
   }
 
   add(text: string): void {
-    this.categoryNamed(this.current).items.push({ key: newKey(), description: text });
+    this.lastItem = { key: newKey(), description: text };
+    this.categoryNamed(this.current).items.push(this.lastItem);
+  }
+
+  /** Joins a line to the item just added when it is that item's wrapped tail; false otherwise. */
+  joinItemTail(line: string): boolean {
+    if (!this.lastItem || !isWrappedItemTail(this.lastItem.description, line)) return false;
+    this.lastItem.description += line;
+    return true;
+  }
+
+  /**
+   * Handles a category line that is the end of a category name wrapped in its cell: "汚物室・トイ 汚物処理室…"
+   * then "レ". It is taken as one only when the row after it starts with the same cut name again (so a
+   * real category after a row is not glued on), and then that cut name stands for the whole name from
+   * here on. A later line with the same end after a row of the cut name is dropped. False otherwise.
+   */
+  joinCategoryTail(rowCategory: string, tail: string, nextRowCategory: string | undefined): boolean {
+    const whole = rowCategory + tail;
+    if (this.wrappedNames.get(rowCategory) === whole) return true;
+    const category = this.byName.get(rowCategory);
+    const isWrap = nextRowCategory === rowCategory && looksLikeCategory(whole) && !this.byName.has(whole);
+    if (!category || this.wrappedNames.has(rowCategory) || !isWrap) return false;
+    this.byName.delete(rowCategory);
+    category.name = whole;
+    this.byName.set(whole, category);
+    this.wrappedNames.set(rowCategory, whole);
+    this.current = whole;
+    return true;
   }
 
   result(): DraftCategory[] {
@@ -149,13 +215,34 @@ function hasMarkedLine(lines: string[]): boolean {
   return lines.some((line) => CATEGORY_MARK.test(line) && line.replace(CATEGORY_MARK, '') !== '');
 }
 
+interface ReadLine {
+  /** The line without a trailing rating. */
+  text: string;
+  kind: LineKind;
+}
+
+function toReadLines(lines: string[], marksOnly: boolean): ReadLine[] {
+  return lines
+    .filter((line) => !isNoiseLine(line))
+    .map((line) => {
+      // A marked line is a category name, so a trailing letter there ("■ 病棟 A") is not a rating
+      const text = CATEGORY_MARK.test(line) ? line : stripTrailingRating(line);
+      return { text, kind: classifyLine(text, marksOnly) };
+    });
+}
+
+function rowCategoryOf(line: ReadLine | undefined): string | undefined {
+  return line?.kind.kind === 'row' ? line.kind.category : undefined;
+}
+
 function readLines(lines: string[], collector: CategoryCollector, marksOnly: boolean): void {
-  for (const line of lines) {
-    if (isNoiseLine(line)) continue;
-    // A marked line is a category name, so a trailing letter there ("■ 病棟 A") is not a rating
-    const kind = classifyLine(CATEGORY_MARK.test(line) ? line : stripTrailingRating(line), marksOnly);
+  const read = toReadLines(lines, marksOnly);
+  read.forEach(({ text, kind }, i) => {
+    if (!CATEGORY_MARK.test(text) && collector.joinItemTail(text)) return;
     // A bare mark or number ("■", "1.") names nothing; keep the current category
     if (kind.kind === 'category') {
+      const rowCategory = rowCategoryOf(read[i - 1]);
+      if (rowCategory !== undefined && collector.joinCategoryTail(rowCategory, kind.name, rowCategoryOf(read[i + 1]))) return;
       if (kind.name) collector.setCategory(kind.name);
     } else if (kind.kind === 'row') {
       collector.setCategory(kind.category);
@@ -163,7 +250,7 @@ function readLines(lines: string[], collector: CategoryCollector, marksOnly: boo
     } else if (kind.text) {
       collector.add(kind.text);
     }
-  }
+  });
 }
 
 /** Every row starts with a number, all different, followed by at least two more cells. */

@@ -338,6 +338,10 @@ describe('normalizeLine', () => {
     expect(normalizeLine('　手指衛生　　消毒剤 がある  ')).toBe('手指衛生 消毒剤 がある');
   });
 
+  it('turns dots recognised in place of "・" into "・"', () => {
+    expect(normalizeLine('汚物室•トイレ 汚物室·トイレ 汚物室･トイレ')).toBe('汚物室・トイレ 汚物室・トイレ 汚物室・トイレ');
+  });
+
   it('keeps tabs, including a leading tab for an empty first cell', () => {
     expect(normalizeLine('\t消毒剤がある．\tA')).toBe('\t消毒剤がある．\tA');
   });
@@ -370,6 +374,8 @@ describe('stripTrailingRating', () => {
     ['記録があるＢ', '記録がある'],
     ['手袋を交換している×', '手袋を交換している'],
     ['表示を確認すること○', '表示を確認すること'],
+    ['行えている、A', '行えている、'],
+    ['行えている，Ｂ', '行えている，'],
   ])('turns %s into %s', (line, expected) => expect(stripTrailingRating(line)).toBe(expected));
 
   it.each(['PPE', 'カバー', 'ゴミボックスー', '手指衛生 PPE', '消毒剤がある．', 'ABC', '病棟A', 'ビタミンC', '手指消毒を行うA', '表示「済」○'])('leaves %s as it is', (line) =>
@@ -383,7 +389,7 @@ describe('looksLikeCategory', () => {
     expect(looksLikeCategory('あ'.repeat(CATEGORY_MAX_LENGTH + 1))).toBe(false);
   });
 
-  it.each(['点滴ルートが床についていない．', '清掃した。', 'ok.', '整理している', '汚れがない', '記載がある', '確認する', '保管されれる', '守ること'])(
+  it.each(['点滴ルートが床についていない．', '清掃した。', 'ok.', '整理している', '汚れがない', '記載がある', '確認する', '保管されれる', '守ること', '記録する、', '記録する，', '記録する,'])(
     'rejects the sentence-like %s',
     (text) => expect(looksLikeCategory(text)).toBe(false),
   );
