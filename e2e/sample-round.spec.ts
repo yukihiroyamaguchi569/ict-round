@@ -38,4 +38,7 @@ test('サンプルデータで試すと報告書を出力でき、トップに�
   expect(await page.evaluate(() => localStorage.getItem('icn-round:saved-rounds'))).toBeNull();
   // The participant field is not pre-filled with the sample participant.
   await expect(page.getByPlaceholder('例: 山田 花子')).toHaveValue('');
+  // Exporting the sample does not count as using the app, so the sample stays featured.
+  await expect(page.getByRole('button', { name: /サンプルデータで試す.*入力済みの例/ })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('icn-round:round-used'))).toBeNull();
 });

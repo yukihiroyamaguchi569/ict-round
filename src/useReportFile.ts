@@ -5,6 +5,7 @@ import { buildDocxBlob, reportTitle } from './docx';
 import { embedRoundExport } from './roundExportDocx';
 import { trackEvent } from './analytics';
 import { localDateString } from './localDate';
+import { markRoundsUsed } from './roundUsage';
 
 // Variant A 検証中: type を省略しているため一時的に未使用（Variant B/恒久対応で復活）
 // const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -92,6 +93,7 @@ export function useReportFile(roundData: RoundData, categories: ChecklistCategor
     }).then(() => {
       // Count only completed shares, same as main (PR #87): a cancelled share sheet is not an export.
       trackEvent('round_export', { method: 'share', sample: isSample });
+      if (!isSample) markRoundsUsed();
     }).catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('共有エラー:', err);
@@ -105,6 +107,7 @@ export function useReportFile(roundData: RoundData, categories: ChecklistCategor
     if (!shareFile) return;
     saveAs(shareFile, shareFile.name);
     trackEvent('round_export', { method: 'download', sample: isSample });
+    if (!isSample) markRoundsUsed();
   };
 
   return { shareFile, shareFailed, buildError, sharing, canShare, handleShare, handleDownload };

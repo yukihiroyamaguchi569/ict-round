@@ -295,3 +295,70 @@ describe('ReportPreview of the sample round', () => {
     await waitFor(() => expect(buildDocxBlob).toHaveBeenCalledWith(roundData, categories, false));
   });
 });
+
+describe('ReportPreview marking this device as having used rounds', () => {
+  const ROUND_USED_KEY = 'icn-round:round-used';
+
+  it('marks it after a completed share of a normal report', async () => {
+    stubShare();
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: '共有' }));
+
+    await waitFor(() => expect(localStorage.getItem(ROUND_USED_KEY)).toBe('1'));
+  });
+
+  it('marks it after downloading a normal report', async () => {
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: 'Word出力' }));
+
+    expect(localStorage.getItem(ROUND_USED_KEY)).toBe('1');
+  });
+
+  it('does not mark it for a cancelled or failed share', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const share = stubShare();
+    share.mockRejectedValueOnce(new DOMException('cancelled', 'AbortError'));
+    share.mockRejectedValueOnce(new DOMException('denied', 'NotAllowedError'));
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: '共有' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '共有' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: '共有' }));
+    expect(await screen.findByText(/共有できませんでした。/)).toBeInTheDocument();
+
+    expect(localStorage.getItem(ROUND_USED_KEY)).toBeNull();
+  });
+
+  it('does not mark it when the sample is shared', async () => {
+    stubShare();
+    const user = renderPreview(true);
+
+    await user.click(await screen.findByRole('button', { name: '共有' }));
+    await waitFor(() => expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'share', sample: true }));
+
+    expect(localStorage.getItem(ROUND_USED_KEY)).toBeNull();
+  });
+
+  it('does not mark it when the sample is downloaded', async () => {
+    const user = renderPreview(true);
+
+    await user.click(await screen.findByRole('button', { name: 'Word出力' }));
+
+    expect(saveAs).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(ROUND_USED_KEY)).toBeNull();
+  });
+
+  it('still exports when the mark cannot be written', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+    const user = renderPreview();
+
+    await user.click(await screen.findByRole('button', { name: 'Word出力' }));
+
+    expect(saveAs).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download', sample: false });
+  });
+});

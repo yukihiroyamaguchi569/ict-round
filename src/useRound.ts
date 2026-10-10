@@ -16,6 +16,7 @@ import {
 } from './roundData';
 import { buildSampleRound, type SamplePhotoImages } from './sampleRound';
 import { trackEvent } from './analytics';
+import { markRoundsUsed } from './roundUsage';
 
 /**
  * The round being recorded: its data, which saved round it came from or was saved as,
@@ -64,6 +65,7 @@ export function useRound() {
       }
       setSavedRoundId(id);
       savedSnapshotRef.current = snapshotRound(roundData);
+      if (!isSample) markRoundsUsed();
       return true;
     },
     forgetSavedRound: (id: string) => {

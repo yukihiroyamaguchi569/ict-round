@@ -14,6 +14,8 @@ interface Props {
   library: SavedChecklist[];
   activeId: string;
   savedRoundsCount: number;
+  /** Show the sample prominently under the form instead of among the quiet links */
+  featureSample: boolean;
   initialName: string;
   onStart: (name: string, wardName: string) => void;
   onStartSample: () => Promise<void>;
@@ -27,6 +29,7 @@ export default function RoundStart({
   library,
   activeId,
   savedRoundsCount,
+  featureSample,
   initialName,
   onStart,
   onStartSample,
@@ -75,14 +78,14 @@ export default function RoundStart({
           onViewSaved={onViewSaved}
         />
 
-        {/* First-time users get the sample right under the form; after that it moves to the quiet links */}
-        {savedRoundsCount === 0 && <SampleTryButton prominent onStartSample={onStartSample} />}
+        {/* Until a real round is saved or exported, the sample sits right under the form; after that it moves to the quiet links */}
+        {featureSample && <SampleTryButton prominent onStartSample={onStartSample} />}
 
         <InstallBanner />
 
         <MergeLinkCard />
 
-        <AboutShareLinks onOpenShare={share.openDialog} shareTriggerRef={share.triggerRef} onStartSample={savedRoundsCount > 0 ? onStartSample : undefined} />
+        <AboutShareLinks onOpenShare={share.openDialog} shareTriggerRef={share.triggerRef} onStartSample={featureSample ? undefined : onStartSample} />
 
         <p className="text-center text-text-faint text-xs mt-8">ICTラウンドアプリ「{icon.label}」 v{__APP_VERSION__} (build {__BUILD_DATE__})</p>
       </div>
@@ -254,7 +257,7 @@ function MergeLinkCard() {
 
 /**
  * Quiet links under the merge card: the user guide, the About page, and introducing the app to a colleague,
- * led by the sample when onStartSample is given (once rounds have been saved).
+ * led by the sample when onStartSample is given (once it is no longer featured under the form).
  */
 function AboutShareLinks({
   onOpenShare,

@@ -11,6 +11,7 @@ import { useRound } from './useRound';
 import { useWhatsNew } from './useWhatsNew';
 import { useSampleStart } from './useSampleStart';
 import { CHECKLIST_CATEGORIES } from './checklistData';
+import { hasUsedRounds, shouldFeatureSample } from './roundUsage';
 
 type Screen = 'start' | 'saved-rounds' | 'round';
 
@@ -50,6 +51,8 @@ function AppContent() {
         checklists={checklists}
         whatsNew={whatsNew}
         savedRoundsCount={saved.savedRounds.length}
+        // Read on every visit to the start screen so a save or export in the round just left counts
+        featureSample={shouldFeatureSample(hasUsedRounds(), saved.savedRounds.length)}
         initialName={round.carriedInspectorName}
         onStart={handleStartRound}
         onStartSample={sample.start}

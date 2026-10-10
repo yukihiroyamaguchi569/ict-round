@@ -17,6 +17,7 @@ function renderStart() {
           library={[]}
           activeId=""
           savedRoundsCount={0}
+          featureSample
           initialName=""
           onStart={vi.fn()}
           onStartSample={vi.fn(() => Promise.resolve())}
