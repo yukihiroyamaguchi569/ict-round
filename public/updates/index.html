@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YYCY51HV7R"></script>
+  <!-- Google tag (gtag.js): loaded on the production host only, so preview deployments
+       and local builds do not report to GA4. Keep the host in sync with
+       PRODUCTION_HOSTNAME in src/analytics.ts (this page is not bundled). -->
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-YYCY51HV7R');
+    if (location.hostname === 'ict-round.conect.llc') {
+      var gtagScript = document.createElement('script');
+      gtagScript.async = true;
+      gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-YYCY51HV7R';
+      document.head.appendChild(gtagScript);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function(){dataLayer.push(arguments);};
+      gtag('js', new Date());
+      gtag('config', 'G-YYCY51HV7R');
+    }
   </script>
   <title>アップデート情報 — めぐる君</title>
   <meta name="description" content="めぐる君のアップデート履歴。バージョンごとの変更点をまとめています。">
