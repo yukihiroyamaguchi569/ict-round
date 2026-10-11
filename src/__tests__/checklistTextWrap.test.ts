@@ -227,9 +227,10 @@ describe('parseChecklistText: items and category names wrapped in their cells', 
   });
 
   it('keeps a short row with its own category after an unfinished long item', () => {
-    expect(simplify(parseChecklistText(lines('環境 病棟の入口に手指消毒剤を設置して', '薬 有．')))).toEqual([
+    // A row needs a head of two characters or more (a single one comes from a vertical category column)
+    expect(simplify(parseChecklistText(lines('環境 病棟の入口に手指消毒剤を設置して', '薬品 有．')))).toEqual([
       { name: '環境', items: ['病棟の入口に手指消毒剤を設置して'] },
-      { name: '薬', items: ['有．'] },
+      { name: '薬品', items: ['有．'] },
     ]);
   });
 

@@ -93,8 +93,8 @@ describe('classifyLine: heading numbers, bullets and marks', () => {
     expect(classifyLine('・ 病室 1）部屋ごとに手洗い場がある')).toEqual({ kind: 'row', category: '病室', text: '部屋ごとに手洗い場がある', numbered: true });
     expect(classifyLine('・ 手洗い場が整備されている')).toEqual({ kind: 'item', text: '手洗い場が整備されている' });
     expect(classifyLine('・ 病室')).toEqual({ kind: 'category', name: '病室' });
-    // Without a space the dot is part of the text
-    expect(classifyLine('・病室')).toEqual({ kind: 'category', name: '・病室' });
+    // Without a space the dot marks a subheading and is dropped (see checklistTextRealForms.test.ts)
+    expect(classifyLine('・病室')).toEqual({ kind: 'category', name: '病室' });
   });
 
   it('splits a marked line into a row when it has that shape, and otherwise keeps it a category', () => {
