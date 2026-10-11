@@ -67,6 +67,27 @@ const PAGE_NUMBERS = [
 /** Marks at the start of a line that make it a category: ■ □ ● ◆ ◇ 【 # */
 const CATEGORY_MARK = /^[■□●◆◇【#＃]+\s*/;
 /**
+ * A check box with a space after it: "☐ " "✓ ", or "□" misread as "口 " / "ロ ". Stuck to the text ("口換気扇…")
+ * it is left: "口腔ケア" and "ロッカー" start the same way. "□ " and "■ " are category marks (see isCheckBoxRest).
+ */
+const CHECK_BOX = /^[☐☑✓✔口ロ]\s+/;
+/** A marked line longer than this is a check box when the rest is a sentence of any kind (see isCheckBoxRest). */
+const MARKED_HEADING_MAX_LENGTH = 40;
+/** A comma inside a line: a category name has none. */
+const COMMA = /[、，,]/;
+/**
+ * A "□はい □いいえ" answer column at the end of a line, read as "口はい 口いいえ", "口はいいいえ", "口はい一口いいえ"…
+ */
+const ANSWER_COLUMN = / ?[□■口ロ]? ?はい ?[一ー]? ?[□■口ロ]? ?いいえ$/;
+/**
+ * A heading number stuck to a name starting with a kanji: "2手洗い", "3排泄ケア（おむつ交換を含む）". A unit after
+ * the number ("15秒以上…", "3階") is part of an item, and a number stuck to kana is a row number (GLUED_ROW_NUMBER).
+ */
+const GLUED_HEADING_NUMBER = /^\d+(?=[\u3400-\u9fff])/;
+const UNIT_START = /^[秒分時日月年回階人名本枚個台件]/;
+/** The title of a form: "…チェックリスト", "…点検表", also with a bracket after it ("…チェックリスト（職員向け）"). */
+const TITLE = /(?:チェックリスト|チェックシート|チェック表|点検表|点検票|管理票|項目表|一覧表|一覧)(?:[（(][^（()）]*[)）])?$/;
+/**
  * A bullet at the start of a line: "・ " ("•" is tidied to "・"). Not a category mark: Live Text also reads
  * a list bullet or a misread "1." as one.
  */
@@ -137,8 +158,11 @@ export function stripTrailingRating(line: string): string {
   return looksLikeSentence(glued) ? glued : spaced;
 }
 
-/** A particle before a comma: the sentence goes on in the next line ("…記録がない場合は、" then "清掃担当…"). */
-const PARTICLE_COMMA_END = /[のがをにとはでもへや][、，,]$/;
+/**
+ * A particle before a comma: the sentence goes on in the next line ("…記録がない場合は、" then "清掃担当…",
+ * "…拭き取ってから、" then "持続殺菌…").
+ */
+const PARTICLE_COMMA_END = /(?:[のがをにとはでもへやて]|から)[、，,]$/;
 
 /**
  * Whether text ends like a sentence (full stop or predicate), as checklist items do. A comma after a
@@ -154,17 +178,15 @@ const OPEN_ENDING = /[\u3040-\u30ff\u3400-\u9fffA-Za-z0-9０-９]$/;
 const TAIL_START = /^[\u3040-\u30ff\u3400-\u9fff]/;
 /** Hiragana at the start of a line: a verb ending cut off its noun ("交換" then "されている"). */
 const HIRAGANA_START = /^[\u3040-\u309f]/;
-/** Hiragana at the end of an item: the item stops inside a verb ending ("…配置してい"). */
-const HIRAGANA_END = /[\u3040-\u309f]$/;
 
 /**
  * How a wrapped tail ends: with a full stop (or a comma read in its place), or with a predicate ending
- * that carries on a noun ("…交換" then "されている"). An item that already stops inside a verb ending
- * ("…配置してい") needs the full stop, so "いる" or an item of its own ("確認する") is not glued on.
+ * starting in hiragana ("…交換" then "されている", "…配置され" then "ている"). An item of its own starts
+ * with its noun ("確認する").
  */
-function endsLikeTail(item: string, line: string): boolean {
+function endsLikeTail(line: string): boolean {
   if (SENTENCE_END.test(line)) return true;
-  return ITEM_ENDING.test(line) && HIRAGANA_START.test(line) && !HIRAGANA_END.test(item);
+  return ITEM_ENDING.test(line) && HIRAGANA_START.test(line);
 }
 
 /**
@@ -180,7 +202,7 @@ export function isWrappedItemTail(item: string, line: string): boolean {
     !looksLikeSentence(item) &&
     line.length <= WRAP_TAIL_MAX_LENGTH &&
     TAIL_START.test(line) &&
-    endsLikeTail(item, line)
+    endsLikeTail(line)
   );
 }
 
@@ -189,8 +211,11 @@ export function bracketDepth(text: string): number {
   return (text.match(/[（(]/g)?.length ?? 0) - (text.match(/[）)]/g)?.length ?? 0);
 }
 
-/** A particle at the end of a line: the sentence goes on in the next line ("…チェックが" then "行われている"). */
-const PARTICLE_END = /[のがをにとはでもへや]$/;
+/**
+ * A particle at the end of a line: the sentence goes on in the next line ("…チェックが" then "行われている",
+ * "…共同して" then "行っている。"). "…について" ends a heading-like line more often than it wraps.
+ */
+const PARTICLE_END = /[のがをにとはでもへや]$|(?<!につい)て$/;
 /**
  * The start of a line that cannot start an item: a particle, a long vowel mark, a small kana,
  * a closing bracket or a comma ("の適正手技…", "ーション、…", "ル）暴露対策…" after "…フタラー").
@@ -198,18 +223,27 @@ const PARTICLE_END = /[のがをにとはでもへや]$/;
 const CONTINUATION_START = /^[のがをにとはでもへやーぁぃぅぇぉっゃゅょァィゥェォッャュョ）)、，,]/;
 /** A particle that starts the next line of an unfinished item ("…手指" then "から手全体…"); "から拭き" can start one. */
 const PARTICLE_START = /^から/;
+/** A katakana word cut at the end of a line ("…ディスポーザブ" then "ル製品を…"). */
+const KATAKANA_END = /[\u30a1-\u30fc]$/;
+const KATAKANA_START = /^[\u30a1-\u30fa]/;
+
+/** A katakana word wrapped over two lines: an unfinished item that filled its cell ends in katakana, the line starts in it. */
+function continuesKatakana(item: string, line: string): boolean {
+  return item.length > CATEGORY_MAX_LENGTH && !looksLikeSentence(item) && KATAKANA_END.test(item) && KATAKANA_START.test(line);
+}
 
 /**
  * Whether a line goes on from the item above rather than starting an item:
  * the item is unfinished (a bracket left open, or a particle at the end, also before a comma), unless both
  * start with a heading number (a numbered list, where Live Text may have dropped a closing bracket); or the
  * line starts like a continuation (or with "から" after an item that does not end like a sentence), or
- * closes a bracket it did not open; or it is a short wrapped tail.
+ * closes a bracket it did not open; or it is a short wrapped tail or the rest of a katakana word.
  */
 export function continuesItem(item: string, line: string, bothNumbered: boolean): boolean {
   const unfinished = bracketDepth(item) > 0 || PARTICLE_END.test(item) || PARTICLE_COMMA_END.test(item);
   if (unfinished && !bothNumbered) return true;
   if (PARTICLE_START.test(line) && !looksLikeSentence(item)) return true;
+  if (continuesKatakana(item, line)) return true;
   return CONTINUATION_START.test(line) || bracketDepth(line) < 0 || isWrappedItemTail(item, line);
 }
 
@@ -226,9 +260,15 @@ export function rowNumberContinues(item: string, itemNumbered: boolean): boolean
   return !itemNumbered && !looksLikeSentence(item) && !CLOSED_BRACKET_END.test(item);
 }
 
-/** Whether a piece of text reads as a category name: short, and not ending like a sentence. */
+/** A note in brackets at the end of a line: "（推奨）", "（おむつ交換を含む）". */
+const TRAILING_NOTE = /[（(][^（()）]*[)）]$/;
+
+/**
+ * Whether a piece of text reads as a category name: short, and not ending like a sentence, also before a
+ * note in brackets ("用している（推奨）" is the end of an item).
+ */
 export function looksLikeCategory(text: string): boolean {
-  return text.length <= CATEGORY_MAX_LENGTH && !looksLikeSentence(text);
+  return text.length <= CATEGORY_MAX_LENGTH && !looksLikeSentence(text) && !looksLikeSentence(text.replace(TRAILING_NOTE, ''));
 }
 
 /** A row's item says whether it started with a heading number ("外来処置室 1）…"). */
@@ -278,25 +318,67 @@ function subheadingName(line: string, marksOnly: boolean): string | null {
 }
 
 /**
- * Classifies one normalised, non-noise line of recognised text. A subheading ("・共通項目", "Ⅰ 全般") is a
+ * Whether the rest of a marked line is an item behind a check box ("■" read for "□"), not a category name:
+ * longer than a category name and a sentence (also before a rating), or with a comma, or longer than any heading.
+ */
+function isCheckBoxRest(rest: string): boolean {
+  if (rest.length <= CATEGORY_MAX_LENGTH) return false;
+  return looksLikeSentence(stripTrailingRating(rest)) || COMMA.test(rest) || rest.length > MARKED_HEADING_MAX_LENGTH;
+}
+
+/** The rest of a marked line, without the mark, a closing "】" and a heading number. */
+function markedRest(line: string): string {
+  return line.replace(CATEGORY_MARK, '').replace(/】/g, ' ').trim().replace(HEADING_NUMBER, '');
+}
+
+/** Whether a line is marked as a category or a row by the user ("■手指衛生"), not a check box before an item. */
+function isMarkedHeading(line: string): boolean {
+  if (!CATEGORY_MARK.test(line)) return false;
+  const rest = markedRest(line);
+  return splitRow(rest) !== null || !isCheckBoxRest(rest);
+}
+
+/** The name of a heading with its number stuck to it ("2手洗い" → "手洗い"), or null. */
+function gluedHeadingName(line: string): string | null {
+  if (!GLUED_HEADING_NUMBER.test(line)) return null;
+  const name = line.replace(GLUED_HEADING_NUMBER, '');
+  return UNIT_START.test(name) || !looksLikeCategory(name) ? null : name;
+}
+
+/** Whether a line is the title of the form ("…チェックリスト"). */
+function isTitle(line: string): boolean {
+  return line.length <= SUBHEADING_MAX_LENGTH && TITLE.test(line);
+}
+
+/** A marked line ("■"): a row if it splits into one, the rest classified if the mark is a check box, else a category. */
+function classifyMarkedLine(line: string, marksOnly: boolean): LineKind {
+  const name = markedRest(line);
+  const row = splitRow(name);
+  if (row) return row;
+  return isCheckBoxRest(name) ? classifyLine(name, marksOnly) : { kind: 'category', name };
+}
+
+/**
+ * Classifies one normalised, non-noise line of recognised text. A check box ("口 ", "ロ ", or "■" before an
+ * item, see isCheckBoxRest) is dropped and the rest is classified. A subheading ("・共通項目", "Ⅰ 全般") is a
  * category. Otherwise a bullet ("・ "), a row number ("91 ") and then a heading number are dropped first.
  * A marked line ("■") is a row if it splits into one, otherwise a category.
  * With marksOnly (the text has marked lines, so the user has said which lines are categories)
- * every other line is an item. Otherwise the line is guessed by its shape: a row, a short category
- * name, or an item.
+ * every other line is an item. Otherwise the line is guessed by its shape: a row, the form's title, a
+ * heading with its number stuck to it ("2手洗い"), a short category name, or an item.
  */
 export function classifyLine(line: string, marksOnly = false): LineKind {
-  if (CATEGORY_MARK.test(line)) {
-    const name = line.replace(CATEGORY_MARK, '').replace(/】/g, ' ').trim().replace(HEADING_NUMBER, '');
-    return splitRow(name) ?? { kind: 'category', name };
-  }
+  if (CHECK_BOX.test(line)) return classifyLine(line.replace(CHECK_BOX, ''), marksOnly);
+  if (CATEGORY_MARK.test(line)) return classifyMarkedLine(line, marksOnly);
   const subheading = subheadingName(line, marksOnly);
   if (subheading !== null) return { kind: 'category', name: subheading };
   const body = line.replace(BULLET_MARK, '').replace(ROW_NUMBER, '').replace(HEADING_NUMBER, '').replace(ROMAN_HEADING, '');
   if (marksOnly) return { kind: 'item', text: body };
+  if (isTitle(body)) return { kind: 'category', name: body };
   const row = splitRow(body);
   if (row) return row;
-  return looksLikeCategory(body) ? { kind: 'category', name: body } : { kind: 'item', text: body };
+  const heading = gluedHeadingName(body) ?? body;
+  return looksLikeCategory(heading) ? { kind: 'category', name: heading } : { kind: 'item', text: body };
 }
 
 /**
@@ -377,9 +459,22 @@ class CategoryCollector {
   }
 }
 
-/** Whether the user marked any line as a category ("■手指衛生"); a bare mark ("■") names nothing. */
+/**
+ * Whether the user marked any line as a category ("■手指衛生"); a bare mark ("■") names nothing, and a check
+ * box before an item ("■必要に応じて、…") marks no category.
+ */
 function hasMarkedLine(lines: string[]): boolean {
-  return lines.some((line) => CATEGORY_MARK.test(line) && line.replace(CATEGORY_MARK, '') !== '');
+  return lines.some((line) => isMarkedHeading(line) && line.replace(CATEGORY_MARK, '') !== '');
+}
+
+/**
+ * Removes a "□はい □いいえ" answer column from the end of a line. A line left empty or with only its row
+ * number ("7 口はい口いいえ") is returned empty, to be dropped.
+ */
+export function stripAnswerColumn(line: string): string {
+  if (!ANSWER_COLUMN.test(line)) return line;
+  const rest = line.replace(ANSWER_COLUMN, '');
+  return /^\d*$/.test(rest) ? '' : rest;
 }
 
 interface ReadLine {
@@ -394,25 +489,31 @@ interface ReadLine {
 
 function toReadLines(lines: string[], marksOnly: boolean): ReadLine[] {
   return lines
-    .filter((line) => !isNoiseLine(line))
+    .map(stripAnswerColumn)
+    .filter((line) => line !== '' && !isNoiseLine(line))
     .map((line) => {
       // A marked line is a category name, so a trailing letter there ("■ 病棟 A") is not a rating
-      const text = CATEGORY_MARK.test(line) ? line : stripTrailingRating(line);
+      const text = isMarkedHeading(line) ? line : stripTrailingRating(line);
       const kind = classifyLine(text, marksOnly);
       const numbered = startsWithNumber(text) || (kind.kind === 'row' && kind.numbered);
       return { text, kind, numbered, rowNumbered: ROW_NUMBER.test(text) || GLUED_ROW_NUMBER.test(text) };
     });
 }
 
+/** Whether a category line names itself as a heading: a subheading ("・共通項目", "Ⅰ 全般"), a title or "2手洗い". */
+function isNamedHeading(text: string): boolean {
+  return subheadingName(text, false) !== null || isTitle(text) || gluedHeadingName(text) !== null;
+}
+
 /**
  * The text a line would add to the item above: an item's text (without a row number stuck to it) or a
- * category name, without the heading number. A row keeps its own category, and a marked, bulleted or
- * subheading line ("・共通項目", "Ⅰ 全般") was marked as a new entry.
+ * category name, without the heading number. A row keeps its own category, and a marked, check-boxed,
+ * bulleted or heading line (see isNamedHeading) was marked as a new entry.
  */
 function joinableText({ text, kind }: ReadLine): string {
-  if (CATEGORY_MARK.test(text) || BULLET_MARK.test(text)) return '';
+  if (CATEGORY_MARK.test(text) || CHECK_BOX.test(text) || BULLET_MARK.test(text)) return '';
   if (kind.kind === 'item') return kind.text.replace(GLUED_ROW_NUMBER, '');
-  if (kind.kind !== 'category' || subheadingName(text, false) !== null) return '';
+  if (kind.kind !== 'category' || isNamedHeading(text)) return '';
   return kind.name.replace(GLUED_ROW_NUMBER, '');
 }
 

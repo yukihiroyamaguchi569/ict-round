@@ -33,7 +33,7 @@ describe('parseChecklistText on text recognised from photos of three more real p
     // Nagoya University Hospital "感染対策チェックシート 病棟" (public PDF, 1 page). The place column is written
     // vertically and is not read, apart from stray single characters ("フ" "物" "理" "室") at the start of
     // lines. The items stay in the title's category (nothing marks where the title ends); the legend line
-    // stays as an item for the user to delete in the preview. "…を用いて" then "適切に…" stays in two.
+    // stays as an item for the user to delete in the preview. "…を用いて" then "適切に…" is one item (a "て" left open).
     expect(simplify(parseChecklistText(fixture('paper-livetext-ward-sheet.txt')))).toEqual([
       {
         name: '感染対策チェックシート病棟',
@@ -72,8 +72,7 @@ describe('parseChecklistText on text recognised from photos of three more real p
           '汚物処理室に臭気がない',
           '理 汚物処理槽に汚物の停滞がない',
           '室 床に水や汚物がこぼれていない',
-          '尿器、便器、陰部洗浄ボトル等はベッドパンウォッシャー等を用いて',
-          '適切に洗浄消毒をおこなっている',
+          '尿器、便器、陰部洗浄ボトル等はベッドパンウォッシャー等を用いて適切に洗浄消毒をおこなっている',
           '不要な蓄尿は行っていない、または蓄尿の基準が設けられている',
         ],
       },
@@ -128,8 +127,7 @@ describe('parseChecklistText on text recognised from photos of three more real p
           '廃棄物は「廃棄物処理法に基づく感染性廃棄物処理マニュアル」に掲げられた基準を遵守し、適切に処理されている。',
           '廃棄物の発生場所で感染性医療廃棄物と非感染性廃棄物とを区別している',
           '感染性医療廃棄物は破損や漏出しない保管容器を使用し、常時蓋をしている',
-          '感染性医療廃棄物は液状のもの、固形のもの、鋭利なものに分類し、容器には取扱い時の注意事項を表示し',
-          'ている',
+          '感染性医療廃棄物は液状のもの、固形のもの、鋭利なものに分類し、容器には取扱い時の注意事項を表示している',
           '清潔区域と不潔区域を（区別を表示しているなどして）区別している。',
           '★ 給水設備、給湯設備の保守管理を適正に行っている。',
           '給水施設について、定期又は臨時の水質検査を実施している。',

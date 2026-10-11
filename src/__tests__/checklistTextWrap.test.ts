@@ -140,7 +140,8 @@ describe('parseChecklistText on text recognised from photos of real paper checkl
   it('reads the journal intervention list: lettered sections and items wrapped over numbered lines', () => {
     // Tokyo Healthcare University "ICT ラウンド時介入項目リスト 2010 年版" (Journal of Healthcare-associated
     // Infection 2010;1:22-26), page 3. The number column is centred in its cell, so "6." lands on a middle line
-    // of a wrapped item. Where nothing marks a wrap ("…病院感" then "染の場合…") the item stays in two.
+    // of a wrapped item. Where nothing marks a wrap ("…病院感" then "染の場合…") the item stays in two; a katakana
+    // word cut at the end of a line ("…非ラ" then "テックス…") is joined.
     expect(simplify(parseChecklistText(fixture('paper-livetext-journal-list.txt')))).toEqual([
       { name: '医療関連感染', items: [] },
       {
@@ -164,8 +165,7 @@ describe('parseChecklistText on text recognised from photos of real paper checkl
           '指消毒用擦式アルコール製剤ディスペンサーの適正設置（病室内外は施設の状況による）/活用',
           '（使用量チェックが必要）/管理（適切な供給量、故障の有無、ノズルのつまり、など）',
           '患者清拭用タオルの熱水洗浄（芽胞汚染を考慮した適切な洗剤）と保温時清潔管理',
-          'アレルギー対策としてのノンパウダー手袋、非ラ',
-          'テックス手袋、非アルコール系消毒薬の供給体制',
+          'アレルギー対策としてのノンパウダー手袋、非ラテックス手袋、非アルコール系消毒薬の供給体制',
         ],
       },
       // "整備", the 2-character end of the item above, has nothing to mark it as a wrap
@@ -220,9 +220,12 @@ describe('parseChecklistText: items and category names wrapped in their cells', 
     ]);
   });
 
-  it('keeps a short item without a full stop apart from an unfinished long item', () => {
+  it('joins a short predicate to an unfinished long item, as a wrap in a real form is', () => {
     expect(simplify(parseChecklistText(lines('■環境', '病棟の入口に手指消毒剤を設置して', '確認する')))).toEqual([
-      { name: '環境', items: ['病棟の入口に手指消毒剤を設置して', '確認する'] },
+      { name: '環境', items: ['病棟の入口に手指消毒剤を設置して確認する'] },
+    ]);
+    expect(simplify(parseChecklistText(lines('■環境', '病棟の入口に手指消毒剤が配置され', 'ている')))).toEqual([
+      { name: '環境', items: ['病棟の入口に手指消毒剤が配置されている'] },
     ]);
   });
 
@@ -291,7 +294,6 @@ describe('isWrappedItemTail', () => {
     [`${LONG}配置してい`, '1.'],
     [`${LONG}配置してい`, 'A．'],
     [`${LONG}配置してい`, 'レ'],
-    [`${LONG}配置してい`, 'いる'],
     ['清掃を実施', '確認する'],
     ['あ'.repeat(CATEGORY_MAX_LENGTH), 'る．'],
   ])('rejects %s followed by %s', (item, line) => expect(isWrappedItemTail(item, line)).toBe(false));
@@ -307,8 +309,12 @@ describe('isWrappedItemTail', () => {
     expect(isWrappedItemTail(`${LONG}交換`, 'さ'.repeat(WRAP_TAIL_MAX_LENGTH - 1) + 'いる')).toBe(false);
   });
 
+  it('accepts a short predicate even after an item that stops inside a verb ending', () => {
+    expect(isWrappedItemTail(`${LONG}配置してい`, 'いる')).toBe(true);
+    expect(isWrappedItemTail(`${LONG}配置され`, 'ている')).toBe(true);
+  });
+
   it.each<[string, string]>([
-    [`${LONG}配置してい`, 'いる'],
     [`${LONG}設置して`, '確認する'],
     [`${LONG}定期的に交換`, '確認する'],
     [`${LONG}定期的に交換`, 'されて'],
