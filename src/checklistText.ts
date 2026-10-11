@@ -331,11 +331,21 @@ function markedRest(line: string): string {
   return line.replace(CATEGORY_MARK, '').replace(/】/g, ' ').trim().replace(HEADING_NUMBER, '');
 }
 
-/** Whether a line is marked as a category or a row by the user ("■手指衛生"), not a check box before an item. */
+/** The rest of a marked line as a row whose item has a heading number ("病室 1）…"), which no check box is before; or null. */
+function numberedRow(rest: string): LineKind | null {
+  const row = splitRow(rest);
+  return row?.kind === 'row' && row.numbered ? row : null;
+}
+
+/**
+ * Whether a line is marked as a category or a row by the user ("■手指衛生"), not a check box before an item.
+ * The check box is told before an unnumbered row, so a sentence behind it that splits like one
+ * ("■ 必要時 …している。") marks nothing.
+ */
 function isMarkedHeading(line: string): boolean {
   if (!CATEGORY_MARK.test(line)) return false;
   const rest = markedRest(line);
-  return splitRow(rest) !== null || !isCheckBoxRest(rest);
+  return numberedRow(rest) !== null || !isCheckBoxRest(rest);
 }
 
 /** The name of a heading with its number stuck to it ("2手洗い" → "手洗い"), or null. */
@@ -350,26 +360,30 @@ function isTitle(line: string): boolean {
   return line.length <= SUBHEADING_MAX_LENGTH && TITLE.test(line);
 }
 
-/** A marked line ("■"): a row if it splits into one, the rest classified if the mark is a check box, else a category. */
-function classifyMarkedLine(line: string, marksOnly: boolean): LineKind {
+/**
+ * A marked line ("■"): a row whose item has a heading number; else, if the mark is a check box, the rest read
+ * as in the marks-only mode (an item, never split into a row); else a row if it splits into one, else a category.
+ */
+function classifyMarkedLine(line: string): LineKind {
   const name = markedRest(line);
-  const row = splitRow(name);
-  if (row) return row;
-  return isCheckBoxRest(name) ? classifyLine(name, marksOnly) : { kind: 'category', name };
+  const numbered = numberedRow(name);
+  if (numbered) return numbered;
+  if (isCheckBoxRest(name)) return classifyLine(name, true);
+  return splitRow(name) ?? { kind: 'category', name };
 }
 
 /**
  * Classifies one normalised, non-noise line of recognised text. A check box ("口 ", "ロ ", or "■" before an
- * item, see isCheckBoxRest) is dropped and the rest is classified. A subheading ("・共通項目", "Ⅰ 全般") is a
+ * item, see isCheckBoxRest) is dropped and the rest is classified; behind "■" the whole rest is an item. A subheading ("・共通項目", "Ⅰ 全般") is a
  * category. Otherwise a bullet ("・ "), a row number ("91 ") and then a heading number are dropped first.
- * A marked line ("■") is a row if it splits into one, otherwise a category.
+ * Any other marked line ("■") is a row if it splits into one, otherwise a category.
  * With marksOnly (the text has marked lines, so the user has said which lines are categories)
  * every other line is an item. Otherwise the line is guessed by its shape: a row, the form's title, a
  * heading with its number stuck to it ("2手洗い"), a short category name, or an item.
  */
 export function classifyLine(line: string, marksOnly = false): LineKind {
   if (CHECK_BOX.test(line)) return classifyLine(line.replace(CHECK_BOX, ''), marksOnly);
-  if (CATEGORY_MARK.test(line)) return classifyMarkedLine(line, marksOnly);
+  if (CATEGORY_MARK.test(line)) return classifyMarkedLine(line);
   const subheading = subheadingName(line, marksOnly);
   if (subheading !== null) return { kind: 'category', name: subheading };
   const body = line.replace(BULLET_MARK, '').replace(ROW_NUMBER, '').replace(HEADING_NUMBER, '').replace(ROMAN_HEADING, '');
