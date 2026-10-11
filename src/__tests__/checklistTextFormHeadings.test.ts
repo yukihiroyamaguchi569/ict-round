@@ -159,12 +159,29 @@ describe('a line starting with "【x】" (rule T)', () => {
     expect(classifyLine('【手指衛生】')).toEqual({ kind: 'category', name: '手指衛生' });
   });
 
-  it('does not enter the marks-only mode for "【x】" lines', () => {
-    const text = lines('【手指衛生】', '1）手指衛生に関する職員の意識の徹底', '消毒剤を設置している', '環境整備');
+  it('does not enter the marks-only mode for a "【x】" followed by text', () => {
+    const text = lines(
+      '【入所系】高齢者施設等の自己点検チェックリスト',
+      '1）手指衛生に関する職員の意識の徹底',
+      '消毒剤を設置している',
+      '環境整備',
+    );
     expect(simplify(parseChecklistText(text))).toEqual([
-      { name: '手指衛生', items: [] },
+      { name: '【入所系】高齢者施設等の自己点検チェックリスト', items: [] },
       { name: '手指衛生に関する職員の意識の徹底', items: ['消毒剤を設置している'] },
       { name: '環境整備', items: [] },
+    ]);
+  });
+
+  it('enters the marks-only mode for a line of "【x】" alone, as before', () => {
+    expect(simplify(parseChecklistText(lines('【手指衛生】', '環境整備')))).toEqual([
+      { name: '手指衛生', items: ['環境整備'] },
+    ]);
+  });
+
+  it('enters the marks-only mode for a "【x】" with only spaces after it', () => {
+    expect(simplify(parseChecklistText(lines('【手指衛生】  ', '環境整備')))).toEqual([
+      { name: '手指衛生', items: ['環境整備'] },
     ]);
   });
 
