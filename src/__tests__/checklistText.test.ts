@@ -228,17 +228,22 @@ describe('parseChecklistText: recognised lines', () => {
     ]);
   });
 
-  it('makes a numbered line a category, however long, unless it ends like a sentence', () => {
+  it('drops the heading number of a line and reads the rest by its shape', () => {
     const text = lines(
-      '1. 手指衛生（WHO の 5 つのタイミングを含む）',
+      '1. 手指衛生',
       '(1) 消毒剤がある．',
       '②掲示されている',
+      '③手指消毒剤を病室の入口に設置して管理している',
       '（2）環境',
       '3、清掃されている．',
+      'B. 病棟',
+      'Ｃ．病室 1）手洗い場がある',
     );
     expect(simplify(parseChecklistText(text))).toEqual([
-      { name: '手指衛生（WHO の 5 つのタイミングを含む）', items: ['消毒剤がある．', '掲示されている'] },
+      { name: '手指衛生', items: ['消毒剤がある．', '掲示されている', '手指消毒剤を病室の入口に設置して管理している'] },
       { name: '環境', items: ['清掃されている．'] },
+      { name: '病棟', items: [] },
+      { name: '病室', items: ['手洗い場がある'] },
     ]);
   });
 
@@ -401,7 +406,7 @@ describe('looksLikeCategory', () => {
 
 describe('classifyLine', () => {
   it('reads a short word, a space and a sentence as a table row', () => {
-    expect(classifyLine('手指衛生 消毒剤がある．')).toEqual({ kind: 'row', category: '手指衛生', text: '消毒剤がある．' });
+    expect(classifyLine('手指衛生 消毒剤がある．')).toEqual({ kind: 'row', category: '手指衛生', text: '消毒剤がある．', numbered: false });
   });
 
   it('does not split a category name that contains a space', () => {
@@ -420,7 +425,7 @@ describe('classifyLine', () => {
   });
 
   it('drops the heading number of a numbered item and still splits a row', () => {
-    expect(classifyLine('1. 手指衛生 消毒剤がある．')).toEqual({ kind: 'row', category: '手指衛生', text: '消毒剤がある．' });
+    expect(classifyLine('1. 手指衛生 消毒剤がある．')).toEqual({ kind: 'row', category: '手指衛生', text: '消毒剤がある．', numbered: false });
   });
 });
 

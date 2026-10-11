@@ -13,9 +13,9 @@ export const CATEGORY_MAX_LENGTH = 15;
 
 /**
  * The tail of an item wrapped in its table cell is at most this long: Live Text reads
- * "…配置してい" and "る．" as two lines.
+ * "…配置してい" and "る．", or "…定期的に交換" and "されている", as two lines.
  */
-export const WRAP_TAIL_MAX_LENGTH = 4;
+export const WRAP_TAIL_MAX_LENGTH = 8;
 
 /** Header cells of a checklist table, e.g. the report's "ジャンル | チェック項目 | 評価". */
 const HEADER_WORDS = new Set([
@@ -37,13 +37,24 @@ const RATING_AFTER_SPACE = new RegExp(`\\s+${RATING}$`);
  */
 const RATING_AFTER_JAPANESE = /([\u3040-\u30ff\u3400-\u9fff」])[ABCＡＢＣ○◯〇×✕✖△▲]$/;
 
-/** Page number lines: "3", "- 3 -", "3/5", "P.3", "3ページ". */
-const PAGE_NUMBERS = [/^[-－]?\s*\d+\s*[-－]?$/, /^\d+\s*[/／]\s*\d+$/, /^p\.?\s*\d+$/i, /^\d+\s*(?:ページ|頁)$/];
+/** Page number lines: "3", "- 3 -", "3/5", "P.3", "3ページ", "（3）". */
+const PAGE_NUMBERS = [
+  /^[-－]?\s*\d+\s*[-－]?$/,
+  /^\d+\s*[/／]\s*\d+$/,
+  /^p\.?\s*\d+$/i,
+  /^\d+\s*(?:ページ|頁)$/,
+  /^（\d+）$/,
+];
 
 /** Marks at the start of a line that make it a category: ■ □ ● ◆ ◇ 【 # */
 const CATEGORY_MARK = /^[■□●◆◇【#＃]+\s*/;
-/** A heading number at the start of a line: "1." "1．" "1、" "1)" "(1)" "（1）" "①". */
-const HEADING_NUMBER = /^(?:\d+[.．、)）]|[(（]\d+[)）]|[①-⑳])\s*/;
+/**
+ * A bullet at the start of a line: "・ " ("•" is tidied to "・"). Not a category mark: Live Text also reads
+ * a list bullet or a misread "1." as one.
+ */
+const BULLET_MARK = /^・\s+/;
+/** A heading number at the start of a line: "1." "1．" "1、" "1)" "(1)" "（1）" "①" "A." "D．". */
+const HEADING_NUMBER = /^(?:\d+[.．、)）]|[(（]\d+[)）]|[①-⑳]|[A-ZＡ-Ｚ][.．])\s*/;
 
 /**
  * The end of a sentence; items usually end with one. A comma counts too: text recognised from a
@@ -90,12 +101,26 @@ function looksLikeSentence(text: string): boolean {
 const OPEN_ENDING = /[\u3040-\u30ff\u3400-\u9fffA-Za-z0-9０-９]$/;
 /** The tail of a wrapped item starts with Japanese text, so a bare number ("1.") is never taken for one. */
 const TAIL_START = /^[\u3040-\u30ff\u3400-\u9fff]/;
+/** Hiragana at the start of a line: a verb ending cut off its noun ("交換" then "されている"). */
+const HIRAGANA_START = /^[\u3040-\u309f]/;
+/** Hiragana at the end of an item: the item stops inside a verb ending ("…配置してい"). */
+const HIRAGANA_END = /[\u3040-\u309f]$/;
+
+/**
+ * How a wrapped tail ends: with a full stop (or a comma read in its place), or with a predicate ending
+ * that carries on a noun ("…交換" then "されている"). An item that already stops inside a verb ending
+ * ("…配置してい") needs the full stop, so "いる" or an item of its own ("確認する") is not glued on.
+ */
+function endsLikeTail(item: string, line: string): boolean {
+  if (SENTENCE_END.test(line)) return true;
+  return ITEM_ENDING.test(line) && HIRAGANA_START.test(line) && !HIRAGANA_END.test(item);
+}
 
 /**
  * Whether a line is the rest of the item above, wrapped in its table cell ("…してい" then "る．"):
  * the item fills its cell (longer than a category name) and stops mid-word, and the line is short,
- * starts with Japanese text and ends with a full stop (or a comma read in its place). Two short items
- * ("清掃を実施", "確認する"), or a long one and a short one without a full stop, stay apart.
+ * starts with Japanese text and ends like a tail (see endsLikeTail). Two short items
+ * ("清掃を実施", "確認する"), or a long one and a short one of its own, stay apart.
  */
 export function isWrappedItemTail(item: string, line: string): boolean {
   return (
@@ -104,8 +129,33 @@ export function isWrappedItemTail(item: string, line: string): boolean {
     !looksLikeSentence(item) &&
     line.length <= WRAP_TAIL_MAX_LENGTH &&
     TAIL_START.test(line) &&
-    SENTENCE_END.test(line)
+    endsLikeTail(item, line)
   );
+}
+
+/** Opening minus closing brackets: above 0 the text leaves a bracket open, below 0 it closes one opened before. */
+export function bracketDepth(text: string): number {
+  return (text.match(/[（(]/g)?.length ?? 0) - (text.match(/[）)]/g)?.length ?? 0);
+}
+
+/** A particle at the end of a line: the sentence goes on in the next line ("…チェックが" then "行われている"). */
+const PARTICLE_END = /[のがをにとはでもへや]$/;
+/**
+ * The start of a line that cannot start an item: a particle, a long vowel mark, a small kana,
+ * a closing bracket or a comma ("の適正手技…", "ーション、…", "ル）暴露対策…" after "…フタラー").
+ */
+const CONTINUATION_START = /^[のがをにとはでもへやーぁぃぅぇぉっゃゅょァィゥェォッャュョ）)、，,]/;
+
+/**
+ * Whether a line goes on from the item above rather than starting an item:
+ * the item is unfinished (a bracket left open, or a particle at the end), unless both start with a
+ * heading number (a numbered list, where Live Text may have dropped a closing bracket); or the line
+ * starts like a continuation, or closes a bracket it did not open; or it is a short wrapped tail.
+ */
+export function continuesItem(item: string, line: string, bothNumbered: boolean): boolean {
+  const unfinished = bracketDepth(item) > 0 || PARTICLE_END.test(item);
+  if (unfinished && !bothNumbered) return true;
+  return CONTINUATION_START.test(line) || bracketDepth(line) < 0 || isWrappedItemTail(item, line);
 }
 
 /** Whether a piece of text reads as a category name: short, and not ending like a sentence. */
@@ -113,35 +163,48 @@ export function looksLikeCategory(text: string): boolean {
   return text.length <= CATEGORY_MAX_LENGTH && !looksLikeSentence(text);
 }
 
+/** A row's item says whether it started with a heading number ("外来処置室 1）…"). */
 export type LineKind =
   | { kind: 'category'; name: string }
   | { kind: 'item'; text: string }
-  | { kind: 'row'; category: string; text: string };
+  | { kind: 'row'; category: string; text: string; numbered: boolean };
 
-/** Splits "短い語 文" (a table row read as one line) into a category and an item, if it has that shape. */
+/** Whether a line, without a bullet, starts with a heading number. */
+function startsWithNumber(line: string): boolean {
+  return HEADING_NUMBER.test(line.replace(BULLET_MARK, ''));
+}
+
+/**
+ * Splits "短い語 文" (a table row read as one line) into a category and an item, if it has that shape.
+ * The item's heading number is dropped. Only split when the item starts with a number or the line's
+ * brackets are balanced, so the first line of a wrapped item ("個人用防護具 Personal … （手") stays whole.
+ */
 function splitRow(line: string): LineKind | null {
   const space = line.indexOf(' ');
   if (space < 0) return null;
   const head = line.slice(0, space);
   const rest = line.slice(space + 1).trim();
-  if (!looksLikeCategory(head) || looksLikeCategory(rest)) return null;
-  return { kind: 'row', category: head, text: rest };
+  const text = rest.replace(HEADING_NUMBER, '');
+  const numbered = text !== rest;
+  if (!numbered && bracketDepth(line) !== 0) return null;
+  if (!looksLikeCategory(head) || looksLikeCategory(text)) return null;
+  return { kind: 'row', category: head, text, numbered };
 }
 
 /**
- * Classifies one normalised, non-noise line of recognised text. A marked line is a category.
+ * Classifies one normalised, non-noise line of recognised text. A bullet ("・ ") and then a heading
+ * number are dropped first. A marked line ("■") is a row if it splits into one, otherwise a category.
  * With marksOnly (the text has marked lines, so the user has said which lines are categories)
- * every other line is an item. Otherwise a numbered line is a category unless it ends like a
- * sentence (then the number is dropped), and the remaining lines are guessed by their shape.
+ * every other line is an item. Otherwise the line is guessed by its shape: a row, a short category
+ * name, or an item.
  */
 export function classifyLine(line: string, marksOnly = false): LineKind {
   if (CATEGORY_MARK.test(line)) {
-    return { kind: 'category', name: line.replace(CATEGORY_MARK, '').replace(/】/g, ' ').trim() };
+    const name = line.replace(CATEGORY_MARK, '').replace(/】/g, ' ').trim().replace(HEADING_NUMBER, '');
+    return splitRow(name) ?? { kind: 'category', name };
   }
-  const body = line.replace(HEADING_NUMBER, '');
+  const body = line.replace(BULLET_MARK, '').replace(HEADING_NUMBER, '');
   if (marksOnly) return { kind: 'item', text: body };
-  if (body !== line && !looksLikeSentence(body)) return { kind: 'category', name: body };
-
   const row = splitRow(body);
   if (row) return row;
   return looksLikeCategory(body) ? { kind: 'category', name: body } : { kind: 'item', text: body };
@@ -159,6 +222,8 @@ class CategoryCollector {
   private readonly wrappedNames = new Map<string, string>();
   private current = '';
   private lastItem: DraftItem | null = null;
+  /** Whether the item just added started with a heading number. */
+  private lastItemNumbered = false;
 
   private categoryNamed(name: string): DraftCategory {
     let category = this.byName.get(name);
@@ -176,14 +241,15 @@ class CategoryCollector {
     this.lastItem = null;
   }
 
-  add(text: string): void {
+  add(text: string, numbered: boolean): void {
     this.lastItem = { key: newKey(), description: text };
+    this.lastItemNumbered = numbered;
     this.categoryNamed(this.current).items.push(this.lastItem);
   }
 
-  /** Joins a line to the item just added when it is that item's wrapped tail; false otherwise. */
-  joinItemTail(line: string): boolean {
-    if (!this.lastItem || !isWrappedItemTail(this.lastItem.description, line)) return false;
+  /** Joins a line (without its heading number) to the item just added when it goes on from it; false otherwise. */
+  joinItemTail(line: string, numbered: boolean): boolean {
+    if (!this.lastItem || !continuesItem(this.lastItem.description, line, numbered && this.lastItemNumbered)) return false;
     this.lastItem.description += line;
     return true;
   }
@@ -222,6 +288,8 @@ interface ReadLine {
   /** The line without a trailing rating. */
   text: string;
   kind: LineKind;
+  /** Whether the line (or a row's item) starts with a heading number. */
+  numbered: boolean;
 }
 
 function toReadLines(lines: string[], marksOnly: boolean): ReadLine[] {
@@ -230,8 +298,19 @@ function toReadLines(lines: string[], marksOnly: boolean): ReadLine[] {
     .map((line) => {
       // A marked line is a category name, so a trailing letter there ("■ 病棟 A") is not a rating
       const text = CATEGORY_MARK.test(line) ? line : stripTrailingRating(line);
-      return { text, kind: classifyLine(text, marksOnly) };
+      const kind = classifyLine(text, marksOnly);
+      return { text, kind, numbered: startsWithNumber(text) || (kind.kind === 'row' && kind.numbered) };
     });
+}
+
+/**
+ * The text a line would add to the item above: an item's text or a category name, without the heading
+ * number. A row keeps its own category, and a marked or bulleted line was marked as a new entry.
+ */
+function joinableText({ text, kind }: ReadLine): string {
+  if (CATEGORY_MARK.test(text) || BULLET_MARK.test(text)) return '';
+  if (kind.kind === 'item') return kind.text;
+  return kind.kind === 'category' ? kind.name : '';
 }
 
 function rowCategoryOf(line: ReadLine | undefined): string | undefined {
@@ -240,9 +319,11 @@ function rowCategoryOf(line: ReadLine | undefined): string | undefined {
 
 function readLines(lines: string[], collector: CategoryCollector, marksOnly: boolean): void {
   const read = toReadLines(lines, marksOnly);
-  read.forEach(({ text, kind }, i) => {
-    // Only a line read as an item is a tail; a short row ("薬 有．") or a marked line keeps its category
-    if (kind.kind === 'item' && !CATEGORY_MARK.test(text) && collector.joinItemTail(text)) return;
+  read.forEach((line, i) => {
+    const { kind, numbered } = line;
+    // A short row ("薬 有．") or a marked line keeps its category; a bare number ("17.") joins nothing
+    const joinable = joinableText(line);
+    if (joinable && collector.joinItemTail(joinable, numbered)) return;
     // A bare mark or number ("■", "1.") names nothing; keep the current category
     if (kind.kind === 'category') {
       const rowCategory = rowCategoryOf(read[i - 1]);
@@ -250,9 +331,9 @@ function readLines(lines: string[], collector: CategoryCollector, marksOnly: boo
       if (kind.name) collector.setCategory(kind.name);
     } else if (kind.kind === 'row') {
       collector.setCategory(kind.category);
-      collector.add(kind.text);
+      collector.add(kind.text, kind.numbered);
     } else if (kind.text) {
-      collector.add(kind.text);
+      collector.add(kind.text, numbered);
     }
   });
 }
@@ -315,7 +396,7 @@ function readTable(lines: string[], collector: CategoryCollector, marksOnly: boo
     const [category = '', item = ''] = cells.slice(skip);
     // An empty category cell continues the category above (merged cells)
     if (category) collector.setCategory(category);
-    if (item) collector.add(item);
+    if (item) collector.add(item, false);
   });
 }
 

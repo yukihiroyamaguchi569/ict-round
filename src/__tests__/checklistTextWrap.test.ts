@@ -79,6 +79,107 @@ describe('parseChecklistText on text recognised from a photo of the report table
   });
 });
 
+const fixture = (name: string) => readFileSync(fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url)), 'utf8');
+
+describe('parseChecklistText on text recognised from photos of real paper checklists', () => {
+  // Both fixtures: a page of a public PDF drawn as a photo of paper (slant, keystone, blur, uneven light,
+  // noise), then recognised by macOS Vision (ja-JP, accurate), the engine of iPhone Live Text.
+
+  it('reads the MHLW check sheet: numbered merged categories with numbered items', () => {
+    // MHLW "別紙24 感染対策向上加算1 チェック項目表", page 3. "1." read as "•" before "病室".
+    expect(simplify(parseChecklistText(fixture('paper-livetext-mhlw-form.txt')))).toEqual([
+      {
+        name: '外来処置室',
+        items: [
+          '利器材の廃棄容器が安全に管理されている （廃棄容器の蓋が開いていない、など',
+          '鋭利器材の廃棄容器が処置を行う場所の近くに設置してある',
+          '検査検体が適切に保管してある',
+        ],
+      },
+      {
+        name: '抗がん化学療法外来',
+        items: ['薬剤の無菌調製が適切に実施されている', '咳エチケットが確実に実施されている', '患者および職員の手指衛生が適切に行われている'],
+      },
+      { name: '病棟', items: [] },
+      {
+        name: '病室',
+        items: [
+          '部屋ごとに手洗い場がある',
+          '床や廊下に品が放置されていない',
+          '必要なコホーティングが行われている',
+          '隔離個室の医療器具は専用化されている',
+          '隔離個室には必要なPPEが準備されている',
+          '空調のメンテナンスが行われ、HEPA filterが定期的に交換されている',
+        ],
+      },
+      {
+        name: 'スタッフステーション',
+        items: [
+          '水道のシンク外周が擦拭され乾燥している',
+          '鋭利機材の廃棄容器が適切に管理されている',
+          '鋭利機材の廃棄容器が必要な場所に設置されている',
+          '臨床検体の保存場所が整備されている',
+        ],
+      },
+      {
+        name: '処置室',
+        items: [
+          '清潔区域と不潔区域を区別している',
+          '減菌機材が適切に保管され、使用期限のチェックが行われている',
+          '包交車が清潔と不潔のソーニングがなされている',
+          '包交車に不要な滅菌機材が積まれていない',
+        ],
+      },
+      {
+        name: '薬剤の管理',
+        items: ['清潔な状況下で輸液調整が実施されている', '希釈調製したへパリン液は室温に放置されていない', '薬品保管庫の中が整理されている'],
+      },
+    ]);
+  });
+
+  it('reads the journal intervention list: lettered sections and items wrapped over numbered lines', () => {
+    // Tokyo Healthcare University "ICT ラウンド時介入項目リスト 2010 年版" (Journal of Healthcare-associated
+    // Infection 2010;1:22-26), page 3. The number column is centred in its cell, so "6." lands on a middle line
+    // of a wrapped item. Where nothing marks a wrap ("…病院感" then "染の場合…") the item stays in two.
+    expect(simplify(parseChecklistText(fixture('paper-livetext-journal-list.txt')))).toEqual([
+      { name: '医療関連感染', items: [] },
+      {
+        name: '特定と対応',
+        items: [
+          '感染症が病院感染か香かの特定、および、病院感',
+          '染の場合その感染経路の特定と対応',
+          'ケアー／作業前後の手指衛生（手洗い／擦式消毒）の適正手技、適正遵守と手荒れ対策の実施',
+          '個人用防護具 Personal Protective Equipment （手袋、マスク、ガウン／エプロン、アイ・プロテク ター、フェイス・シールドなど）の適切な着用',
+          '感染対策上の適切な病棟内患者配置（個別アイソレーション、集団アイソレーション、逆アイソレーション、技術アイソレーション）',
+          '下剤/幅吐患者対策（接触感染対策、アイソレーション、下痢便および吐物の汚染拡散防止策）',
+          '交差感染の危険性ある症例の適正な把握（当該病棟のスタッフ全員が把握）と個人情報保護',
+        ],
+      },
+      {
+        name: '汚染防止と清潔管理',
+        items: [
+          '汚染機器/器具/リネン等の適切な処理と搬送',
+          '細菌汚染を受けやすい消毒薬（第四級アンモニウム塩、両性界面活性剤、ポビドンヨード、低濃度クロルヘキシジンなど）の適正な取り扱い',
+          '手指衛生用品（液体石けん、アルコール擦式消毒薬、ペーパータオル等）の供給整備、および、手',
+          '指消毒用擦式アルコール製剤ディスペンサーの適正設置（病室内外は施設の状況による）/活用',
+          '（使用量チェックが必要）/管理（適切な供給量、故障の有無、ノズルのつまり、など）',
+          '患者清拭用タオルの熱水洗浄（芽胞汚染を考慮した適切な洗剤）と保温時清潔管理',
+          'アレルギー対策としてのノンパウダー手袋、非ラ',
+          'テックス手袋、非アルコール系消毒薬の供給体制',
+        ],
+      },
+      // "整備", the 2-character end of the item above, has nothing to mark it as a wrap
+      { name: '整備', items: ['高水準消毒薬（グルタラール、通酢酸、フタラール）暴露対策としての換気対策'] },
+      {
+        name: '清掃と整備',
+        items: [
+          '適切な清掃方法、清掃順（清潔度の高い区域からの順次清掃、ほこりを立てない技法、滑らない対策、清掃用具適正管理、病院用掃除機）',
+        ],
+      },
+    ]);
+  });
+});
+
 describe('parseChecklistText: items and category names wrapped in their cells', () => {
   it('joins the tail of a wrapped item to it, in every line format', () => {
     expect(simplify(parseChecklistText(lines('手指衛生', '月1回の残量確認を毎月実施してい', 'る．', '病室の入口と廊下に手指衛生の掲示があ', 'る、 A')))).toEqual([
@@ -103,9 +204,9 @@ describe('parseChecklistText: items and category names wrapped in their cells', 
   });
 
   it('does not join a category, a marked line, a bare number or a longer sentence to an unfinished item', () => {
-    expect(simplify(parseChecklistText(lines('手指衛生', '月1回の残量確認を毎月実施してい', '環境', '病室の入口の掲示を毎日確認してい', '1.', '清掃を行う．')))).toEqual([
+    expect(simplify(parseChecklistText(lines('手指衛生', '月1回の残量確認を毎月実施してい', '環境', '病室の入口の掲示を毎日確認してい', '1.', '清掃を毎日行っている．')))).toEqual([
       { name: '手指衛生', items: ['月1回の残量確認を毎月実施してい'] },
-      { name: '環境', items: ['病室の入口の掲示を毎日確認してい', '清掃を行う．'] },
+      { name: '環境', items: ['病室の入口の掲示を毎日確認してい', '清掃を毎日行っている．'] },
     ]);
     expect(simplify(parseChecklistText(lines('■手指衛生', '月1回の残量確認を毎月実施してい', '■ る．')))).toEqual([
       { name: '手指衛生', items: ['月1回の残量確認を毎月実施してい'] },
@@ -175,7 +276,7 @@ describe('isWrappedItemTail', () => {
     expect(isWrappedItemTail(LONG + '配置してい', 'る．')).toBe(true);
     expect(isWrappedItemTail(LONG + '配置してい', 'る、')).toBe(true);
     expect(isWrappedItemTail(LONG + '配置し', 'ている。')).toBe(true);
-    expect(isWrappedItemTail(LONG + '配置し', 'ていない。')).toBe(false);
+    expect(isWrappedItemTail(LONG + '配置し', 'ていない。')).toBe(true);
     expect(isWrappedItemTail(LONG + '配置し', 'て'.repeat(WRAP_TAIL_MAX_LENGTH - 1) + '．')).toBe(true);
     expect(isWrappedItemTail(LONG + '配置し', 'て'.repeat(WRAP_TAIL_MAX_LENGTH) + '．')).toBe(false);
   });
@@ -197,4 +298,18 @@ describe('isWrappedItemTail', () => {
   it(`needs the item to be longer than ${CATEGORY_MAX_LENGTH} characters`, () => {
     expect(isWrappedItemTail('あ'.repeat(CATEGORY_MAX_LENGTH + 1), 'る．')).toBe(true);
   });
+
+  it('accepts a tail without a full stop when a predicate ending carries on a noun', () => {
+    expect(isWrappedItemTail(`${LONG}定期的に交換`, 'されている')).toBe(true);
+    expect(isWrappedItemTail(`${LONG}HEPA filter`, 'されている')).toBe(true);
+    expect(isWrappedItemTail(`${LONG}交換`, 'さ'.repeat(WRAP_TAIL_MAX_LENGTH - 2) + 'いる')).toBe(true);
+    expect(isWrappedItemTail(`${LONG}交換`, 'さ'.repeat(WRAP_TAIL_MAX_LENGTH - 1) + 'いる')).toBe(false);
+  });
+
+  it.each<[string, string]>([
+    [`${LONG}配置してい`, 'いる'],
+    [`${LONG}設置して`, '確認する'],
+    [`${LONG}定期的に交換`, '確認する'],
+    [`${LONG}定期的に交換`, 'されて'],
+  ])('rejects %s followed by %s without a full stop', (item, line) => expect(isWrappedItemTail(item, line)).toBe(false));
 });
