@@ -461,10 +461,11 @@ class CategoryCollector {
 
 /**
  * Whether the user marked any line as a category ("■手指衛生"); a bare mark ("■") names nothing, and a check
- * box before an item ("■必要に応じて、…") marks no category.
+ * box before an item ("■必要に応じて、…") marks no category. Lines are checked without their answer column,
+ * as they are read, so an answer-only line ("□はい □いいえ") marks nothing.
  */
 function hasMarkedLine(lines: string[]): boolean {
-  return lines.some((line) => isMarkedHeading(line) && line.replace(CATEGORY_MARK, '') !== '');
+  return lines.map(stripAnswerColumn).some((line) => isMarkedHeading(line) && line.replace(CATEGORY_MARK, '') !== '');
 }
 
 /**

@@ -311,6 +311,19 @@ describe('stripAnswerColumn (rule N)', () => {
       { name: '透析', items: ['スタッフには定期健康診断が行われ、希望者にはワクチン接種の機会がある。'] },
     ]);
   });
+
+  it('does not enter the marks-only mode for an answer column read with its "□"', () => {
+    expect(
+      simplify(
+        parseChecklistText(
+          lines('1 体調管理', '□ 職員は健康診断を定期的に受けている。 □はい □いいえ', '□はい □いいえ', '2手洗い', '□ ケアの前後に必ず手洗いをしている。'),
+        ),
+      ),
+    ).toEqual([
+      { name: '体調管理', items: ['職員は健康診断を定期的に受けている。'] },
+      { name: '手洗い', items: ['ケアの前後に必ず手洗いをしている。'] },
+    ]);
+  });
 });
 
 describe('classifyLine: a heading number stuck to its name (rule O)', () => {
