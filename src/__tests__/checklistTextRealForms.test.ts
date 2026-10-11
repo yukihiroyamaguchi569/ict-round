@@ -260,6 +260,12 @@ describe('parseChecklistText: lines starting with a number continue an unfinishe
       { name: '環境', items: ['容器が管理されている（蓋が', '容器が設置してある'] },
     ]);
   });
+
+  it('starts a new item at a row-numbered line after a numbered item ending with a particle', () => {
+    expect(simplify(parseChecklistText(lines('■環境', '1）容器の管理が', '2 続きを確認する')))).toEqual([
+      { name: '環境', items: ['容器の管理が', '続きを確認する'] },
+    ]);
+  });
 });
 
 describe('classifyLine: Roman numeral and lettered subheadings (rule H)', () => {

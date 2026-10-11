@@ -338,14 +338,15 @@ class CategoryCollector {
 
   /**
    * Joins a line (without its heading or row number) to the item just added when it goes on from it; false
-   * otherwise. rowNumbered: the line started with a row number ("1 置している"), see rowNumberContinues.
+   * otherwise. rowNumbered: the line started with a row number ("1 置している"); then rowNumberContinues alone
+   * decides, so a numbered line after a numbered item ending with a particle still starts a new item.
    */
   joinItemTail(line: string, numbered: boolean, rowNumbered: boolean): boolean {
     if (!this.lastItem) return false;
     const item = this.lastItem.description;
-    const goesOn =
-      (rowNumbered && rowNumberContinues(item, this.lastItemNumbered)) ||
-      continuesItem(item, line, numbered && this.lastItemNumbered);
+    const goesOn = rowNumbered
+      ? rowNumberContinues(item, this.lastItemNumbered)
+      : continuesItem(item, line, numbered && this.lastItemNumbered);
     if (!goesOn) return false;
     this.lastItem.description += line;
     return true;
