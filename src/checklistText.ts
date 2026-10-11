@@ -319,11 +319,14 @@ function subheadingName(line: string, marksOnly: boolean): string | null {
 
 /**
  * Whether the rest of a marked line is an item behind a check box ("■" read for "□"), not a category name:
- * longer than a category name and a sentence (also before a rating), or with a comma, or longer than any heading.
+ * longer than a category name and a sentence (also before a rating or a note in brackets: "…している（推奨）"),
+ * or with a comma, or longer than any heading.
  */
 function isCheckBoxRest(rest: string): boolean {
   if (rest.length <= CATEGORY_MAX_LENGTH) return false;
-  return looksLikeSentence(stripTrailingRating(rest)) || COMMA.test(rest) || rest.length > MARKED_HEADING_MAX_LENGTH;
+  const text = stripTrailingRating(rest);
+  const sentence = looksLikeSentence(text) || looksLikeSentence(text.replace(TRAILING_NOTE, ''));
+  return sentence || COMMA.test(rest) || rest.length > MARKED_HEADING_MAX_LENGTH;
 }
 
 /** The rest of a marked line, without the mark, a closing "】" and a heading number. */

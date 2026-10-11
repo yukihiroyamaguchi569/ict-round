@@ -33,3 +33,26 @@ describe('classifyLine: a "■" check box before "short word + sentence" (rule M
     ]);
   });
 });
+
+describe('classifyLine: a "■" check box before a sentence ending in a note in brackets (rule M)', () => {
+  it('reads the rest as an item when the sentence ends before the note', () => {
+    expect(classifyLine('■ 手指消毒剤を使用している（推奨）')).toEqual({ kind: 'item', text: '手指消毒剤を使用している（推奨）' });
+  });
+
+  it('keeps a short marked line with a note a category', () => {
+    expect(classifyLine('■ 手指衛生（推奨）')).toEqual({ kind: 'category', name: '手指衛生（推奨）' });
+  });
+
+  it('keeps a longer marked line with a note a category when it is no sentence', () => {
+    const name = '手指衛生と環境整備の確認事項（推奨）';
+    expect(name.length).toBeGreaterThan(CATEGORY_MAX_LENGTH);
+    expect(classifyLine(`■ ${name}`)).toEqual({ kind: 'category', name });
+  });
+
+  it('does not enter the marks-only mode', () => {
+    expect(simplify(parseChecklistText(lines('1 体調管理', '■ 手指消毒剤を使用している（推奨）', '2手洗い', 'ケア前後に手洗いをしている。')))).toEqual([
+      { name: '体調管理', items: ['手指消毒剤を使用している（推奨）'] },
+      { name: '手洗い', items: ['ケア前後に手洗いをしている。'] },
+    ]);
+  });
+});
