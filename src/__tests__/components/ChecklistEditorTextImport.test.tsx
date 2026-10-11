@@ -43,6 +43,7 @@ describe('ChecklistEditor text import', () => {
     expect(button('読み込む')).toBeDisabled();
     expect(screen.getByText(/行頭に ■ を付けた行はカテゴリになります/)).toBeInTheDocument();
     expect(screen.getByText(/・で始まる短い小見出しは、■ があってもカテゴリになります/)).toBeInTheDocument();
+    expect(screen.getByText(/15 文字を超える文の行の ■ はチェック欄 □ の読み違いとみなして外し、項目にします/)).toBeInTheDocument();
   });
 
   it('previews how pasted text is split, and updates it when the text is edited', async () => {
