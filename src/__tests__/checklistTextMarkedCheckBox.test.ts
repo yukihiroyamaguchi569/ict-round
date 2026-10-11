@@ -56,3 +56,27 @@ describe('classifyLine: a "■" check box before a sentence ending in a note in 
     ]);
   });
 });
+
+describe('classifyLine: a "■" check box before a sentence with a remark column after it (rule M)', () => {
+  it('reads the line as an item without the remark and does not enter the marks-only mode', () => {
+    expect(simplify(parseChecklistText(lines('1 体調管理', '■ 手指消毒剤を使用しているか。 汚染防止', '2手洗い', 'ケア前後に手洗いをしている。')))).toEqual([
+      { name: '体調管理', items: ['手指消毒剤を使用しているか。'] },
+      { name: '手洗い', items: ['ケア前後に手洗いをしている。'] },
+    ]);
+  });
+
+  it('drops the remark when the line is classified on its own', () => {
+    expect(classifyLine('■ 手指消毒剤を使用しているか。 汚染防止')).toEqual({ kind: 'item', text: '手指消毒剤を使用しているか。' });
+  });
+
+  it('keeps a second sentence after the full stop', () => {
+    expect(simplify(parseChecklistText(lines('1 体調管理', '■ 手指消毒剤を使用しているか。 実施している。', '2手洗い', 'ケア前後に手洗いをしている。')))).toEqual([
+      { name: '体調管理', items: ['手指消毒剤を使用しているか。 実施している。'] },
+      { name: '手洗い', items: ['ケア前後に手洗いをしている。'] },
+    ]);
+  });
+
+  it('keeps a short marked category a category', () => {
+    expect(classifyLine('■ 手指衛生')).toEqual({ kind: 'category', name: '手指衛生' });
+  });
+});

@@ -354,11 +354,13 @@ function subheadingName(line: string, marksOnly: boolean): string | null {
 /**
  * Whether the rest of a marked line is an item behind a check box ("■" read for "□"), not a category name:
  * longer than a category name and a sentence (also before a rating or a note in brackets: "…している（推奨）"),
- * or with a comma, or longer than any heading.
+ * or with a comma, or longer than any heading. A remark column after the sentence ("…しているか。 汚染防止") is
+ * left out of the sentence check.
  */
 function isCheckBoxRest(rest: string): boolean {
   if (rest.length <= CATEGORY_MAX_LENGTH) return false;
-  return endsLikeSentence(stripTrailingRating(rest)) || COMMA.test(rest) || rest.length > MARKED_HEADING_MAX_LENGTH;
+  const sentence = stripTrailingRemark(stripTrailingRating(rest));
+  return endsLikeSentence(sentence) || COMMA.test(rest) || rest.length > MARKED_HEADING_MAX_LENGTH;
 }
 
 /** The rest of a marked line, without the mark, a closing "】" and a heading number. */
@@ -406,7 +408,7 @@ function classifyMarkedLine(line: string): LineKind {
   const name = markedRest(line);
   const numbered = numberedRow(name);
   if (numbered) return numbered;
-  if (isCheckBoxRest(name)) return classifyLine(name, true);
+  if (isCheckBoxRest(name)) return classifyLine(stripTrailingRemark(name), true);
   return splitRow(name) ?? { kind: 'category', name };
 }
 
@@ -546,8 +548,10 @@ interface ReadLine {
 }
 
 function toReadLine(line: string, marksOnly: boolean): ReadLine {
-  // A marked line is a category name, so a trailing letter there ("■ 病棟 A") is not a rating
-  const text = isMarkedHeading(line) ? line : stripTrailingRemark(stripTrailingRating(line));
+  // A marked line is a category name, so a trailing letter there ("■ 病棟 A") is not a rating. A check box
+  // ("■" before an item) keeps its remark here: the remark counts in its length, and classifyLine drops it
+  const unrated = isMarkedHeading(line) ? line : stripTrailingRating(line);
+  const text = hasCategoryMark(unrated) ? unrated : stripTrailingRemark(unrated);
   const kind = classifyLine(text, marksOnly);
   const numbered = startsWithNumber(text) || (kind.kind === 'row' && kind.numbered);
   return { text, kind, numbered, rowNumbered: ROW_NUMBER.test(text) || GLUED_ROW_NUMBER.test(text) };
