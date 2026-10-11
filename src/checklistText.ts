@@ -30,9 +30,15 @@ const ROW_HEAD_MIN_LENGTH = 2;
 const HEADER_WORDS = new Set([
   'ジャンル', 'カテゴリ', 'カテゴリー', 'カテゴリ名', '分類', '区分', '大項目',
   'チェック項目', '点検項目', '確認項目', '項目', '内容', '評価', '判定', '結果', '備考', 'no', 'no.', '番号',
-  'category', 'description', 'item', 'items', 'rating',
-  // Fill-in fields and the rating legend at the top of a form
-  '場所', '部署', '施設名', '評価日', '評価者', '点検者', '点検日', '記入者', '日付', 'コメント', '根拠',
+  'category', 'description', 'item', 'items', 'rating', 'コメント', '根拠',
+]);
+
+/**
+ * Fill-in fields and the rating legend at the top of a form. Only dropped as recognised lines: in a table
+ * they can be real cells (a "部署" category, a "できている" item).
+ */
+const FORM_WORDS = new Set([
+  '場所', '部署', '施設名', '評価日', '評価者', '点検者', '点検日', '記入者', '日付',
   'できている', 'できていない', '該当なし', 'na', 'n/a',
 ]);
 
@@ -100,9 +106,19 @@ export function normalizeLine(line: string): string {
   return line.replace(/[\u3000\u00a0 ]+/g, ' ').replace(/^ | $/g, '').replace(NAKAGURO_LOOKALIKES, '・');
 }
 
-/** A header word, also as a fill-in field label ending with a colon ("施設名："). */
+/** A word as looked up in the word sets: lower case, without a colon after a label ("施設名："). */
+function toLookupWord(word: string): string {
+  return word.trim().toLowerCase().replace(/[：:]$/, '');
+}
+
+/** A table header word. */
 function isHeaderWord(word: string): boolean {
-  return HEADER_WORDS.has(word.trim().toLowerCase().replace(/[：:]$/, ''));
+  return HEADER_WORDS.has(toLookupWord(word));
+}
+
+/** A header word or a fill-in field / legend word. */
+function isHeaderOrFormWord(word: string): boolean {
+  return isHeaderWord(word) || FORM_WORDS.has(toLookupWord(word));
 }
 
 /**
@@ -111,7 +127,7 @@ function isHeaderWord(word: string): boolean {
  */
 export function isNoiseLine(line: string): boolean {
   if (PAGE_NUMBERS.some((re) => re.test(line))) return true;
-  return line.split(/[ ・]/).every((word) => isHeaderWord(word) || RATING_ONLY.test(word));
+  return line.split(/[ ・]/).every((word) => isHeaderOrFormWord(word) || RATING_ONLY.test(word));
 }
 
 /** Removes a rating left at the end of an item line ("…いる． A" → "…いる．"). */

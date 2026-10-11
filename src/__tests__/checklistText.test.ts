@@ -212,6 +212,22 @@ describe('parseChecklistText: tables (tab-separated)', () => {
   });
 });
 
+describe('parseChecklistText: tables keep fill-in field and legend words as cells', () => {
+  it('reads a "部署" or "場所" category cell and a "できている" item cell', () => {
+    const text = lines('部署\t手指消毒薬を各部署に配置している．\tA', '場所\t清掃されている．\tB', '環境\tできている\tA');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '部署', items: ['手指消毒薬を各部署に配置している．'] },
+      { name: '場所', items: ['清掃されている．'] },
+      { name: '環境', items: ['できている'] },
+    ]);
+  });
+
+  it('still drops a header row with "コメント" and "根拠"', () => {
+    const text = lines('ジャンル\tチェック項目\t評価\tコメント\t根拠', '手指衛生\t消毒剤がある．\tA');
+    expect(simplify(parseChecklistText(text))).toEqual([{ name: '手指衛生', items: ['消毒剤がある．'] }]);
+  });
+});
+
 describe('parseChecklistText: recognised lines', () => {
   it('makes a line starting with ■ □ ● ◆ ◇ 【 # a category, without the mark', () => {
     const text = lines(
