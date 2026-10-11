@@ -47,6 +47,19 @@ export function emptyDraft(): EditorDraft {
   return { name: '', categories: [emptyCategory()] };
 }
 
+/** Whether the draft is still as emptyDraft() made it: no name, one unnamed category with one blank item. */
+export function isEmptyDraft(draft: EditorDraft): boolean {
+  if (draft.name.trim() !== '' || draft.categories.length !== 1) return false;
+  const [category] = draft.categories;
+  return category.name.trim() === '' && category.items.length === 1 && category.items[0].description.trim() === '';
+}
+
+/** Puts imported categories into the draft: they replace an untouched empty draft, otherwise they go at the end. */
+export function addImportedCategories(draft: EditorDraft, imported: DraftCategory[]): EditorDraft {
+  const categories = isEmptyDraft(draft) ? imported : [...draft.categories, ...imported];
+  return { ...draft, categories };
+}
+
 export function draftFromChecklist(c: SavedChecklist, name: string): EditorDraft {
   return {
     name,

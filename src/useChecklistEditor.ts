@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SavedChecklist } from './types';
-import { buildChecklist, emptyCategory, moveItem, type DraftCategory, type EditorDraft } from './checklistEditor';
+import {
+  addImportedCategories,
+  buildChecklist,
+  emptyCategory,
+  moveItem,
+  type DraftCategory,
+  type EditorDraft,
+} from './checklistEditor';
 import { trackEvent } from './analytics';
 
 /** Draft of the checklist being edited: category edits, cancel with a discard check, and save with validation. */
@@ -41,8 +48,11 @@ export function useChecklistEditor(
     setCategories([...categories, category]);
   };
 
-  const handleCancel = () => {
-    const dirty = JSON.stringify(draft) !== initialJson.current;
+  const importCategories = (imported: DraftCategory[]) => setDraft((d) => addImportedCategories(d, imported));
+
+  /** hasPendingText: text pasted into the import panel but not imported yet, which closing would also lose. */
+  const handleCancel = (hasPendingText: boolean) => {
+    const dirty = hasPendingText || JSON.stringify(draft) !== initialJson.current;
     if (dirty && !confirm('編集内容を破棄して閉じますか？')) return;
     onCancel();
   };
@@ -66,6 +76,7 @@ export function useChecklistEditor(
     moveCategory,
     handleDeleteCategory,
     handleAddCategory,
+    importCategories,
     handleCancel,
     handleSave,
   };
