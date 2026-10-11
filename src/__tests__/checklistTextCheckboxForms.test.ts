@@ -340,12 +340,12 @@ describe('classifyLine: a heading number stuck to its name (rule O)', () => {
     expect(classifyLine(line)).not.toEqual(expect.objectContaining({ name: line.replace(/^\d+/, '') }));
   });
 
-  it('keeps a number stuck to kana or to a sentence, and a name too long for a category', () => {
+  it('keeps a number stuck to kana or to a sentence, and a name too long for a subheading (rule X)', () => {
     expect(classifyLine('9パータオル')).toEqual({ kind: 'category', name: '9パータオル' });
     expect(classifyLine('2手洗いをしている')).toEqual({ kind: 'item', text: '2手洗いをしている' });
-    const long = `2${plain(CATEGORY_MAX_LENGTH + 1).replace(/^あ/, '手')}`;
+    const long = `2${plain(SUBHEADING_MAX_LENGTH + 1).replace(/^あ/, '手')}`;
     expect(classifyLine(long)).toEqual({ kind: 'item', text: long });
-    const atLimit = `2手${plain(CATEGORY_MAX_LENGTH - 1)}`;
+    const atLimit = `2手${plain(SUBHEADING_MAX_LENGTH - 1)}`;
     expect(classifyLine(atLimit)).toEqual({ kind: 'category', name: atLimit.slice(1) });
   });
 
@@ -446,7 +446,8 @@ describe('isWrappedItemTail: a short predicate after a long unfinished item (rul
   it('keeps a short item starting with its noun, or after a short item', () => {
     expect(isWrappedItemTail(`${LONG}され`, '確認する')).toBe(false);
     expect(isWrappedItemTail('配置され', 'ている')).toBe(false);
-    expect(isWrappedItemTail(`${LONG}され`, 'ていますか')).toBe(false);
+    // "…ますか" ends like a question (rule V), so a tail that does not end like a predicate is used here
+    expect(isWrappedItemTail(`${LONG}され`, 'ています')).toBe(false);
   });
 });
 
