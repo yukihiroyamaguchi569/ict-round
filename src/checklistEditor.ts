@@ -84,6 +84,37 @@ export function moveItem<T>(arr: T[], index: number, delta: number): T[] {
   return next;
 }
 
+/** Appends the item's description to the previous item in the same category and removes the item; unchanged for the first item. */
+export function joinWithPreviousItem(categories: DraftCategory[], categoryIndex: number, itemIndex: number): DraftCategory[] {
+  if (itemIndex <= 0) return categories;
+  return categories.map((cat, ci) => {
+    if (ci !== categoryIndex) return cat;
+    const previous = cat.items[itemIndex - 1];
+    const joined = { ...previous, description: previous.description + cat.items[itemIndex].description };
+    return { ...cat, items: [...cat.items.slice(0, itemIndex - 1), joined, ...cat.items.slice(itemIndex + 1)] };
+  });
+}
+
+/** Turns the item into a new category inserted after its own, taking the items that followed it. */
+export function splitCategoryAtItem(categories: DraftCategory[], categoryIndex: number, itemIndex: number): DraftCategory[] {
+  const cat = categories[categoryIndex];
+  const kept = { ...cat, items: cat.items.slice(0, itemIndex) };
+  const created: DraftCategory = {
+    key: newKey(),
+    name: cat.items[itemIndex].description,
+    items: cat.items.slice(itemIndex + 1),
+  };
+  return [...categories.slice(0, categoryIndex), kept, created, ...categories.slice(categoryIndex + 1)];
+}
+
+/** Moves the category's items to the end of the previous category and removes it, dropping its name; unchanged for the first. */
+export function mergeCategoryIntoPrevious(categories: DraftCategory[], categoryIndex: number): DraftCategory[] {
+  if (categoryIndex <= 0) return categories;
+  const previous = categories[categoryIndex - 1];
+  const merged = { ...previous, items: [...previous.items, ...categories[categoryIndex].items] };
+  return [...categories.slice(0, categoryIndex - 1), merged, ...categories.slice(categoryIndex + 1)];
+}
+
 function trimmedCategories(draft: EditorDraft) {
   return draft.categories
     .map((cat) => ({

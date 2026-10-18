@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import type { SavedChecklist } from '../types';
-import { emptyItem, moveItem, type DraftCategory, type EditorDraft } from '../checklistEditor';
+import {
+  emptyItem,
+  joinWithPreviousItem,
+  mergeCategoryIntoPrevious,
+  moveItem,
+  splitCategoryAtItem,
+  type DraftCategory,
+  type DraftItem,
+  type EditorDraft,
+} from '../checklistEditor';
 import { useChecklistEditor } from '../useChecklistEditor';
 import { useChecklistTextImport } from '../useChecklistTextImport';
 import ChecklistTextImport from './ChecklistTextImport';
@@ -16,6 +25,12 @@ const ARROW_UP = 'M5 15l7-7 7 7';
 const ARROW_DOWN = 'M19 9l-7 7-7-7';
 const CROSS = 'M6 18L18 6M6 6l12 12';
 const PLUS = 'M12 4v16m8-8H4';
+// Arrow rising into a bar: append to the item above
+const JOIN_UP = 'M5 4h14M12 20V8m-5 5l5-5 5 5';
+// Heading line over indented lines: this item becomes a category heading
+const TO_HEADING = 'M4 6h16M8 12h12M8 18h12';
+// Two branches merging upward: fold into the category above
+const MERGE_UP = 'M12 4v8m0 0a4 4 0 00-4 4v4m4-8a4 4 0 014 4v4';
 
 function Icon({ d }: { d: string }) {
   return (
@@ -46,6 +61,42 @@ function IconButton({ label, path, onClick, disabled }: IconButtonProps) {
   );
 }
 
+interface ItemRowProps {
+  item: DraftItem;
+  label: string;
+  isFirst: boolean;
+  isLast: boolean;
+  focus: boolean;
+  actions: {
+    change: (description: string) => void;
+    move: (delta: number) => void;
+    joinWithPrevious: () => void;
+    toCategory: () => void;
+    remove: () => void;
+  };
+}
+
+function ItemRow({ item, label, isFirst, isLast, focus, actions }: ItemRowProps) {
+  return (
+    <li className="flex items-center gap-1">
+      <input
+        type="text"
+        value={item.description}
+        onChange={(e) => actions.change(e.target.value)}
+        placeholder="点検項目"
+        aria-label={label}
+        autoFocus={focus}
+        className="flex-1 min-w-0 bg-base border-2 border-line rounded-t px-3 py-2 text-sm text-text placeholder:text-text-faint"
+      />
+      <IconButton label={`${label}を上へ移動`} path={ARROW_UP} onClick={() => actions.move(-1)} disabled={isFirst} />
+      <IconButton label={`${label}を下へ移動`} path={ARROW_DOWN} onClick={() => actions.move(1)} disabled={isLast} />
+      <IconButton label={`${label}を前の項目とつなぐ`} path={JOIN_UP} onClick={actions.joinWithPrevious} disabled={isFirst} />
+      <IconButton label={`${label}からカテゴリにする`} path={TO_HEADING} onClick={actions.toCategory} />
+      <IconButton label={`${label}を削除`} path={CROSS} onClick={actions.remove} />
+    </li>
+  );
+}
+
 interface CategoryCardProps {
   category: DraftCategory;
   index: number;
@@ -54,9 +105,12 @@ interface CategoryCardProps {
   onChange: (next: DraftCategory) => void;
   onMove: (delta: number) => void;
   onDelete: () => void;
+  onMergeWithPrevious: () => void;
+  /** Fixes that also change other categories, so the editor applies them to the whole draft. */
+  itemFixes: { joinWithPrevious: (itemIndex: number) => void; toCategory: (itemIndex: number) => void };
 }
 
-function CategoryCard({ category, index, count, focusName, onChange, onMove, onDelete }: CategoryCardProps) {
+function CategoryCard({ category, index, count, focusName, onChange, onMove, onDelete, onMergeWithPrevious, itemFixes }: CategoryCardProps) {
   const label = `カテゴリ${index + 1}`;
   const items = category.items;
   const setItems = (next: typeof items) => onChange({ ...category, items: next });
@@ -83,29 +137,28 @@ function CategoryCard({ category, index, count, focusName, onChange, onMove, onD
         />
         <IconButton label={`${label}を上へ移動`} path={ARROW_UP} onClick={() => onMove(-1)} disabled={index === 0} />
         <IconButton label={`${label}を下へ移動`} path={ARROW_DOWN} onClick={() => onMove(1)} disabled={index === count - 1} />
+        <IconButton label={`${label}を前のカテゴリとまとめる`} path={MERGE_UP} onClick={onMergeWithPrevious} disabled={index === 0} />
         <IconButton label={`${label}を削除`} path={CROSS} onClick={onDelete} />
       </div>
 
       <ul className="space-y-1.5 pl-2 border-l-2 border-line">
-        {items.map((item, i) => {
-          const itemLabel = `${label}の項目${i + 1}`;
-          return (
-            <li key={item.key} className="flex items-center gap-1">
-              <input
-                type="text"
-                value={item.description}
-                onChange={(e) => setItems(items.map((it, j) => (j === i ? { ...it, description: e.target.value } : it)))}
-                placeholder="点検項目"
-                aria-label={itemLabel}
-                autoFocus={item.key === addedItemKey}
-                className="flex-1 min-w-0 bg-base border-2 border-line rounded-t px-3 py-2 text-sm text-text placeholder:text-text-faint"
-              />
-              <IconButton label={`${itemLabel}を上へ移動`} path={ARROW_UP} onClick={() => setItems(moveItem(items, i, -1))} disabled={i === 0} />
-              <IconButton label={`${itemLabel}を下へ移動`} path={ARROW_DOWN} onClick={() => setItems(moveItem(items, i, 1))} disabled={i === items.length - 1} />
-              <IconButton label={`${itemLabel}を削除`} path={CROSS} onClick={() => setItems(items.filter((_, j) => j !== i))} />
-            </li>
-          );
-        })}
+        {items.map((item, i) => (
+          <ItemRow
+            key={item.key}
+            item={item}
+            label={`${label}の項目${i + 1}`}
+            isFirst={i === 0}
+            isLast={i === items.length - 1}
+            focus={item.key === addedItemKey}
+            actions={{
+              change: (description) => setItems(items.map((it, j) => (j === i ? { ...it, description } : it))),
+              move: (delta) => setItems(moveItem(items, i, delta)),
+              joinWithPrevious: () => itemFixes.joinWithPrevious(i),
+              toCategory: () => itemFixes.toCategory(i),
+              remove: () => setItems(items.filter((_, j) => j !== i)),
+            }}
+          />
+        ))}
       </ul>
 
       <button
@@ -214,6 +267,11 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
               onChange={(next) => editor.changeCategory(i, next)}
               onMove={(delta) => editor.moveCategory(i, delta)}
               onDelete={() => editor.handleDeleteCategory(i)}
+              onMergeWithPrevious={() => editor.updateCategories((c) => mergeCategoryIntoPrevious(c, i))}
+              itemFixes={{
+                joinWithPrevious: (itemIndex) => editor.updateCategories((c) => joinWithPreviousItem(c, i, itemIndex)),
+                toCategory: (itemIndex) => editor.updateCategories((c) => splitCategoryAtItem(c, i, itemIndex)),
+              }}
             />
           ))}
 

@@ -28,6 +28,8 @@ export function useChecklistEditor(
 
   const setCategories = (categories: DraftCategory[]) => setDraft((d) => ({ ...d, categories }));
   const { categories } = draft;
+  /** Applies a pure restructuring (join items, item to category, merge categories) to the latest categories. */
+  const updateCategories = (change: (c: DraftCategory[]) => DraftCategory[]) => setDraft((d) => ({ ...d, categories: change(d.categories) }));
 
   const setName = (name: string) => setDraft((d) => ({ ...d, name }));
 
@@ -74,6 +76,7 @@ export function useChecklistEditor(
     setName,
     changeCategory,
     moveCategory,
+    updateCategories,
     handleDeleteCategory,
     handleAddCategory,
     importCategories,
