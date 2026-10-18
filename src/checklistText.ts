@@ -1,5 +1,6 @@
 import { newKey, type DraftCategory, type DraftItem } from './checklistEditor';
 import {
+  DIGIT,
   ITEM_ENDING,
   PARTICLE_COMMA_END,
   RATING_ONLY,
@@ -62,7 +63,7 @@ const COMMA = /[、，,]/;
  * A heading number stuck to a name starting with a kanji: "2手洗い", "3排泄ケア（おむつ交換を含む）". A unit after
  * the number ("15秒以上…", "3階") is part of an item, and a number stuck to kana is a row number (GLUED_ROW_NUMBER).
  */
-const GLUED_HEADING_NUMBER = /^\d+(?=[\u3400-\u9fff])/;
+const GLUED_HEADING_NUMBER = new RegExp(`^${DIGIT}+(?=[\u3400-\u9fff])`);
 const UNIT_START = /^[秒分時日月年回階人名本枚個台件]/;
 /** The title of a form: "…チェックリスト", "…点検表", also with a bracket after it ("…チェックリスト（職員向け）"). */
 const TITLE = /(?:チェックリスト|チェックシート|チェック表|点検表|点検票|管理票|項目表|一覧表|一覧)(?:[（(][^（()）]*[)）])?$/;
@@ -78,7 +79,7 @@ const KATAKANA_NUMBER = '[アイウエオカキクケコ](?:[.．、，]|(?=[（
  * before a space ("1ー3 ", "1-4 "), and a katakana sub-number, also after one of these ("(1)ア.").
  */
 const HEADING_NUMBER = new RegExp(
-  `^(?:(?:\\d+[.．、)）]|[(（]\\d+[)）]|[①-⑳]|[A-ZＡ-Ｚ][.．]|\\d+[-－ー‐]\\d+(?=\\s))\\s*(?:${KATAKANA_NUMBER})?|${KATAKANA_NUMBER})\\s*`,
+  `^(?:(?:${DIGIT}+[.．、)）]|[(（]${DIGIT}+[)）]|[①-⑳]|[A-ZＡ-Ｚ][.．]|${DIGIT}+[-－ー‐]${DIGIT}+(?=\\s))\\s*(?:${KATAKANA_NUMBER})?|${KATAKANA_NUMBER})\\s*`,
 );
 /** A lettered section heading: "A." "D．", or a letter before a space ("C 院内組織体制"). */
 const LETTER_HEADING = /^[A-ZＡ-Ｚ](?:[.．]|\s+)/;
@@ -88,9 +89,9 @@ const ROMAN_HEADING = /^(?:[Ⅰ-Ⅻ]|VIII|VII|VI|IV|IX|III|II|I|V|X)(?:\s+|[.．
  * A number column without delimiters: "91 点滴の…", with a star for a key item stuck to it ("109★ 化学…").
  * A star after a space ("108 ★ 給水…") stays with the item.
  */
-const ROW_NUMBER = /^\d+[★☆]?\s+/;
+const ROW_NUMBER = new RegExp(`^${DIGIT}+[★☆]?\\s+`);
 /** A row number stuck to kana: "9パータオルを…", the middle line of an item wrapped over three lines. */
-const GLUED_ROW_NUMBER = /^\d+(?=[\u3040-\u30ff])/;
+const GLUED_ROW_NUMBER = new RegExp(`^${DIGIT}+(?=[\u3040-\u30ff])`);
 /** A dot without a space before a subheading: "・共通項目" ("•" is tidied to "・"). */
 const DOT_HEADING = /^・(?=\S)/;
 
@@ -581,12 +582,15 @@ function readLines(lines: string[], collector: CategoryCollector, marksOnly: boo
   });
 }
 
+/** A cell holding a number alone: "12", "１２". */
+const NUMBER_CELL = new RegExp(`^${DIGIT}+$`);
+
 /** Every row starts with a number, all different, followed by at least two more cells. */
 function startsWithDistinctNumbers(rows: string[][]): boolean {
   const firsts = rows.map((cells) => cells[0]);
   return (
     rows.length > 0 &&
-    rows.every((cells) => cells.length >= 3 && /^\d+$/.test(cells[0])) &&
+    rows.every((cells) => cells.length >= 3 && NUMBER_CELL.test(cells[0])) &&
     new Set(firsts).size === firsts.length
   );
 }

@@ -37,19 +37,27 @@ const RATING_AFTER_SPACE = new RegExp(`\\s+${RATING}$`);
  */
 const RATING_AFTER_JAPANESE = /([\u3040-\u30ff\u3400-\u9fff」])[ABCＡＢＣ○◯〇×✕✖△▲]$/;
 
-/** Page number lines: "3", "- 3 -", "3/5", "P.3", "3ページ", "（3）". */
+/**
+ * A digit, half or full width: text recognition reads the digits of a printed form either way ("第１条").
+ * Only for matching; the text of an item keeps the digits as they were read.
+ */
+export const DIGIT = '[0-9０-９]';
+
+/** Page number lines: "3", "- 3 -", "3/5", "P.3", "3ページ", "（3）", also in full-width digits. */
 const PAGE_NUMBERS = [
-  /^[-－]?\s*\d+\s*[-－]?$/,
-  /^\d+\s*[/／]\s*\d+$/,
-  /^p\.?\s*\d+$/i,
-  /^\d+\s*(?:ページ|頁)$/,
-  /^（\d+）$/,
+  new RegExp(`^[-－]?\\s*${DIGIT}+\\s*[-－]?$`),
+  new RegExp(`^${DIGIT}+\\s*[/／]\\s*${DIGIT}+$`),
+  new RegExp(`^p\\.?\\s*${DIGIT}+$`, 'i'),
+  new RegExp(`^${DIGIT}+\\s*(?:ページ|頁)$`),
+  new RegExp(`^（${DIGIT}+）$`),
 ];
 
 /**
  * A "□はい □いいえ" answer column at the end of a line, read as "口はい 口いいえ", "口はいいいえ", "口はい一口いいえ"…
  */
 const ANSWER_COLUMN = / ?[□■口ロ［[「]? ?はい ?[一ー]? ?[□■口ロ［[「]? ?いいえ$/;
+/** What is left of a line of an answer column alone: nothing, or its row number ("7", "７"). */
+const ROW_NUMBER_ONLY = new RegExp(`^${DIGIT}*$`);
 /**
  * A rating column of choices printed at the end of each line, read as "A ・B・C・X", "A B・ C X", "…事前にA ・B・C・X":
  * single capital letters separated by "・" or spaces, not following another letter; three or more,
@@ -61,9 +69,9 @@ const TRAILING_DOT = / ・$/;
 /**
  * Words that mark a citation of a law or a notice: "規則第1条の11第2項第1号", "医政発0330010", "H19.3.30".
  * A bare "規則" or "通知" is not enough ("（院内規則に基づき確認する）" is an item); a notice is
- * caught by its number ("第0330010号") or its date ("平成19年").
+ * caught by its number ("第0330010号") or its date ("平成19年"). Digits and letters may be full width ("Ｈ１９．３．３０").
  */
-const LAW_WORDS = '(?:規則第\\d|第\\d+[条項号]|医政発|告示|平成\\d|令和\\d|昭和\\d|[HRS]\\d+\\.\\d)';
+const LAW_WORDS = `(?:規則第${DIGIT}|第${DIGIT}+[条項号]|医政発|告示|平成${DIGIT}|令和${DIGIT}|昭和${DIGIT}|[HRSＨＲＳ]${DIGIT}+[.．]${DIGIT})`;
 /** A line of a law reference in brackets, with a note after it or not: "（規則第1条の11第2項第1号）※…". */
 const LAW_REFERENCE_LINE = new RegExp(`^[（(][^（()）]*${LAW_WORDS}[^（()）]*[)）](?:\\s*※.*)?$`);
 /** A law reference in brackets at the end of an item: "…実施していますか。（規則第1条の11第2項第1号ニ）". */
@@ -167,7 +175,7 @@ export function looksLikeSentence(text: string): boolean {
 export function stripAnswerColumn(line: string): string {
   if (!ANSWER_COLUMN.test(line)) return line;
   const rest = line.replace(ANSWER_COLUMN, '');
-  return /^\d*$/.test(rest) ? '' : rest;
+  return ROW_NUMBER_ONLY.test(rest) ? '' : rest;
 }
 
 /** Removes a column of choices from the end of a line ("…整備されている A ・B・C・X"); a line of choices alone is returned empty. */

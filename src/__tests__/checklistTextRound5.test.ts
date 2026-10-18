@@ -175,6 +175,74 @@ describe('stripLawReference: law references in brackets (rule Z2)', () => {
       simplify(parseChecklistText(lines('体制', '①委員会を開催していますか。', '（規則第1条の11第2項第1号）※有床診療所のみ', '②指針は策定されていますか。'))),
     ).toEqual([{ name: '体制', items: ['委員会を開催していますか。', '指針は策定されていますか。'] }]);
   });
+  it.each([
+    '（規則第１条の１１第２項第１号）',
+    '（規則第１条の１１第２項第１号）※義務付けられているのは有床診療所のみ',
+    '（Ｈ１９.３.３０医政発０３３００１０）',
+    '（Ｈ１９．３．３０）',
+    '（平成１９年３月３０日医政発第０３３００１０号）',
+    '（第３号）',
+  ])('returns a citation read with full-width digits %s empty', (line) => expect(stripLawReference(line)).toBe(''));
+
+  it('cuts a law reference read with full-width digits off the end of an item', () => {
+    expect(stripLawReference('方策を実施していますか。（規則第１条の１１第２項第１号ニ）')).toBe('方策を実施していますか。');
+  });
+
+  it('reads a clinic sheet recognised with full-width digits like the half-width one', () => {
+    expect(
+      simplify(
+        parseChecklistText(
+          lines(
+            '１ー３ 院内感染対策のための体制の確保 •',
+            '①院内感染対策のための指針は策定されていますか。',
+            '（規則第１条の１１第２項第１号イ）',
+            '④感染症の発生状況の報告、その他の院内感染対策の推進を目的とした改',
+            '善のための方策を実施していますか。（規則第１条の１１第２項第１号ニ）',
+            '＜備考＞',
+            '１-４ 医薬品の安全管理体制 ・',
+            '③医薬品安全管理責任者は、従事者の業務が手順書に基づき行われている',
+            'か定期的に確認し、確認内容を記録していますか。',
+            '（Ｈ１９.３.３０医政発０３３００１０）',
+          ),
+        ),
+      ),
+    ).toEqual([
+      {
+        name: '院内感染対策のための体制の確保',
+        items: [
+          '院内感染対策のための指針は策定されていますか。',
+          '感染症の発生状況の報告、その他の院内感染対策の推進を目的とした改善のための方策を実施していますか。',
+        ],
+      },
+      {
+        name: '医薬品の安全管理体制',
+        items: ['医薬品安全管理責任者は、従事者の業務が手順書に基づき行われているか定期的に確認し、確認内容を記録していますか。'],
+      },
+    ]);
+  });
+
+});
+
+describe('full-width digits in heading numbers, row numbers and page numbers', () => {
+  it.each([
+    ['１．手指衛生', '２．手指消毒を行っている。'],
+    ['（１）手指衛生', '１２ 手指消毒を行っている。'],
+    ['１)手指衛生', '３ 手指消毒を行っている。'],
+  ])('reads heading and row numbers and a page number in full-width digits: %s / %s', (heading, item) => {
+    expect(simplify(parseChecklistText(lines(heading, item, '－ ３ －')))).toEqual([{ name: '手指衛生', items: ['手指消毒を行っている。'] }]);
+  });
+
+  it('returns a line of an answer column with a full-width row number alone empty', () => {
+    expect(stripAnswerColumn('７ 口はい口いいえ')).toBe('');
+  });
+
+  it('drops a leading number column of full-width digits in a table', () => {
+    const text = lines('No.\tジャンル\tチェック項目\t評価', '１\t手指衛生\t消毒剤がある．\tA', '２\t\t掲示がある．\tB', '３\t環境\t清掃されている．');
+    expect(simplify(parseChecklistText(text))).toEqual([
+      { name: '手指衛生', items: ['消毒剤がある．', '掲示がある．'] },
+      { name: '環境', items: ['清掃されている．'] },
+    ]);
+  });
 });
 
 describe('the "□はい □いいえ" column read with brackets, and notes (rule Z3)', () => {
