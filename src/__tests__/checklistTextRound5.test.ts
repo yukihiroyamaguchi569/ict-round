@@ -134,6 +134,20 @@ describe('stripLawReference: law references in brackets (rule Z2)', () => {
     expect(stripLawReference('方策を実施していますか。（規則第1条の11第2項第1号ニ）')).toBe('方策を実施していますか。');
   });
 
+  it.each(['（規則第1条の11第2項第1号イ）', '（H19.3.30医政発0330010）', '（平成19年3月30日医政発第0330010号）', '（第3号）', '（R5.4.1通知）'])(
+    'returns a citation %s empty',
+    (line) => expect(stripLawReference(line)).toBe(''),
+  );
+
+  it.each(['（院内規則に基づき確認する）', '（感染対策委員会の規則による）', '（委員会からの通知を確認する）'])(
+    'keeps a bracket with "規則" or "通知" that cites nothing: %s',
+    (line) => expect(stripLawReference(line)).toBe(line),
+  );
+
+  it('keeps a trailing bracket with "規則" that cites nothing', () => {
+    expect(stripLawReference('手順を守っている（院内規則に基づき確認する）')).toBe('手順を守っている（院内規則に基づき確認する）');
+  });
+
   it.each(['（ケアの前後、食事の配膳前など）', '手指消毒を行う（ケアの前後）', '（第三者評価）'])('keeps a bracket without law words: %s', (line) =>
     expect(stripLawReference(line)).toBe(line),
   );

@@ -57,8 +57,12 @@ const ANSWER_COLUMN = / ?[□■口ロ［[「]? ?はい ?[一ー]? ?[□■口�
 const CHOICE_COLUMN = /(?<![A-Za-zＡ-Ｚａ-ｚ]) ?[A-ZＡ-Ｚ](?:[ ・]+[A-ZＡ-Ｚ])+$/;
 /** A dot left alone at the end of a heading ("1ー3 院内感染対策のための体制の確保 •"; "•" is tidied to "・"). */
 const TRAILING_DOT = / ・$/;
-/** Words of a law or a notice: "規則第1条の11第2項第1号", "医政発0330010", "H19.3.30". */
-const LAW_WORDS = '(?:第\\d+[条項号]|規則|医政発|告示|通知|平成\\d|令和\\d|昭和\\d|[HRS]\\d+\\.\\d)';
+/**
+ * Words that mark a citation of a law or a notice: "規則第1条の11第2項第1号", "医政発0330010", "H19.3.30".
+ * A bare "規則" or "通知" is not enough ("（院内規則に基づき確認する）" is an item); a notice is
+ * caught by its number ("第0330010号") or its date ("平成19年").
+ */
+const LAW_WORDS = '(?:規則第\\d|第\\d+[条項号]|医政発|告示|平成\\d|令和\\d|昭和\\d|[HRS]\\d+\\.\\d)';
 /** A line of a law reference in brackets, with a note after it or not: "（規則第1条の11第2項第1号）※…". */
 const LAW_REFERENCE_LINE = new RegExp(`^[（(][^（()）]*${LAW_WORDS}[^（()）]*[)）](?:\\s*※.*)?$`);
 /** A law reference in brackets at the end of an item: "…実施していますか。（規則第1条の11第2項第1号ニ）". */
