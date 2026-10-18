@@ -132,3 +132,30 @@ describe('mergeCategoryIntoPrevious', () => {
     expect(before).toEqual(copy);
   });
 });
+
+describe('out-of-range indexes', () => {
+  const before = cats([['A', ['a1', 'a2']], ['B', ['b']]]);
+
+  it('joinWithPreviousItem returns the same array for an empty list or an index outside it', () => {
+    const empty: DraftCategory[] = [];
+    expect(joinWithPreviousItem(empty, 0, 1)).toBe(empty);
+    for (const [ci, ii] of [[-1, 1], [2, 1], [0, 2], [1, 1], [0, -1]]) {
+      expect(joinWithPreviousItem(before, ci, ii)).toBe(before);
+    }
+  });
+
+  it('splitCategoryAtItem returns the same array for an empty list or an index outside it', () => {
+    const empty: DraftCategory[] = [];
+    expect(splitCategoryAtItem(empty, 0, 0)).toBe(empty);
+    for (const [ci, ii] of [[-1, 0], [2, 0], [0, 2], [1, 1], [0, -1]]) {
+      expect(splitCategoryAtItem(before, ci, ii)).toBe(before);
+    }
+  });
+
+  it('mergeCategoryIntoPrevious returns the same array for an empty list or an index outside it', () => {
+    const empty: DraftCategory[] = [];
+    expect(mergeCategoryIntoPrevious(empty, 1)).toBe(empty);
+    expect(mergeCategoryIntoPrevious(before, 2)).toBe(before);
+    expect(mergeCategoryIntoPrevious(before, -1)).toBe(before);
+  });
+});

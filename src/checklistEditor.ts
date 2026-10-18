@@ -84,9 +84,15 @@ export function moveItem<T>(arr: T[], index: number, delta: number): T[] {
   return next;
 }
 
-/** Appends the item's description to the previous item in the same category and removes the item; unchanged for the first item. */
+/** Whether categoryIndex / itemIndex point at an existing item. */
+function hasItem(categories: DraftCategory[], categoryIndex: number, itemIndex: number): boolean {
+  const cat = categories[categoryIndex];
+  return categoryIndex >= 0 && cat !== undefined && itemIndex >= 0 && itemIndex < cat.items.length;
+}
+
+/** Appends the item's description to the previous item in the same category and removes the item; unchanged for the first item or an index out of range. */
 export function joinWithPreviousItem(categories: DraftCategory[], categoryIndex: number, itemIndex: number): DraftCategory[] {
-  if (itemIndex <= 0) return categories;
+  if (itemIndex <= 0 || !hasItem(categories, categoryIndex, itemIndex)) return categories;
   return categories.map((cat, ci) => {
     if (ci !== categoryIndex) return cat;
     const previous = cat.items[itemIndex - 1];
@@ -95,8 +101,9 @@ export function joinWithPreviousItem(categories: DraftCategory[], categoryIndex:
   });
 }
 
-/** Turns the item into a new category inserted after its own, taking the items that followed it. */
+/** Turns the item into a new category inserted after its own, taking the items that followed it; unchanged for an index out of range. */
 export function splitCategoryAtItem(categories: DraftCategory[], categoryIndex: number, itemIndex: number): DraftCategory[] {
+  if (!hasItem(categories, categoryIndex, itemIndex)) return categories;
   const cat = categories[categoryIndex];
   const kept = { ...cat, items: cat.items.slice(0, itemIndex) };
   const created: DraftCategory = {
@@ -107,9 +114,9 @@ export function splitCategoryAtItem(categories: DraftCategory[], categoryIndex: 
   return [...categories.slice(0, categoryIndex), kept, created, ...categories.slice(categoryIndex + 1)];
 }
 
-/** Moves the category's items to the end of the previous category and removes it, dropping its name; unchanged for the first. */
+/** Moves the category's items to the end of the previous category and removes it, dropping its name; unchanged for the first or an index out of range. */
 export function mergeCategoryIntoPrevious(categories: DraftCategory[], categoryIndex: number): DraftCategory[] {
-  if (categoryIndex <= 0) return categories;
+  if (categoryIndex <= 0 || categoryIndex >= categories.length) return categories;
   const previous = categories[categoryIndex - 1];
   const merged = { ...previous, items: [...previous.items, ...categories[categoryIndex].items] };
   return [...categories.slice(0, categoryIndex - 1), merged, ...categories.slice(categoryIndex + 1)];
