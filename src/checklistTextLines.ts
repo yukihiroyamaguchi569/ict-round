@@ -52,9 +52,10 @@ const PAGE_NUMBERS = [
 const ANSWER_COLUMN = / ?[□■口ロ［[「]? ?はい ?[一ー]? ?[□■口ロ［[「]? ?いいえ$/;
 /**
  * A rating column of choices printed at the end of each line, read as "A ・B・C・X", "A B・ C X", "…事前にA ・B・C・X":
- * two or more single capital letters separated by "・" or spaces, not following another letter.
+ * single capital letters separated by "・" or spaces, not following another letter; three or more,
+ * or two with a "・" between them, so a sentence ending in "ビタミン A B" is kept.
  */
-const CHOICE_COLUMN = /(?<![A-Za-zＡ-Ｚａ-ｚ]) ?[A-ZＡ-Ｚ](?:[ ・]+[A-ZＡ-Ｚ])+$/;
+const CHOICE_COLUMN = /(?<![A-Za-zＡ-Ｚａ-ｚ]) ?[A-ZＡ-Ｚ](?:(?:[ ・]+[A-ZＡ-Ｚ]){2,}| *・[ ・]*[A-ZＡ-Ｚ])$/;
 /** A dot left alone at the end of a heading ("1ー3 院内感染対策のための体制の確保 •"; "•" is tidied to "・"). */
 const TRAILING_DOT = / ・$/;
 /**

@@ -103,6 +103,18 @@ describe('stripChoiceColumn: a column of choices at the end of a line (rule Z1)'
     expect(stripChoiceColumn(line)).toBe(''),
   );
 
+  it.each([
+    ['…区分は A ・B・C・X', '…区分は'],
+    ['…区分は A B・ C X', '…区分は'],
+    ['…区分は A B C X', '…区分は'],
+    ['…区分は A B C', '…区分は'],
+    ['…区分は A・B', '…区分は'],
+  ])('removes three or more letters, or two with a "・": %s', (line, expected) => expect(stripChoiceColumn(line)).toBe(expected));
+
+  it.each(['…ビタミン A B', '…の区分は A B', 'A B'])('keeps two letters with only a space between them: %s', (line) =>
+    expect(stripChoiceColumn(line)).toBe(line),
+  );
+
   it.each(['…している A', 'a・b', '…している a・b', '…ICT・AST', '…PPE', 'CDC ／医療感染管理諮問委員会'])('keeps %s', (line) =>
     expect(stripChoiceColumn(line)).toBe(line),
   );
