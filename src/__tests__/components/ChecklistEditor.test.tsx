@@ -264,4 +264,89 @@ describe('ChecklistEditor', () => {
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     expect(onCancel).not.toHaveBeenCalled();
   });
+
+  it('joins an item with the previous one without asking, and disables it for the first item', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const { onSave, user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    expect(button('カテゴリ1の項目1を前の項目とつなぐ')).toBeDisabled();
+    await user.click(button('カテゴリ1の項目2を前の項目とつなぐ'));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(textbox('カテゴリ1の項目1')).toHaveValue('消毒剤がある掲示がある');
+    expect(screen.queryByRole('textbox', { name: 'カテゴリ1の項目2' })).not.toBeInTheDocument();
+    await user.click(button('保存して適用'));
+    expect(savedChecklist(onSave).categories[0].items.map((i) => i.description)).toEqual(['消毒剤がある掲示がある']);
+  });
+
+  it('turns an item into a category that takes the items after it', async () => {
+    const { onSave, user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1の項目1からカテゴリにする'));
+    expect(textbox('カテゴリ1の名前')).toHaveValue('手指衛生');
+    expect(screen.queryByRole('textbox', { name: 'カテゴリ1の項目1' })).not.toBeInTheDocument();
+    expect(textbox('カテゴリ2の名前')).toHaveValue('消毒剤がある');
+    expect(textbox('カテゴリ2の項目1')).toHaveValue('掲示がある');
+    expect(textbox('カテゴリ3の名前')).toHaveValue('環境');
+    await user.click(button('保存して適用'));
+    const c = savedChecklist(onSave);
+    expect(c.categories.map((cat) => cat.category)).toEqual(['消毒剤がある', '環境']);
+    expect(c.categories[0].items.map((i) => i.description)).toEqual(['掲示がある']);
+  });
+
+  it('merges a category into the previous one without asking, and disables it for the first', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const { onSave, user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    expect(button('カテゴリ1を前のカテゴリとまとめる')).toBeDisabled();
+    await user.click(button('カテゴリ2を前のカテゴリとまとめる'));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole('textbox', { name: 'カテゴリ2の名前' })).not.toBeInTheDocument();
+    expect(textbox('カテゴリ1の項目3')).toHaveValue('清掃されている');
+    await user.click(button('保存して適用'));
+    const c = savedChecklist(onSave);
+    expect(c.categories).toHaveLength(1);
+    expect(c.categories[0].items).toHaveLength(3);
+  });
+
+  it('focuses the previous item after joining, and again after joining into it once more', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1に項目を追加'));
+    await user.type(textbox('カテゴリ1の項目3'), '貼り紙');
+    await user.click(button('カテゴリ1の項目2を前の項目とつなぐ'));
+    expect(textbox('カテゴリ1の項目1')).toHaveFocus();
+    await user.click(button('カテゴリ1の項目2を前の項目とつなぐ'));
+    expect(textbox('カテゴリ1の項目1')).toHaveValue('消毒剤がある掲示がある貼り紙');
+    expect(textbox('カテゴリ1の項目1')).toHaveFocus();
+  });
+
+  it.each([
+    ['カテゴリ1の項目2からカテゴリにする', 'カテゴリ2の名前', '掲示がある'],
+    ['カテゴリ2を前のカテゴリとまとめる', 'カテゴリ1の名前', '手指衛生'],
+  ])('focuses the remaining category name after "%s"', async (name, focused, value) => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button(name));
+    expect(textbox(focused)).toHaveValue(value);
+    expect(textbox(focused)).toHaveFocus();
+  });
+
+  it('does not move focus back on later edits after a fix', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1の項目2を前の項目とつなぐ'));
+    await user.click(textbox('カテゴリ2の項目1'));
+    await user.type(textbox('カテゴリ2の項目1'), '床');
+    await user.click(textbox('カテゴリ2の名前'));
+    await user.type(textbox('カテゴリ2の名前'), '室');
+    expect(textbox('カテゴリ2の名前')).toHaveValue('環境室');
+    expect(textbox('カテゴリ2の名前')).toHaveFocus();
+  });
+
+  it.each([
+    'カテゴリ1の項目2を前の項目とつなぐ',
+    'カテゴリ1の項目1からカテゴリにする',
+    'カテゴリ2を前のカテゴリとまとめる',
+  ])('asks before cancelling after "%s"', async (name) => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const { onCancel, user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button(name));
+    await user.click(button('キャンセル'));
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(onCancel).not.toHaveBeenCalled();
+  });
 });
