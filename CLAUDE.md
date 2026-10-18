@@ -114,6 +114,7 @@ src/
   checklistImport.ts       Parses user checklists from CSV / .xlsx; file type by extension, default name, SavedChecklist building
   checklistEditor.ts       Editor draft model and conversion of a draft into a new checklist (validation, item IDs); empty-draft check and adding imported categories (replace an empty draft, otherwise append)
   checklistText.ts         Splits pasted table text (Excel / Word tab-separated, or lines recognised from a photo by the OS) into draft categories; thresholds and patterns as constants
+  checklistTextLines.ts    Tidies pasted lines before checklistText classifies them: noise lines, columns printed beside items (rating, answer, choices, law reference, remark), notes, and the sentence-ending check
   localId.ts               newLocalId: local ID for photos and imported checklists (random + time, base 36)
   checklistStorage.ts      localStorage I/O: checklist library, active checklist ID, saved rounds
   roundDirty.ts            Unsaved-change detection via round snapshots
