@@ -316,17 +316,14 @@ describe('ChecklistEditor', () => {
     expect(textbox('カテゴリ1の項目1')).toHaveFocus();
   });
 
-  it('focuses the new category name after turning an item into a category', async () => {
+  it.each([
+    ['カテゴリ1の項目2からカテゴリにする', 'カテゴリ2の名前', '掲示がある'],
+    ['カテゴリ2を前のカテゴリとまとめる', 'カテゴリ1の名前', '手指衛生'],
+  ])('focuses the remaining category name after "%s"', async (name, focused, value) => {
     const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
-    await user.click(button('カテゴリ1の項目2からカテゴリにする'));
-    expect(textbox('カテゴリ2の名前')).toHaveValue('掲示がある');
-    expect(textbox('カテゴリ2の名前')).toHaveFocus();
-  });
-
-  it('focuses the previous category name after merging', async () => {
-    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
-    await user.click(button('カテゴリ2を前のカテゴリとまとめる'));
-    expect(textbox('カテゴリ1の名前')).toHaveFocus();
+    await user.click(button(name));
+    expect(textbox(focused)).toHaveValue(value);
+    expect(textbox(focused)).toHaveFocus();
   });
 
   it('does not move focus back on later edits after a fix', async () => {
