@@ -1,16 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SavedChecklist } from '../types';
-import {
-  emptyItem,
-  joinWithPreviousItem,
-  mergeCategoryIntoPrevious,
-  moveItem,
-  splitCategoryAtItem,
-  type DraftCategory,
-  type DraftItem,
-  type EditorDraft,
-} from '../checklistEditor';
-import { useChecklistEditor } from '../useChecklistEditor';
+import { emptyItem, moveItem, type DraftCategory, type DraftItem, type EditorDraft } from '../checklistEditor';
+import { useChecklistEditor, type FocusRequest } from '../useChecklistEditor';
 import { useChecklistTextImport } from '../useChecklistTextImport';
 import ChecklistTextImport from './ChecklistTextImport';
 
@@ -31,6 +22,15 @@ const JOIN_UP = 'M5 4h14M12 20V8m-5 5l5-5 5 5';
 const TO_HEADING = 'M4 6h16M8 12h12M8 18h12';
 // Two branches merging upward: fold into the category above
 const MERGE_UP = 'M12 4v8m0 0a4 4 0 00-4 4v4m4-8a4 4 0 014 4v4';
+
+/** Ref for an input that takes focus whenever a new request for it arrives (null: not requested). */
+function useRequestedFocus(request: FocusRequest | null) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (request) ref.current?.focus();
+  }, [request]);
+  return ref;
+}
 
 function Icon({ d }: { d: string }) {
   return (
@@ -67,6 +67,7 @@ interface ItemRowProps {
   isFirst: boolean;
   isLast: boolean;
   focus: boolean;
+  focusRequest: FocusRequest | null;
   actions: {
     change: (description: string) => void;
     move: (delta: number) => void;
@@ -76,10 +77,12 @@ interface ItemRowProps {
   };
 }
 
-function ItemRow({ item, label, isFirst, isLast, focus, actions }: ItemRowProps) {
+function ItemRow({ item, label, isFirst, isLast, focus, focusRequest, actions }: ItemRowProps) {
+  const inputRef = useRequestedFocus(focusRequest);
   return (
     <li className="flex items-center gap-1">
       <input
+        ref={inputRef}
         type="text"
         value={item.description}
         onChange={(e) => actions.change(e.target.value)}
@@ -101,7 +104,8 @@ interface CategoryCardProps {
   category: DraftCategory;
   index: number;
   count: number;
-  focusName: boolean;
+  /** The editor's latest focus request; each input takes it only when the key is its own. */
+  focusRequest: FocusRequest | null;
   onChange: (next: DraftCategory) => void;
   onMove: (delta: number) => void;
   onDelete: () => void;
@@ -110,12 +114,13 @@ interface CategoryCardProps {
   itemFixes: { joinWithPrevious: (itemIndex: number) => void; toCategory: (itemIndex: number) => void };
 }
 
-function CategoryCard({ category, index, count, focusName, onChange, onMove, onDelete, onMergeWithPrevious, itemFixes }: CategoryCardProps) {
+function CategoryCard({ category, index, count, focusRequest, onChange, onMove, onDelete, onMergeWithPrevious, itemFixes }: CategoryCardProps) {
   const label = `カテゴリ${index + 1}`;
   const items = category.items;
   const setItems = (next: typeof items) => onChange({ ...category, items: next });
   // Key of the item added last; autoFocus only fires on mount, so other edits never move focus.
   const [addedItemKey, setAddedItemKey] = useState<string | null>(null);
+  const nameRef = useRequestedFocus(focusRequest?.key === category.key ? focusRequest : null);
 
   const addItem = () => {
     const item = emptyItem();
@@ -127,12 +132,12 @@ function CategoryCard({ category, index, count, focusName, onChange, onMove, onD
     <div className="card p-3 space-y-2">
       <div className="flex items-center gap-1">
         <input
+          ref={nameRef}
           type="text"
           value={category.name}
           onChange={(e) => onChange({ ...category, name: e.target.value })}
           placeholder="カテゴリ名（例: 手指衛生）"
           aria-label={`${label}の名前`}
-          autoFocus={focusName}
           className="flex-1 min-w-0 bg-base border-2 border-line rounded-t px-3 py-2 text-sm font-bold text-text placeholder:text-text-faint placeholder:font-normal"
         />
         <IconButton label={`${label}を上へ移動`} path={ARROW_UP} onClick={() => onMove(-1)} disabled={index === 0} />
@@ -150,6 +155,7 @@ function CategoryCard({ category, index, count, focusName, onChange, onMove, onD
             isFirst={i === 0}
             isLast={i === items.length - 1}
             focus={item.key === addedItemKey}
+            focusRequest={focusRequest?.key === item.key ? focusRequest : null}
             actions={{
               change: (description) => setItems(items.map((it, j) => (j === i ? { ...it, description } : it))),
               move: (delta) => setItems(moveItem(items, i, delta)),
@@ -226,7 +232,7 @@ function EditorHeader({ source, onClose }: EditorHeaderProps) {
 
 export default function ChecklistEditor({ initialDraft, source, onSave, onCancel }: Props) {
   const editor = useChecklistEditor(initialDraft, source, onSave, onCancel);
-  const { draft, addedCategoryKey } = editor;
+  const { draft } = editor;
   const { categories } = draft;
   const textImport = useChecklistTextImport(editor.importCategories);
   const cancel = () => editor.handleCancel(textImport.text.trim() !== '');
@@ -263,14 +269,14 @@ export default function ChecklistEditor({ initialDraft, source, onSave, onCancel
               category={cat}
               index={i}
               count={categories.length}
-              focusName={cat.key === addedCategoryKey}
+              focusRequest={editor.focusRequest}
               onChange={(next) => editor.changeCategory(i, next)}
               onMove={(delta) => editor.moveCategory(i, delta)}
               onDelete={() => editor.handleDeleteCategory(i)}
-              onMergeWithPrevious={() => editor.updateCategories((c) => mergeCategoryIntoPrevious(c, i))}
+              onMergeWithPrevious={() => editor.mergeCategoryWithPrevious(i)}
               itemFixes={{
-                joinWithPrevious: (itemIndex) => editor.updateCategories((c) => joinWithPreviousItem(c, i, itemIndex)),
-                toCategory: (itemIndex) => editor.updateCategories((c) => splitCategoryAtItem(c, i, itemIndex)),
+                joinWithPrevious: (itemIndex) => editor.joinItemWithPrevious(i, itemIndex),
+                toCategory: (itemIndex) => editor.splitCategoryAt(i, itemIndex),
               }}
             />
           ))}

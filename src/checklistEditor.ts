@@ -102,12 +102,17 @@ export function joinWithPreviousItem(categories: DraftCategory[], categoryIndex:
 }
 
 /** Turns the item into a new category inserted after its own, taking the items that followed it; unchanged for an index out of range. */
-export function splitCategoryAtItem(categories: DraftCategory[], categoryIndex: number, itemIndex: number): DraftCategory[] {
+export function splitCategoryAtItem(
+  categories: DraftCategory[],
+  categoryIndex: number,
+  itemIndex: number,
+  createdKey: string = newKey(),
+): DraftCategory[] {
   if (!hasItem(categories, categoryIndex, itemIndex)) return categories;
   const cat = categories[categoryIndex];
   const kept = { ...cat, items: cat.items.slice(0, itemIndex) };
   const created: DraftCategory = {
-    key: newKey(),
+    key: createdKey,
     name: cat.items[itemIndex].description,
     items: cat.items.slice(itemIndex + 1),
   };

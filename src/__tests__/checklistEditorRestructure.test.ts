@@ -87,6 +87,10 @@ describe('splitCategoryAtItem', () => {
     expect(splitCategoryAtItem(before, 0, 1)[1].key).not.toBe(splitCategoryAtItem(before, 0, 1)[1].key);
   });
 
+  it('uses the given key for the new category', () => {
+    expect(splitCategoryAtItem(cats([['A', ['a1', 'a2']]]), 0, 1, 'given')[1].key).toBe('given');
+  });
+
   it('splits the last category', () => {
     const after = splitCategoryAtItem(cats([['A', ['a']], ['B', ['b1', '見出し', 'b3']]]), 1, 1);
     expect(shape(after)).toEqual([['A', ['a']], ['B', ['b1']], ['見出し', ['b3']]]);

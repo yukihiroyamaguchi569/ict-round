@@ -305,6 +305,41 @@ describe('ChecklistEditor', () => {
     expect(c.categories[0].items).toHaveLength(3);
   });
 
+  it('focuses the previous item after joining, and again after joining into it once more', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1に項目を追加'));
+    await user.type(textbox('カテゴリ1の項目3'), '貼り紙');
+    await user.click(button('カテゴリ1の項目2を前の項目とつなぐ'));
+    expect(textbox('カテゴリ1の項目1')).toHaveFocus();
+    await user.click(button('カテゴリ1の項目2を前の項目とつなぐ'));
+    expect(textbox('カテゴリ1の項目1')).toHaveValue('消毒剤がある掲示がある貼り紙');
+    expect(textbox('カテゴリ1の項目1')).toHaveFocus();
+  });
+
+  it('focuses the new category name after turning an item into a category', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1の項目2からカテゴリにする'));
+    expect(textbox('カテゴリ2の名前')).toHaveValue('掲示がある');
+    expect(textbox('カテゴリ2の名前')).toHaveFocus();
+  });
+
+  it('focuses the previous category name after merging', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ2を前のカテゴリとまとめる'));
+    expect(textbox('カテゴリ1の名前')).toHaveFocus();
+  });
+
+  it('does not move focus back on later edits after a fix', async () => {
+    const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
+    await user.click(button('カテゴリ1の項目2を前の項目とつなぐ'));
+    await user.click(textbox('カテゴリ2の項目1'));
+    await user.type(textbox('カテゴリ2の項目1'), '床');
+    await user.click(textbox('カテゴリ2の名前'));
+    await user.type(textbox('カテゴリ2の名前'), '室');
+    expect(textbox('カテゴリ2の名前')).toHaveValue('環境室');
+    expect(textbox('カテゴリ2の名前')).toHaveFocus();
+  });
+
   it.each([
     'カテゴリ1の項目2を前の項目とつなぐ',
     'カテゴリ1の項目1からカテゴリにする',
