@@ -3,8 +3,8 @@
 **文書番号:** ICT-TS-001  
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
-**最終更新日:** 2026年10月10日  
-**対象バージョン:** 1.19.2
+**最終更新日:** 2026年10月20日  
+**対象バージョン:** 1.19.3
 
 ---
 
@@ -722,11 +722,11 @@ npm run lint
 
 | 文書 | 内容 | 公開 URL |
 |------|------|----------|
-| `docs/privacy-policy.md` | プライバシーポリシー | https://ict-round.conect.llc/docs/privacy-policy |
-| `docs/user-guide.md` | 取扱説明書 | https://ict-round.conect.llc/docs/user-guide |
+| `docs/privacy-policy.md` | プライバシーポリシー | https://ict-round.conect.llc/docs/privacy-policy/ |
+| `docs/user-guide.md` | 取扱説明書 | https://ict-round.conect.llc/docs/user-guide/ |
 | `docs/ga4-plan.md` | アクセス解析の運用方針 | 非公開 |
 
-この技術仕様書自体も https://ict-round.conect.llc/docs/technical-spec で公開しています。公開ページは上記の公開対象3文書の Markdown からビルド時に生成しており、内容は同一です。`docs/` 配下のその他の文書は公開していません。
+この技術仕様書自体も https://ict-round.conect.llc/docs/technical-spec/ で公開しています。公開ページは上記の公開対象3文書の Markdown からビルド時に生成しており、内容は同一です。`docs/` 配下のその他の文書は公開していません。
 
 ---
 
