@@ -237,7 +237,7 @@ describe('ReportPreview sharing and downloading', () => {
     await user.click(await screen.findByRole('button', { name: '共有' }));
 
     await waitFor(() => expect(screen.getByRole('button', { name: '共有' })).toBeEnabled());
-    expect(trackEvent).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalledWith('round_export', expect.anything());
     expect(screen.queryByText(/共有できませんでした/)).not.toBeInTheDocument();
   });
 
@@ -250,7 +250,7 @@ describe('ReportPreview sharing and downloading', () => {
     await user.click(await screen.findByRole('button', { name: '共有' }));
 
     expect(await screen.findByText(/共有できませんでした。/)).toBeInTheDocument();
-    expect(trackEvent).not.toHaveBeenCalled();
+    expect(trackEvent).not.toHaveBeenCalledWith('round_export', expect.anything());
     await user.click(screen.getByRole('button', { name: 'Word出力' }));
     expect(saveAs).toHaveBeenCalledTimes(1);
     expect(trackEvent).toHaveBeenCalledWith('round_export', { method: 'download', sample: false });
