@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+import { trackEvent } from '../analytics';
 import { useTheme } from '../ThemeContext';
 import type { RoundData, ChecklistCategory } from '../types';
 import { useReportFile } from '../useReportFile';
@@ -15,6 +17,14 @@ interface Props {
 export default function ReportPreview({ roundData, categories, isSample = false, onBack }: Props) {
   const { theme } = useTheme();
   const file = useReportFile(roundData, categories, isSample);
+  // Once per mount: StrictMode runs mount effects twice in development, and the ref survives that
+  const openTracked = useRef(false);
+
+  useEffect(() => {
+    if (openTracked.current) return;
+    openTracked.current = true;
+    trackEvent('report_open', { sample: isSample });
+  }, [isSample]);
 
   return (
     <div className="min-h-screen bg-base">
