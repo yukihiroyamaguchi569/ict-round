@@ -35,6 +35,10 @@ playwright/.cache/
 # Claude Code
 .claude/
 
+# Local working notes and application materials
+/tasks/
+/docs/*-application-*
+
 # Environment files (keep the example tracked)
 .env
 .env.*
