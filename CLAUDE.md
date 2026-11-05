@@ -72,6 +72,7 @@ Strong success criteria let the LLM loop independently. Weak criteria ("make it 
   4. Write an overall evaluation
   5. Preview and export/share a `.docx` report
 - GA4 usage statistics are kept in a Claude Artifact named "めぐる君 利用状況", not in this repository. Its URL is intentionally not recorded here because this repository is public and the link is shared only with core users; open it from the Artifact list instead. The numbers there are hardcoded and refreshed by hand.
+- GA4 analysis results are not public. Keep them in `projects/meguru-kun/ga4-plan.md` of the private `conect-management` repository, and do not commit them or write them in this repository's issues and PRs.
 
 ## Planning Policy
 - When asked for a plan, do not read the whole repository.
