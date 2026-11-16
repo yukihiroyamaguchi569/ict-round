@@ -273,6 +273,35 @@ describe('buildFacilitySettings: 行の誤り', () => {
     ]);
   });
 
+  it('重複した行にあるほかの誤りも出す', () => {
+    const sheets = validSheets();
+    sheets['グループ'].push(['病棟', '毎週']);
+    sheets['部署'].push(['3階東', '救急']);
+    sheets['項目'].push(['手指衛生', '手指消毒剤が置いてある', '透析', '5階']);
+    expect(errorsOf(sheets)).toEqual([
+      { sheet: 'グループ', row: 4, message: 'グループ名「病棟」が重複しています（2行目と同じです）' },
+      { sheet: 'グループ', row: 4, message: '回り方「毎週」は「毎回」か「選ぶ」にしてください' },
+      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2行目と同じです）' },
+      { sheet: '部署', row: 5, message: 'グループ「救急」が「グループ」シートにありません' },
+      {
+        sheet: '項目',
+        row: 5,
+        message: 'テーマ「手指衛生」の項目「手指消毒剤が置いてある」が重複しています（2行目と同じです）',
+      },
+      { sheet: '項目', row: 5, message: '対象グループ「透析」が「グループ」シートにありません' },
+      { sheet: '項目', row: 5, message: '対象外の部署「5階」が「部署」シートにありません' },
+    ]);
+  });
+
+  it('重複した部署の行だけが属するグループを「部署が無い」とは言わない', () => {
+    const sheets = validSheets();
+    sheets['グループ'].push(['救急', '選ぶ']);
+    sheets['部署'].push(['3階東', '救急']);
+    expect(errorsOf(sheets)).toEqual([
+      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2行目と同じです）' },
+    ]);
+  });
+
   it('3 回以上の重複は、どれも最初の行を示す', () => {
     const sheets = validSheets();
     sheets['参加者'].push(['山田', '薬剤師'], ['山田', '技師']);

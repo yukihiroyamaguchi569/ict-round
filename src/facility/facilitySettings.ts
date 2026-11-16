@@ -106,7 +106,7 @@ export function buildFacilitySettings(
   const groups = buildGroups(groupRows ?? [], errors);
   const groupNames = knownNames(groupRows, groups.map(({ group }) => group.name));
   const departments = buildDepartments(departmentRows ?? [], groupNames, errors);
-  if (departmentRows) checkGroupsHaveDepartments(groups, departments, errors);
+  if (departmentRows) checkGroupsHaveDepartments(groups, new Set(departmentRows.map((r) => r.cells[1])), errors);
   const departmentNames = knownNames(departmentRows, departments.map((d) => d.name));
   const themes = buildThemes(itemRows ?? [], { groupNames, departmentNames, newId }, errors);
   const members = buildMembers(memberRows ?? [], errors);
@@ -194,17 +194,15 @@ function buildGroups(rows: DataRow[], errors: SettingsError[]): LocatedGroup[] {
   for (const { row, cells } of rows) {
     const [name, visitLabel] = cells;
     const first = earlierRow(seen, name, row);
-    if (first !== undefined) {
-      errors.push(duplicateError(GROUP_SHEET.name, row, `グループ名「${name}」`, first));
-      continue;
-    }
+    if (first !== undefined) errors.push(duplicateError(GROUP_SHEET.name, row, `グループ名「${name}」`, first));
     const visit = VISIT_BY_LABEL.get(visitLabel);
     if (visit === undefined) {
       const message = `回り方「${visitLabel}」は「${VISIT_LABELS.always}」か「${VISIT_LABELS.select}」にしてください`;
       errors.push({ sheet: GROUP_SHEET.name, row, message });
     }
+    // A duplicate row is still checked above but kept out of the settings.
     // A group with a bad visit mode stays known, so departments referring to it are not reported twice.
-    groups.push({ group: { name, visit: visit ?? 'always' }, row });
+    if (first === undefined) groups.push({ group: { name, visit: visit ?? 'always' }, row });
   }
   return groups;
 }
@@ -238,23 +236,16 @@ function buildDepartments(rows: DataRow[], groupNames: KnownNames, errors: Setti
   for (const { row, cells } of rows) {
     const [name, group] = cells;
     const first = earlierRow(seen, name, row);
-    if (first !== undefined) {
-      errors.push(duplicateError(DEPARTMENT_SHEET.name, row, `部署名「${name}」`, first));
-      continue;
-    }
+    if (first !== undefined) errors.push(duplicateError(DEPARTMENT_SHEET.name, row, `部署名「${name}」`, first));
     const ref = { known: groupNames, label: 'グループ', sheet: GROUP_SHEET.name };
     checkReferences([group], ref, { sheet: DEPARTMENT_SHEET.name, row }, errors);
-    departments.push({ name, group });
+    if (first === undefined) departments.push({ name, group });
   }
   return departments;
 }
 
-function checkGroupsHaveDepartments(
-  groups: LocatedGroup[],
-  departments: FacilityDepartment[],
-  errors: SettingsError[]
-): void {
-  const used = new Set(departments.map((d) => d.group));
+/** `used` holds the group of every department row, duplicates included, so a duplicate is not reported twice. */
+function checkGroupsHaveDepartments(groups: LocatedGroup[], used: ReadonlySet<string>, errors: SettingsError[]): void {
   for (const { group, row } of groups) {
     if (used.has(group.name)) continue;
     const message = `グループ「${group.name}」に属する部署が「${DEPARTMENT_SHEET.name}」シートにありません`;
@@ -283,16 +274,14 @@ function buildThemes(rows: DataRow[], ctx: ThemeContext, errors: SettingsError[]
   for (const { row, cells } of rows) {
     const [theme, text, groupCell, excludedCell] = cells;
     const first = earlierRow(seen, JSON.stringify([theme, text]), row);
-    if (first !== undefined) {
-      errors.push(duplicateError(ITEM_SHEET.name, row, `テーマ「${theme}」の項目「${text}」`, first));
-      continue;
-    }
+    if (first !== undefined) errors.push(duplicateError(ITEM_SHEET.name, row, `テーマ「${theme}」の項目「${text}」`, first));
     const targetGroups = splitNames(groupCell);
     const excludedDepartments = splitNames(excludedCell);
     const place = { sheet: ITEM_SHEET.name, row };
     checkReferences(targetGroups, { known: ctx.groupNames, label: '対象グループ', sheet: GROUP_SHEET.name }, place, errors);
     const departmentRef = { known: ctx.departmentNames, label: '対象外の部署', sheet: DEPARTMENT_SHEET.name };
     checkReferences(excludedDepartments, departmentRef, place, errors);
+    if (first !== undefined) continue;
     const item = { id: ctx.newId(), text, targetGroups, excludedDepartments };
     const items = themes.get(theme);
     if (items) items.push(item);
