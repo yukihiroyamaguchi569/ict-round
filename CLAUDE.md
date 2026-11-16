@@ -175,9 +175,10 @@ src/
     ReportPreview.tsx      Report screen shell: back button, export button and notices, preview; composes the parts below
     ReportExport.tsx       Share / Word export button, the build-failure / share-failure notices, and the feedback link shown after an export
     ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
-  facility/                Facility settings for the weekly all-department round (sibling page); pure logic only so far
+  facility/                Facility settings for the weekly all-department round (sibling page); logic only so far, no screens
     facilitySettings.ts    Settings types, sheet names / headers, buildFacilitySettings: builds and validates settings from the four sheets' rows, collecting every error with sheet and Excel row
     storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed)
+    readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
     MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
@@ -203,6 +204,7 @@ public/
   about/                   Public landing page
   updates/                 Update history page; releases.json is its data
   round-checklist-template.xlsx  Downloadable checklist template
+  facility-settings-template.xlsx  Downloadable facility settings template (four sheets filled with a fictional hospital)
 docs/
   technical-spec.md, user-guide.md, privacy-policy.md  Published under /docs/<slug>
   other *.md               Internal notes (not published)
