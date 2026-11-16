@@ -21,6 +21,8 @@ export default defineConfig({
         // merge.html は PC で複数部署のラウンドデータを統合するページ（別エントリなのでスマホ側のバンドルは増えない）
         main: resolve(import.meta.dirname, 'index.html'),
         merge: resolve(import.meta.dirname, 'merge.html'),
+        // facility.html は全部署ラウンドの施設設定を読み込むページ（開発中。開始画面からの入口はまだ無い）
+        facility: resolve(import.meta.dirname, 'facility.html'),
       },
     },
   },
