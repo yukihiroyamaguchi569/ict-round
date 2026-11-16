@@ -14,12 +14,13 @@ const MAX_FILE_BYTES = 5 * 1024 * 1024;
  * Never throws: a file that cannot be read comes back as a single error without a sheet name.
  */
 export async function readSettingsFile(file: File, newId: () => string): Promise<BuildSettingsResult> {
-  const fileError = await checkFile(file);
-  if (fileError) return fileErrorResult(fileError);
   let sheets: Record<string, string[][]>;
   try {
+    const fileError = await checkFile(file);
+    if (fileError) return fileErrorResult(fileError);
     sheets = await readSheets(file);
   } catch {
+    // Reading the file itself can also fail, e.g. when it changed on disk after being picked.
     return fileErrorResult('ファイルが壊れているか、Excel ファイルとして読めません。ひな形に書き込んで保存し直したファイルを選んでください');
   }
   return buildFacilitySettings(sheets, newId);

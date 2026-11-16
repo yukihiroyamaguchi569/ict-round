@@ -140,6 +140,15 @@ describe('readSettingsFile', () => {
     await expectFileError(zipFile(), /^ファイルが壊れているか、Excel ファイルとして読めません/);
   });
 
+  it('ファイルそのものが読めない（選んだあとに変わった）ときも throw せずに誤りを返す', async () => {
+    const file = zipFile();
+    const unreadable = new Blob();
+    vi.spyOn(unreadable, 'arrayBuffer').mockRejectedValue(new DOMException('changed', 'NotReadableError'));
+    vi.spyOn(file, 'slice').mockReturnValue(unreadable);
+    await expectFileError(file, /^ファイルが壊れているか、Excel ファイルとして読めません/);
+    expect(readXlsxFileMock).not.toHaveBeenCalled();
+  });
+
   it('PK で始まるだけの壊れたファイルを実際の読み込みで読んでも throw しない', async () => {
     await expectFileError(zipFile(), /読めません/);
   });
