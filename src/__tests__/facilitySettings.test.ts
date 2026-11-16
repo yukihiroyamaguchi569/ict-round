@@ -201,9 +201,9 @@ describe('buildFacilitySettings: シート単位の誤り', () => {
     sheets['部署'][0] = ['部署名'];
     sheets['参加者'] = [];
     expect(errorsOf(sheets)).toEqual([
-      { sheet: 'グループ', row: 1, message: '1行目の見出しを左から「グループ名」「回り方」の順にしてください' },
-      { sheet: '部署', row: 1, message: '1行目の見出しを左から「部署名」「グループ」の順にしてください' },
-      { sheet: '参加者', row: 1, message: '1行目の見出しを左から「氏名」「職種」の順にしてください' },
+      { sheet: 'グループ', row: 1, message: '1 行目の見出しを左から「グループ名」「回り方」の順にしてください' },
+      { sheet: '部署', row: 1, message: '1 行目の見出しを左から「部署名」「グループ」の順にしてください' },
+      { sheet: '参加者', row: 1, message: '1 行目の見出しを左から「氏名」「職種」の順にしてください' },
     ]);
   });
 
@@ -211,7 +211,7 @@ describe('buildFacilitySettings: シート単位の誤り', () => {
     const sheets = validSheets();
     sheets['参加者'] = [['氏名', '職種']];
     expect(errorsOf(sheets)).toEqual([
-      { sheet: '参加者', message: '「参加者」シートにデータの行がありません（2行目から書いてください）' },
+      { sheet: '参加者', message: '「参加者」シートにデータの行がありません（2 行目から書いてください）' },
     ]);
   });
 
@@ -219,7 +219,7 @@ describe('buildFacilitySettings: シート単位の誤り', () => {
     const sheets = validSheets();
     sheets['参加者'] = [['氏名', '職種'], ['', ''], [' ']];
     expect(errorsOf(sheets)).toEqual([
-      { sheet: '参加者', message: '「参加者」シートにデータの行がありません（2行目から書いてください）' },
+      { sheet: '参加者', message: '「参加者」シートにデータの行がありません（2 行目から書いてください）' },
     ]);
   });
 
@@ -267,9 +267,9 @@ describe('buildFacilitySettings: 行の誤り', () => {
     sheets['部署'].push(['3階東', '外来']);
     sheets['参加者'].push(['山田', '薬剤師']);
     expect(errorsOf(sheets)).toEqual([
-      { sheet: 'グループ', row: 4, message: 'グループ名「病棟」が重複しています（2行目と同じです）' },
-      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2行目と同じです）' },
-      { sheet: '参加者', row: 4, message: '氏名「山田」が重複しています（2行目と同じです）' },
+      { sheet: 'グループ', row: 4, message: 'グループ名「病棟」が重複しています（2 行目と同じです）' },
+      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2 行目と同じです）' },
+      { sheet: '参加者', row: 4, message: '氏名「山田」が重複しています（2 行目と同じです）' },
     ]);
   });
 
@@ -279,14 +279,14 @@ describe('buildFacilitySettings: 行の誤り', () => {
     sheets['部署'].push(['3階東', '救急']);
     sheets['項目'].push(['手指衛生', '手指消毒剤が置いてある', '透析', '5階']);
     expect(errorsOf(sheets)).toEqual([
-      { sheet: 'グループ', row: 4, message: 'グループ名「病棟」が重複しています（2行目と同じです）' },
+      { sheet: 'グループ', row: 4, message: 'グループ名「病棟」が重複しています（2 行目と同じです）' },
       { sheet: 'グループ', row: 4, message: '回り方「毎週」は「毎回」か「選ぶ」にしてください' },
-      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2行目と同じです）' },
+      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2 行目と同じです）' },
       { sheet: '部署', row: 5, message: 'グループ「救急」が「グループ」シートにありません' },
       {
         sheet: '項目',
         row: 5,
-        message: 'テーマ「手指衛生」の項目「手指消毒剤が置いてある」が重複しています（2行目と同じです）',
+        message: 'テーマ「手指衛生」の項目「手指消毒剤が置いてある」が重複しています（2 行目と同じです）',
       },
       { sheet: '項目', row: 5, message: '対象グループ「透析」が「グループ」シートにありません' },
       { sheet: '項目', row: 5, message: '対象外の部署「5階」が「部署」シートにありません' },
@@ -298,7 +298,7 @@ describe('buildFacilitySettings: 行の誤り', () => {
     sheets['グループ'].push(['救急', '選ぶ']);
     sheets['部署'].push(['3階東', '救急']);
     expect(errorsOf(sheets)).toEqual([
-      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2行目と同じです）' },
+      { sheet: '部署', row: 5, message: '部署名「3階東」が重複しています（2 行目と同じです）' },
     ]);
   });
 
@@ -306,8 +306,8 @@ describe('buildFacilitySettings: 行の誤り', () => {
     const sheets = validSheets();
     sheets['参加者'].push(['山田', '薬剤師'], ['山田', '技師']);
     expect(errorsOf(sheets)).toEqual([
-      { sheet: '参加者', row: 4, message: '氏名「山田」が重複しています（2行目と同じです）' },
-      { sheet: '参加者', row: 5, message: '氏名「山田」が重複しています（2行目と同じです）' },
+      { sheet: '参加者', row: 4, message: '氏名「山田」が重複しています（2 行目と同じです）' },
+      { sheet: '参加者', row: 5, message: '氏名「山田」が重複しています（2 行目と同じです）' },
     ]);
   });
 
@@ -318,7 +318,7 @@ describe('buildFacilitySettings: 行の誤り', () => {
       {
         sheet: '項目',
         row: 5,
-        message: 'テーマ「手指衛生」の項目「手指消毒剤が置いてある」が重複しています（2行目と同じです）',
+        message: 'テーマ「手指衛生」の項目「手指消毒剤が置いてある」が重複しています（2 行目と同じです）',
       },
     ]);
   });
@@ -353,7 +353,7 @@ describe('buildFacilitySettings: 行の誤り', () => {
     const sheets = validSheets();
     sheets['部署'] = [['部署名', 'グループ']];
     expect(errorsOf(sheets)).toEqual([
-      { sheet: '部署', message: '「部署」シートにデータの行がありません（2行目から書いてください）' },
+      { sheet: '部署', message: '「部署」シートにデータの行がありません（2 行目から書いてください）' },
     ]);
   });
 
@@ -389,10 +389,10 @@ describe('buildFacilitySettings: 複数の誤り', () => {
     expect(errorsOf(sheets)).toEqual([
       { sheet: 'グループ', row: 4, message: '回り方「毎週」は「毎回」か「選ぶ」にしてください' },
       { sheet: 'グループ', row: 4, message: 'グループ「検査」に属する部署が「部署」シートにありません' },
-      { sheet: 'グループ', row: 5, message: 'グループ名「病棟」が重複しています（2行目と同じです）' },
+      { sheet: 'グループ', row: 5, message: 'グループ名「病棟」が重複しています（2 行目と同じです）' },
       { sheet: '部署', row: 5, message: 'グループ「救急」が「グループ」シートにありません' },
       { sheet: '項目', row: 5, message: '対象グループ「救急」が「グループ」シートにありません' },
-      { sheet: '参加者', row: 4, message: '氏名「山田」が重複しています（2行目と同じです）' },
+      { sheet: '参加者', row: 4, message: '氏名「山田」が重複しています（2 行目と同じです）' },
     ]);
   });
 
