@@ -68,3 +68,16 @@ test('ひな形のダウンロードのリンクから配布しているひな�
   expect(download.suggestedFilename()).toBe('facility-settings-template.xlsx');
   expect(readFileSync(await download.path()).equals(TEMPLATE)).toBe(true);
 });
+
+test('キーボードだけでファイルの選択を開ける', async ({ page }) => {
+  await page.goto('/facility.html');
+  const input = page.getByLabel('ファイルを選ぶ');
+  // Tab from the top of the page until the file input has focus.
+  for (let i = 0; i < 5 && !(await input.evaluate((el) => el === document.activeElement)); i++) {
+    await page.keyboard.press('Tab');
+  }
+  await expect(input).toBeFocused();
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.keyboard.press('Enter')]);
+  await chooser.setFiles({ name: 'facility-settings-template.xlsx', mimeType: XLSX_MIME, buffer: TEMPLATE });
+  await expectTemplateSummary(page);
+});

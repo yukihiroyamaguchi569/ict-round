@@ -13,7 +13,7 @@ export default function SettingsFileCard({ loading, onFile }: { loading: boolean
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <label
-          className={`btn-primary inline-block px-5 py-2.5 text-sm font-bold ${
+          className={`btn-primary inline-block px-5 py-2.5 text-sm font-bold focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 ${
             loading ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
           }`}
         >
@@ -21,7 +21,8 @@ export default function SettingsFileCard({ loading, onFile }: { loading: boolean
           <input
             type="file"
             accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            className="hidden"
+            // Visually hidden but still focusable, so the picker can be opened from the keyboard.
+            className="sr-only"
             disabled={loading}
             onChange={(e) => {
               const file = e.target.files?.[0];
