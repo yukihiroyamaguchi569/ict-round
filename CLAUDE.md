@@ -175,6 +175,9 @@ src/
     ReportPreview.tsx      Report screen shell: back button, export button and notices, preview; composes the parts below
     ReportExport.tsx       Share / Word export button, the build-failure / share-failure notices, and the feedback link shown after an export
     ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
+  facility/                Facility settings for the weekly all-department round (sibling page); pure logic only so far
+    facilitySettings.ts    Settings types, sheet names / headers, buildFacilitySettings: builds and validates settings from the four sheets' rows, collecting every error with sheet and Excel row
+    storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed)
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
     MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
