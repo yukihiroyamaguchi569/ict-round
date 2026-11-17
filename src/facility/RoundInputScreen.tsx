@@ -72,7 +72,8 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
       {/* While leaving or asking, keep the screen out of reach, so no input arrives after the last save */}
       <div inert={leaving || confirmLeave || photoModal}>
         {view === 'list' ? (
-          <ScreenHeader subtitle={subtitle} onBack={() => void leave()} backDisabled={leaving} />
+          // An import in progress is not in the save queue yet, so leaving waits until it is done.
+          <ScreenHeader subtitle={subtitle} onBack={() => void leave()} backDisabled={leaving || actions.importing} />
         ) : (
           <ScreenHeader subtitle={subtitle} onBack={() => setView('list')} backLabel="部署の一覧へ戻る" />
         )}
