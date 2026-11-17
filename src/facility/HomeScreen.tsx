@@ -12,12 +12,13 @@ interface Props {
   error: string | null;
   onStart: () => void;
   onOpenSettings: () => void;
+  onOpen: (id: string) => void;
   /** Resolves to whether the round was deleted. */
   onDelete: (id: string) => Promise<boolean>;
 }
 
 /** Home of the facility page: start a round, the rounds on this device, and the way to the settings. */
-export default function HomeScreen({ settings, status, rounds, error, onStart, onOpenSettings, onDelete }: Props) {
+export default function HomeScreen({ settings, status, rounds, error, onStart, onOpenSettings, onOpen, onDelete }: Props) {
   const [pendingDelete, setPendingDelete] = useState<FacilityRound | null>(null);
   const [deleting, setDeleting] = useState(false);
   // Where focus was when the dialog opened, so cancelling (or a failed delete) puts it back there.
@@ -56,7 +57,7 @@ export default function HomeScreen({ settings, status, rounds, error, onStart, o
             </div>
           )}
 
-          <RoundList status={status} rounds={rounds} onDelete={askDelete} headingRef={listHeading} />
+          <RoundList status={status} rounds={rounds} onOpen={onOpen} onDelete={askDelete} headingRef={listHeading} />
 
           <SettingsEntry settings={settings} onOpenSettings={onOpenSettings} />
         </div>
@@ -112,11 +113,13 @@ function StartCard({ settings, status, onStart, onOpenSettings }: StartCardProps
 function RoundList({
   status,
   rounds,
+  onOpen,
   onDelete,
   headingRef,
 }: {
   status: RoundsStatus;
   rounds: FacilityRound[];
+  onOpen: (id: string) => void;
   onDelete: (round: FacilityRound) => void;
   headingRef: Ref<HTMLHeadingElement>;
 }) {
@@ -132,7 +135,7 @@ function RoundList({
       {rounds.length > 0 && (
         <ul className="space-y-3">
           {rounds.map((round) => (
-            <RoundRow key={round.id} round={round} onDelete={() => onDelete(round)} />
+            <RoundRow key={round.id} round={round} onOpen={() => onOpen(round.id)} onDelete={() => onDelete(round)} />
           ))}
         </ul>
       )}
@@ -140,7 +143,7 @@ function RoundList({
   );
 }
 
-function RoundRow({ round, onDelete }: { round: FacilityRound; onDelete: () => void }) {
+function RoundRow({ round, onOpen, onDelete }: { round: FacilityRound; onOpen: () => void; onDelete: () => void }) {
   const progress = roundProgress(round);
   const label = `${formatStartedAt(round.startedAt)} ${round.themeName}`;
   return (
@@ -152,6 +155,14 @@ function RoundRow({ round, onDelete }: { round: FacilityRound; onDelete: () => v
           記入済み {progress.marked} / {progress.total}
         </p>
       </div>
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-label={`${label} を開く`}
+        className="btn-primary px-5 py-3 text-sm font-bold"
+      >
+        開く
+      </button>
       <button
         type="button"
         onClick={onDelete}

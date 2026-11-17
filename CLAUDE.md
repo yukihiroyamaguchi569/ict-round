@@ -178,16 +178,21 @@ src/
   facility/                Facility settings page (facility.html) for the all-department round, in development (no entry from the start screen yet); settings are kept in localStorage
     facilitySettings.ts    Settings types, sheet names / headers, buildFacilitySettings: builds and validates settings from the four sheets' rows, collecting every error with sheet and Excel row
     storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed); its element parsers are shared with storedFacilityRound
-    facilityRound.ts       FacilityRound (a copy of the settings at the start, ○ / × marks per department and item, comments, photo references) and its pure updates: create (theme, always + selected groups), applicability, set mark (toggle; cells with photos are locked), photo refs on × cells only, progress
+    facilityRound.ts       FacilityRound (a copy of the settings at the start, ○ / × marks per department and item, comments, photo references) and its pure updates: create (theme, always + selected groups), applicability, set mark (toggle; cells with photos are locked), photo refs on × cells only, progress, departments by group
     storedFacilityRound.ts parseStoredRound: shape check of a round read back from storage (null when malformed)
     readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
     main.tsx               Entry point; mounts FacilityApp
-    FacilityApp.tsx        Facility page: without the preview flag only SettingsScreen; with it, the screen switch home / settings / round start (holds useFacilityRounds and re-reads the settings on the way home)
+    FacilityApp.tsx        Facility page: without the preview flag only SettingsScreen; with it, the screen switch home / settings / round start / round input (holds useFacilityRounds, re-reads the settings on the way home and puts each saved round into the home list)
     SettingsScreen.tsx     Settings screen: file card, read errors, save failure, settings summary; a back button home when the preview flag is on
     ScreenHeader.tsx       Sticky header shared by the facility screens: page title, subtitle, optional back button
-    HomeScreen.tsx         Home (preview only): start button (disabled without settings, with a link to them), this device's rounds with date / theme / progress and an on-screen delete confirmation, entry to the settings
+    HomeScreen.tsx         Home (preview only): start button (disabled without settings, with a link to them), this device's rounds with date / theme / progress, open and an on-screen delete confirmation, entry to the settings
     RoundStartScreen.tsx   Round start (preview only): date and time (now by default), one theme, the "select" groups to visit (always groups shown as text), members by role; shows "no department" and save failures
-    useFacilityRounds.ts   Hook: opens the IndexedDB, lists valid rounds newest first, start (createFacilityRound, putRound, persistent storage request) and delete; unavailable status and failure messages instead of throwing
+    useFacilityRounds.ts   Hook: opens the IndexedDB, lists valid rounds newest first, start (createFacilityRound, putRound, persistent storage request), delete and replacing a round saved by the input screen; unavailable status and failure messages instead of throwing
+    useFacilityRound.ts    Hook for one round being entered: reads it (missing when absent / broken), mark updates saved after every change in order, save failure message (quota via saveErrorMessage) kept until the next successful save
+    RoundInputScreen.tsx   Round input (preview only): department list or one department, save failure alert, "cannot read this round" with the way home
+    DepartmentList.tsx     Departments of the round by group with "記入済み n / m" per department
+    DepartmentScreen.tsx   One department: its applicable items with ○ / ×, progress, previous / next department
+    MarkButtons.tsx        ○ / × buttons of one item (aria-pressed, pressing the same again clears, "確認なし" when unmarked)
     dateTimeLocal.ts       datetime-local value from / to a device-local Date (rejecting dates that do not exist) and the list's start time format
     useFacilitySettings.ts Hook: settings saved on this device, reading a chosen file, saving it only when it has no errors, read errors, save failure, loading
     facilityStorage.ts     localStorage I/O of the facility settings (icn-round:facility-settings); reading back goes through parseStoredSettings, a failed write returns false

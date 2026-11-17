@@ -108,5 +108,10 @@ export function useFacilityRounds({ factory, newId = newLocalId, storage }: Faci
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { status, rounds, error, start, remove, clearError };
+  /** Puts a round saved elsewhere (the input screen) into the list in place of its old copy. */
+  const replace = useCallback((round: FacilityRound) => {
+    setRounds((list) => list.map((r) => (r.id === round.id ? round : r)));
+  }, []);
+
+  return { status, rounds, error, start, remove, clearError, replace };
 }
