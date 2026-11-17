@@ -108,7 +108,8 @@ function ownValue<T>(record: Record<string, T>, key: string): T | undefined {
   return Object.hasOwn(record, key) ? record[key] : undefined;
 }
 
-function markOf(round: FacilityRound, departmentName: string, itemId: string): Mark | undefined {
+/** The cell's mark; undefined when it has none ("not checked"). */
+export function markOf(round: FacilityRound, departmentName: string, itemId: string): Mark | undefined {
   const departmentMarks = ownValue(round.marks, departmentName);
   return departmentMarks && ownValue(departmentMarks, itemId);
 }
@@ -161,6 +162,15 @@ export function departmentProgress(round: FacilityRound, departmentName: string)
   const items = applicableItems(round, departmentName);
   const marked = items.filter((item) => markOf(round, departmentName, item.id) !== undefined).length;
   return { marked, total: items.length };
+}
+
+/** Departments of the round by group, groups in the order they first appear. */
+export function departmentsByGroup(round: FacilityRound): { group: string; departments: FacilityDepartment[] }[] {
+  const groups = new Map<string, FacilityDepartment[]>();
+  for (const department of round.departments) {
+    groups.set(department.group, [...(groups.get(department.group) ?? []), department]);
+  }
+  return [...groups].map(([group, departments]) => ({ group, departments }));
 }
 
 export function roundProgress(round: FacilityRound): Progress {
