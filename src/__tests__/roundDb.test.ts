@@ -1,4 +1,4 @@
-import { IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
+import { IDBDatabase as FakeDatabase, IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   FACILITY_DB_NAME,
@@ -70,6 +70,28 @@ describe('openFacilityDb', () => {
       throw error;
     });
     expect(await openFacilityDb(factory)).toEqual({ ok: false, error });
+  });
+
+  it('fails without throwing when reading the global indexedDB throws', async () => {
+    const error = new DOMException('denied', 'SecurityError');
+    vi.stubGlobal('indexedDB', undefined);
+    Object.defineProperty(globalThis, 'indexedDB', {
+      configurable: true,
+      get() {
+        throw error;
+      },
+    });
+    expect(await openFacilityDb()).toEqual({ ok: false, error });
+  });
+
+  it('fails without throwing, and creates no database, when creating the stores throws', async () => {
+    const factory = new IDBFactory();
+    vi.spyOn(FakeDatabase.prototype, 'createObjectStore').mockImplementation(() => {
+      throw new DOMException('broken', 'UnknownError');
+    });
+    const result = await openFacilityDb(factory);
+    expect(result.ok).toBe(false);
+    expect(await factory.databases()).toEqual([]);
   });
 
   it('fails without throwing when the open request errors', async () => {
@@ -184,6 +206,23 @@ describe('failures come back as results', () => {
     expect(unwrap(await db.getPhotos('r1'))).toEqual([]);
   });
 
+  it('a transaction aborted by the browser (e.g. QuotaExceededError) fails with the transaction error', async () => {
+    const db = await openFresh();
+    const quota = new DOMException('full', 'QuotaExceededError');
+    const realPut = FakeObjectStore.prototype.put;
+    vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementation(function (this: IDBObjectStore, ...args) {
+      const request = realPut.apply(this, args);
+      // Stands in for the browser aborting at commit time: the transaction ends with its error set.
+      const tx = this.transaction;
+      tx.abort();
+      Object.defineProperty(tx, 'error', { value: quota });
+      return request;
+    });
+    expect(await db.putRound({ id: 'r1' })).toEqual({ ok: false, error: quota });
+    vi.restoreAllMocks();
+    expect(unwrap(await db.listRounds())).toEqual([]);
+  });
+
   it('a put that throws (e.g. QuotaExceededError) fails with that error and writes nothing', async () => {
     const db = await openFresh();
     const quota = new DOMException('full', 'QuotaExceededError');
@@ -255,6 +294,15 @@ describe('requestPersistentStorage', () => {
         },
       }),
     ).toBe(false);
+  });
+
+  it('returns false when reading navigator.storage throws', async () => {
+    vi.stubGlobal('navigator', {
+      get storage() {
+        throw new Error('denied');
+      },
+    });
+    expect(await requestPersistentStorage()).toBe(false);
   });
 
   it('returns false when the Storage API is missing (no navigator.storage in Node)', async () => {

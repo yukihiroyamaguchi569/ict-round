@@ -51,8 +51,9 @@ function write(
       return;
     }
     tx.oncomplete = () => resolve(ok(undefined));
-    tx.onerror = (event) => resolve(fail((event.target as IDBRequest).error));
-    // tx.error is null when the transaction was aborted by a call to abort().
+    // No onerror: a failed request aborts the transaction with tx.error set to that request's error,
+    // while on an abort from elsewhere (QuotaExceededError at commit) every pending request first
+    // fires an AbortError, which would hide the real cause. tx.error is null after abort().
     tx.onabort = () => resolve(fail(tx.error ?? new Error('transaction aborted')));
     try {
       work(tx);
@@ -113,26 +114,34 @@ function createStores(db: IDBDatabase): void {
   db.createObjectStore(PHOTOS, { keyPath: 'id' }).createIndex(PHOTO_ROUND_INDEX, 'roundId');
 }
 
+/** The global indexedDB; reading it can throw (e.g. SecurityError in a sandboxed context). */
+function globalIndexedDb(): IDBFactory | undefined {
+  return globalThis.indexedDB;
+}
+
 /**
  * Opens (and on first use creates) the database. `factory` is the boundary tests replace;
  * it defaults to the global indexedDB, and its absence comes back as a failure.
  */
-export function openFacilityDb(
-  factory: IDBFactory | undefined = globalThis.indexedDB,
-): Promise<DbResult<FacilityDb>> {
+export function openFacilityDb(factory?: IDBFactory): Promise<DbResult<FacilityDb>> {
   return new Promise((resolve) => {
-    if (!factory) {
-      resolve(fail(new Error('IndexedDB is not available')));
-      return;
-    }
     let request: IDBOpenDBRequest;
     try {
-      request = factory.open(FACILITY_DB_NAME, DB_VERSION);
+      const source = factory ?? globalIndexedDb();
+      if (!source) throw new Error('IndexedDB is not available');
+      request = source.open(FACILITY_DB_NAME, DB_VERSION);
     } catch (error) {
       resolve(fail(error));
       return;
     }
-    request.onupgradeneeded = () => createStores(request.result);
+    request.onupgradeneeded = () => {
+      try {
+        createStores(request.result);
+      } catch {
+        // Aborting the upgrade makes the open request fail, which onerror turns into a result.
+        request.transaction?.abort();
+      }
+    };
     request.onsuccess = () => resolve(ok(wrap(request.result)));
     request.onerror = () => resolve(fail(request.error));
   });
@@ -143,11 +152,12 @@ export function openFacilityDb(
  * Storage API is missing, the browser declines, or the request throws.
  */
 export async function requestPersistentStorage(
-  storage: Pick<StorageManager, 'persist'> | undefined = globalThis.navigator?.storage,
+  storage?: Pick<StorageManager, 'persist'>,
 ): Promise<boolean> {
-  if (!storage) return false;
   try {
-    return await storage.persist();
+    const source = storage ?? globalThis.navigator?.storage;
+    if (!source) return false;
+    return await source.persist();
   } catch {
     return false;
   }
