@@ -158,7 +158,17 @@ interface OpenViewProps {
 
 /** The overall screen, the report or one department, opened from the list. */
 function OpenView({ view, round, roster, actions, onAddPhoto, onModalChange, onOpen }: OpenViewProps) {
-  if (view === 'report') return <ReportScreen round={round} photoData={actions.photoData} />;
+  if (view === 'report') {
+    return (
+      <ReportScreen
+        round={round}
+        photoData={actions.photoData}
+        importing={actions.importing}
+        importOutcome={actions.importOutcome}
+        onImport={(file) => void actions.importFile(file)}
+      />
+    );
+  }
   if (view === 'overall') {
     return (
       <OverallScreen round={round} roster={roster} onOverallComment={actions.writeOverallComment} onMembers={actions.chooseMembers} />

@@ -12,6 +12,7 @@ import { parseStoredRound } from './storedFacilityRound';
 import { openFacilityDb, type DbResult, type FacilityDb } from './roundDb';
 import { saveErrorMessage } from '../roundData';
 import { useRoundPhotos } from './useRoundPhotos';
+import { useRoundImport } from './useRoundImport';
 
 /** loading, ready to enter, or missing: not stored, broken, or the database cannot be read. */
 export type RoundStatus = 'loading' | 'ready' | 'missing';
@@ -263,7 +264,8 @@ export function useFacilityRound(
   }, [save, lastSaved, textSave]);
 
   const actions = useRoundActions(change, changeText);
-  const photos = useRoundPhotos({ roundId: id, ready: status === 'ready', dbRef: db, latestRef: latest, change, enqueue });
+  const { storePhotos, ...photos } = useRoundPhotos({ roundId: id, ready: status === 'ready', dbRef: db, latestRef: latest, change, enqueue });
+  const roundImport = useRoundImport({ latestRef: latest, change, storePhotos });
 
-  return { status, round, saveError, ...actions, ...photos, saveNow };
+  return { status, round, saveError, ...actions, ...photos, ...roundImport, saveNow };
 }
