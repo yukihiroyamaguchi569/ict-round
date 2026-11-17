@@ -2,7 +2,7 @@ import { useCallback, useRef, useState, type RefObject } from 'react';
 import type { FacilityRound } from './facilityRound';
 import { loadFacilityRoundFile, type LoadFacilityRoundResult } from './facilityReportFile';
 import { mergeFacilityRounds, type MergeReport } from './mergeFacilityRounds';
-import type { ExportedPhoto } from './facilityRoundExport';
+import type { ExportedPhoto, FacilityRoundExport } from './facilityRoundExport';
 import { saveErrorMessage } from '../roundData';
 
 /** What the last import did: merged (with what it did), nothing new, or not imported with the reason. */
@@ -51,6 +51,13 @@ export function importReportLines(report: MergeReport): string[] {
   return lines;
 }
 
+/** The other device's round without the photo references whose image the file does not hold. */
+export function withStoredPhotosOnly(exportData: FacilityRoundExport): FacilityRound {
+  const images = new Set(exportData.photos.map((p) => p.id));
+  const round = exportData.round;
+  return { ...round, photos: round.photos.filter((p) => images.has(p.id)) };
+}
+
 type Change = (apply: (current: FacilityRound) => FacilityRound) => Promise<boolean> | undefined;
 
 interface RoundImportDeps {
@@ -64,7 +71,7 @@ interface RoundImportDeps {
 /**
  * Importing a report file of another device into the round on screen: the file is read and checked, the new
  * photo images are stored, and only then the merged round is saved. A failed save of the round is shown like
- * any other autosave failure. One import at a time.
+ * any other autosave failure, with no outcome (the import is not reported as done). One import at a time.
  */
 export function useRoundImport({ latestRef, change, storePhotos }: RoundImportDeps) {
   const [importing, setImporting] = useState(false);
@@ -72,10 +79,10 @@ export function useRoundImport({ latestRef, change, storePhotos }: RoundImportDe
   const busy = useRef(false);
 
   const run = useCallback(
-    async (file: Blob): Promise<ImportOutcome> => {
+    async (file: Blob): Promise<ImportOutcome | null> => {
       const loaded = await loadFacilityRoundFile(file);
       if (!loaded.ok) return { kind: 'failed', message: fileFailureMessage(loaded.reason) };
-      const incoming = loaded.export.round;
+      const incoming = withStoredPhotosOnly(loaded.export);
       const current = latestRef.current;
       if (!current) return { kind: 'failed', message: IMPORT_FAILED_MESSAGE };
       const preview = mergeFacilityRounds(current, incoming);
@@ -93,7 +100,7 @@ export function useRoundImport({ latestRef, change, storePhotos }: RoundImportDe
         result.report = merged.report;
         return merged.round;
       });
-      await saved;
+      if ((await saved) === false) return null;
       return result.report ? { kind: 'imported', report: result.report } : { kind: 'unchanged' };
     },
     [latestRef, change, storePhotos]

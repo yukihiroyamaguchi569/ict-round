@@ -118,7 +118,7 @@ describe('useFacilityRound import', () => {
 
     expect(loadFacilityRoundFile).toHaveBeenCalledWith(FILE);
     expect(putKinds(put)).toEqual(['photo', 'round']);
-    expect(put.mock.calls[0][0]).toEqual({ id: 'p9', roundId: 'r1', dataUrl: IMAGE });
+    expect(put.mock.calls[0][0]).toEqual({ id: 'r1:p9', photoId: 'p9', roundId: 'r1', dataUrl: IMAGE });
     expect(result.current.photoData).toEqual({ p9: IMAGE });
     expect(result.current.round?.marks).toEqual({ '3東': { a: 'ng' }, 透析室: { b: 'ok' } });
     expect(result.current.round?.photos).toEqual([expect.objectContaining({ id: 'p9', itemId: 'a' })]);
@@ -198,7 +198,7 @@ describe('useFacilityRound import', () => {
     expect(result.current.importOutcome).toEqual({ kind: 'failed', message: expect.stringContaining('保存容量の上限に達した') });
   });
 
-  it('shows a failed save of the merged round like any other autosave failure, keeping it on screen', async () => {
+  it('shows a failed save of the merged round as the autosave failure, not as an import done, keeping it on screen', async () => {
     loads({ ok: true, export: exported() });
     const { result } = await renderReady();
     const realPut = FakeObjectStore.prototype.put;
@@ -210,7 +210,7 @@ describe('useFacilityRound import', () => {
 
     await act(() => result.current.importFile(FILE));
     expect(result.current.saveError).toBe(AUTOSAVE_ERROR_MESSAGE);
-    expect(result.current.importOutcome?.kind).toBe('imported');
+    expect(result.current.importOutcome).toBeNull();
     expect(result.current.round?.departments.map((d) => d.name)).toEqual(['3東', '透析室']);
     vi.restoreAllMocks();
     const after = await stored();
@@ -277,5 +277,44 @@ describe('useFacilityRound import', () => {
     expect(result.current.round?.marks['3東']).toEqual({ a: 'ng', b: 'ok' });
     vi.restoreAllMocks();
     expect((await stored()).round.marks['3東']).toEqual({ a: 'ng', b: 'ok' });
+  });
+
+  it('leaves out a photo reference whose image the file does not hold, taking the cell mark still', async () => {
+    loads({ ok: true, export: { ...exported(), photos: [] } });
+    const { result } = await renderReady();
+    const put = vi.spyOn(FakeObjectStore.prototype, 'put');
+
+    await act(() => result.current.importFile(FILE));
+    await act(() => whenSaved());
+    expect(putKinds(put)).toEqual(['round']);
+    expect(result.current.round?.photos).toEqual([]);
+    expect(result.current.round?.marks['3東']).toEqual({ a: 'ng' });
+    expect(result.current.importOutcome).toEqual({
+      kind: 'imported',
+      report: expect.objectContaining({ addedPhotos: 0, conflicts: [{ department: '3東', itemText: '高頻度接触面が清拭されている' }] }),
+    });
+    expect((await stored()).images).toEqual([]);
+  });
+
+  it('keeps the photos readable in both rounds when the same file is imported into two rounds on this device', async () => {
+    await withDb((db) => db.putRound({ ...base(), id: 'r2' }));
+    loads({ ok: true, export: exported() });
+    const first = await renderReady();
+    await act(() => first.result.current.importFile(FILE));
+    first.unmount();
+    await whenSaved();
+
+    const second = renderHook(() => useFacilityRound('r2', { factory }));
+    await waitFor(() => expect(second.result.current.photoData).not.toBeNull());
+    await act(() => second.result.current.importFile(FILE));
+    second.unmount();
+    await whenSaved();
+
+    const again = await renderReady();
+    expect(again.result.current.round?.photos.map((p) => p.id)).toEqual(['p9']);
+    expect(again.result.current.photoData).toEqual({ p9: IMAGE });
+    const other = renderHook(() => useFacilityRound('r2', { factory }));
+    await waitFor(() => expect(other.result.current.photoData).toEqual({ p9: IMAGE }));
+    expect(other.result.current.round?.photos.map((p) => p.id)).toEqual(['p9']);
   });
 });
