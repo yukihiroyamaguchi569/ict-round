@@ -38,6 +38,10 @@ describe('fromDateTimeLocal', () => {
     }
   );
 
+  it('keeps a two-digit year as it is instead of reading it as 19xx', () => {
+    expect(fromDateTimeLocal('0026-11-18T10:30')?.getFullYear()).toBe(26);
+  });
+
   it('accepts a leap day', () => {
     expect(fromDateTimeLocal('2028-02-29T00:00')).not.toBeNull();
   });

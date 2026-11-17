@@ -15,9 +15,16 @@ export function fromDateTimeLocal(value: string): Date | null {
   const match = DATE_TIME_LOCAL.exec(value);
   if (!match) return null;
   const [year, month, day, hours, minutes] = match.slice(1).map(Number);
-  const date = new Date(year, month - 1, day, hours, minutes);
-  // new Date rolls over out-of-range parts (2月30日 -> 3月2日); such a value is not a real date.
-  const real = date.getMonth() === month - 1 && date.getDate() === day && date.getHours() === hours && date.getMinutes() === minutes;
+  // setFullYear, since new Date(year, ...) reads years 0-99 as 1900-1999.
+  const date = new Date(2000, 0, 1, hours, minutes);
+  date.setFullYear(year, month - 1, day);
+  // Out-of-range parts roll over (2月30日 -> 3月2日); such a value is not a real date.
+  const real =
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day &&
+    date.getHours() === hours &&
+    date.getMinutes() === minutes;
   return real ? date : null;
 }
 
