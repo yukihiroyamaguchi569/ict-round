@@ -1,17 +1,26 @@
 import { useEffect, useRef } from 'react';
-import { applicableItems, departmentProgress, markOf, type FacilityRound, type Mark } from './facilityRound';
+import {
+  applicableItems,
+  departmentComment,
+  departmentProgress,
+  markOf,
+  type FacilityRound,
+  type Mark,
+} from './facilityRound';
 import MarkButtons from './MarkButtons';
+import { TEXTAREA_CLASS } from './optionStyles';
 
 interface Props {
   round: FacilityRound;
   department: string;
   onMark: (itemId: string, mark: Mark) => void;
+  onComment: (text: string) => void;
   /** Opens another department of the round. */
   onOpen: (department: string) => void;
 }
 
 /** One department: its applicable items with ○ / ×, and the way to the previous and next departments. */
-export default function DepartmentScreen({ round, department, onMark, onOpen }: Props) {
+export default function DepartmentScreen({ round, department, onMark, onComment, onOpen }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
   const items = applicableItems(round, department);
   const progress = departmentProgress(round, department);
@@ -51,6 +60,16 @@ export default function DepartmentScreen({ round, department, onMark, onOpen }: 
           ))}
         </ul>
       )}
+
+      <label className="card p-5 block">
+        <span className="block text-sm font-extrabold text-text mb-3">この部署のコメント</span>
+        <textarea
+          value={departmentComment(round, department)}
+          onChange={(e) => onComment(e.target.value)}
+          rows={4}
+          className={TEXTAREA_CLASS}
+        />
+      </label>
 
       <nav aria-label="前後の部署" className="grid grid-cols-2 gap-3">
         {previous && <StepButton label="前の部署" name={previous} onClick={() => onOpen(previous)} />}

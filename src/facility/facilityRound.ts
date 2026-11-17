@@ -136,12 +136,27 @@ export function setDepartmentComment(round: FacilityRound, departmentName: strin
   return { ...round, departmentComments: { ...round.departmentComments, [departmentName]: text } };
 }
 
+/** The department's comment; '' when it has none. */
+export function departmentComment(round: FacilityRound, departmentName: string): string {
+  return ownValue(round.departmentComments, departmentName) ?? '';
+}
+
 export function setOverallComment(round: FacilityRound, text: string): FacilityRound {
   return { ...round, overallComment: text };
 }
 
 export function setMembers(round: FacilityRound, members: FacilityMember[]): FacilityRound {
   return { ...round, members: members.map((m) => ({ ...m })) };
+}
+
+/**
+ * Members to choose from on the round: the roster of the settings on this device (null when none are saved),
+ * then the round's members missing from it (the settings were reloaded since), so no chosen member disappears.
+ */
+export function memberChoices(roster: FacilityMember[] | null, chosen: FacilityMember[]): FacilityMember[] {
+  const base = roster ?? [];
+  const names = new Set(base.map((m) => m.name));
+  return [...base, ...chosen.filter((m) => !names.has(m.name))];
 }
 
 /** Adds a photo reference only to an applicable cell marked ×; a reference whose id is already present is ignored. */
