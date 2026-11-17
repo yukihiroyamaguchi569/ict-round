@@ -215,6 +215,7 @@ playwright.config.ts       Playwright config: Chromium only, serves `npm run bui
 stryker.config.json        Stryker mutation testing config (targets the core logic modules; report in reports/mutation/)
 scoria.config.json         scoria code-health config (profile app, report mode); .scoria/baseline.json is the recorded baseline
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
+scripts/check-production-build.mjs  CI check that a build without VITE_FACILITY_ROUND contains none of the preview-only round screens
 public/
   _headers                 Cloudflare Pages response headers (X-Robots-Tag: noindex on the preview); GitHub Pages ignores it
   sw.js                    Service Worker (offline support; precaches the sample photos)
