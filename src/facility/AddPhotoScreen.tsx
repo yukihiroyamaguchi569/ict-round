@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PhotoForm from '../components/PhotoForm';
 import type { ChecklistCategory, Photo } from '../types';
 import type { FacilityRound } from './facilityRound';
@@ -33,6 +33,15 @@ export default function AddPhotoScreen({ round, department, itemId, onAdd, onDon
   const [adding, setAdding] = useState(false);
   // A ref as well, so a second press before the re-render does not add the photo twice.
   const busy = useRef(false);
+  const screen = useRef<HTMLDivElement>(null);
+
+  // The pressed button is gone with the department, so the new screen starts at its title.
+  // PhotoForm is shared with the main app and left as it is, so the title is made focusable here.
+  useEffect(() => {
+    const title = screen.current?.querySelector('h2');
+    title?.setAttribute('tabindex', '-1');
+    title?.focus();
+  }, []);
 
   const add = async (photo: Photo) => {
     if (busy.current) return;
@@ -46,7 +55,7 @@ export default function AddPhotoScreen({ round, department, itemId, onAdd, onDon
   };
 
   return (
-    <div inert={adding}>
+    <div ref={screen} inert={adding}>
       {error && (
         <p role="alert" className="px-5 py-3 bg-surface border-b border-danger text-sm font-bold text-danger">
           {error}

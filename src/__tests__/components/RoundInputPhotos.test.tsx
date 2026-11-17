@@ -177,6 +177,7 @@ describe('RoundInputScreen photos', () => {
   it('adds a photo from the add-photo screen, which names the department and item', async () => {
     const { user, container } = await openDepartment();
     await user.click(screen.getByRole('button', { name: '写真を追加' }));
+    expect(screen.getByRole('heading', { name: '写真を追加' })).toHaveFocus();
     expect(screen.getByText(`3東：${NG_ITEM}`)).toBeInTheDocument();
 
     const gallery = container.querySelector<HTMLInputElement>('input[type="file"]:not([capture])');
