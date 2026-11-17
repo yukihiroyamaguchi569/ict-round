@@ -39,7 +39,8 @@ export interface FacilitySettings {
 }
 
 export interface SettingsError {
-  sheet: string;
+  /** Absent for errors about the whole file (not an .xlsx, unreadable). */
+  sheet?: string;
   /** Excel row number (the header row is 1). Absent for errors about the whole sheet. */
   row?: number;
   message: string;

@@ -18,7 +18,8 @@
     "src/photoImage.ts",
     "src/localId.ts",
     "src/facility/facilitySettings.ts",
-    "src/facility/storedFacilitySettings.ts"
+    "src/facility/storedFacilitySettings.ts",
+    "src/facility/readSettingsFile.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
