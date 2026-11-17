@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FacilitySettings } from './facilitySettings';
 import { roundProgress, type FacilityRound } from './facilityRound';
 import type { RoundsStatus } from './useFacilityRounds';
@@ -18,23 +18,38 @@ interface Props {
 /** Home of the facility page: start a round, the rounds on this device, and the way to the settings. */
 export default function HomeScreen({ settings, status, rounds, error, onStart, onOpenSettings, onDelete }: Props) {
   const [pendingDelete, setPendingDelete] = useState<FacilityRound | null>(null);
+  // Where focus was when the dialog opened, so cancelling puts it back there.
+  const opener = useRef<HTMLElement | null>(null);
+
+  const askDelete = (round: FacilityRound) => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setPendingDelete(round);
+  };
+  const closeDialog = () => {
+    setPendingDelete(null);
+    // After the background is no longer inert.
+    setTimeout(() => opener.current?.focus());
+  };
 
   return (
     <div className="min-h-screen bg-base">
-      <ScreenHeader subtitle="全部署を回るラウンド（開発中）" />
+      {/* While the delete dialog is open, keep the screen behind it out of reach of Tab and screen readers */}
+      <div inert={pendingDelete !== null}>
+        <ScreenHeader subtitle="全部署を回るラウンド（開発中）" />
 
-      <div className="animate-page px-4 py-5 pb-16 max-w-3xl mx-auto space-y-5">
-        <StartCard settings={settings} status={status} onStart={onStart} onOpenSettings={onOpenSettings} />
+        <div className="animate-page px-4 py-5 pb-16 max-w-3xl mx-auto space-y-5">
+          <StartCard settings={settings} status={status} onStart={onStart} onOpenSettings={onOpenSettings} />
 
-        {error && (
-          <div role="alert" className="card p-4 border border-danger">
-            <p className="text-sm font-bold text-danger">{error}</p>
-          </div>
-        )}
+          {error && (
+            <div role="alert" className="card p-4 border border-danger">
+              <p className="text-sm font-bold text-danger">{error}</p>
+            </div>
+          )}
 
-        <RoundList status={status} rounds={rounds} onDelete={setPendingDelete} />
+          <RoundList status={status} rounds={rounds} onDelete={askDelete} />
 
-        <SettingsEntry settings={settings} onOpenSettings={onOpenSettings} />
+          <SettingsEntry settings={settings} onOpenSettings={onOpenSettings} />
+        </div>
       </div>
 
       {pendingDelete && (
@@ -44,7 +59,7 @@ export default function HomeScreen({ settings, status, rounds, error, onStart, o
             onDelete(pendingDelete.id);
             setPendingDelete(null);
           }}
-          onCancel={() => setPendingDelete(null)}
+          onCancel={closeDialog}
         />
       )}
     </div>
@@ -189,6 +204,8 @@ function DeleteDialog({ round, onConfirm, onCancel }: { round: FacilityRound; on
           <button
             type="button"
             onClick={onCancel}
+            // Focus starts on the safe choice.
+            autoFocus
             className="w-full py-3 rounded-xl text-sm font-bold text-text-muted border-2 border-line hover:border-primary hover:text-primary transition-colors"
           >
             キャンセル

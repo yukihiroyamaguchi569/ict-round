@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FacilityApp from '../../facility/FacilityApp';
+import RoundStartScreen from '../../facility/RoundStartScreen';
 import type { FacilitySettings } from '../../facility/facilitySettings';
 import { saveFacilitySettings } from '../../facility/facilityStorage';
 import { openFacilityDb } from '../../facility/roundDb';
@@ -233,6 +234,23 @@ describe('FacilityApp round start', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('cannot go back while the round is being saved, so it is never started twice', async () => {
+    let finish: (result: 'failed') => void = () => {};
+    const onStart = vi.fn(() => new Promise<'failed'>((resolve) => { finish = resolve; }));
+    const onBack = vi.fn();
+    const user = userEvent.setup();
+    render(<RoundStartScreen settings={settings()} now={new Date()} error={null} onStart={onStart} onBack={onBack} />);
+    await user.click(screen.getByRole('radio', { name: /手指衛生/ }));
+    await user.click(startSubmit());
+    expect(screen.getByRole('button', { name: '保存中...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'ホームへ戻る' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    expect(onBack).not.toHaveBeenCalled();
+    finish('failed');
+    await waitFor(() => expect(screen.getByRole('button', { name: 'ホームへ戻る' })).toBeEnabled());
+    expect(onStart).toHaveBeenCalledTimes(1);
+  });
+
   it('goes back home without starting', async () => {
     const user = await openStart();
     await user.click(screen.getByRole('radio', { name: /手指衛生/ }));
@@ -257,11 +275,18 @@ describe('FacilityApp round delete', () => {
   it('asks on screen before deleting; cancel keeps the round', async () => {
     const confirm = vi.spyOn(window, 'confirm');
     const user = await startOne();
-    await user.click(screen.getByRole('button', { name: '2026/11/20 14:30 手指衛生 を削除' }));
+    const deleteButton = screen.getByRole('button', { name: '2026/11/20 14:30 手指衛生 を削除' });
+    await user.click(deleteButton);
     const dialog = screen.getByRole('dialog', { name: 'このラウンドを削除しますか？' });
     expect(dialog).toHaveTextContent('2026/11/20 14:30・手指衛生');
-    await user.click(within(dialog).getByRole('button', { name: 'キャンセル' }));
+    // Focus starts on the safe choice, and the screen behind is out of reach.
+    const cancel = within(dialog).getByRole('button', { name: 'キャンセル' });
+    expect(cancel).toHaveFocus();
+    expect(deleteButton.closest('[inert]')).not.toBeNull();
+    await user.click(cancel);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(deleteButton.closest('[inert]')).toBeNull();
+    await waitFor(() => expect(deleteButton).toHaveFocus());
     expect(screen.getByText('2026/11/20 14:30')).toBeInTheDocument();
     expect(await storedRounds()).toHaveLength(1);
     expect(confirm).not.toHaveBeenCalled();

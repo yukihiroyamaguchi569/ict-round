@@ -50,7 +50,8 @@ export default function RoundStartScreen({ settings, now, error, onStart, onBack
 
   return (
     <div className="min-h-screen bg-base">
-      <ScreenHeader subtitle="ラウンドを始める" onBack={onBack} />
+      {/* No way back while saving: the save would finish on another screen and could be started twice. */}
+      <ScreenHeader subtitle="ラウンドを始める" onBack={onBack} backDisabled={busy} />
 
       <div className="animate-page px-4 py-5 pb-16 max-w-3xl mx-auto space-y-5">
         <FormCard title="日時">
