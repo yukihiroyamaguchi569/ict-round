@@ -1,8 +1,11 @@
 import type { ReportFile } from '../useReportFile';
 import FeedbackLink from './FeedbackLink';
 
+/** What the export button needs; the facility report file has the same fields. */
+export type ExportButtonFile = Pick<ReportFile, 'shareFile' | 'shareFailed' | 'buildError' | 'sharing' | 'canShare' | 'handleShare' | 'handleDownload'>;
+
 /** ヘッダーの出力ボタン。共有できる端末では「共有」、共有非対応か共有に失敗したら「Word出力」 */
-export function ReportExportButton({ file }: { file: ReportFile }) {
+export function ReportExportButton({ file }: { file: ExportButtonFile }) {
   const { shareFile, shareFailed, buildError, sharing, canShare, handleShare, handleDownload } = file;
   // 生成前のボタン表示。失敗したまま「準備中…」を出し続けないようにする
   const pendingLabel = buildError ? '作成できません' : '準備中…';

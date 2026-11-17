@@ -6,7 +6,7 @@ import { getDocxColors, buildPhotoTables, type DocxColors, type PhotoEntry } fro
 import { CONTENT_W, ITEM_COL_MIN } from '../merge/mergedTableWidths';
 import type { FacilityDepartment } from './facilitySettings';
 import {
-  cellState, departmentComment, departmentCompliance, type CellState, type FacilityRound,
+  cellState, complianceRateText, departmentComment, departmentCompliance, type CellState, type FacilityRound,
 } from './facilityRound';
 
 /** Fill of a not-applicable cell. */
@@ -113,8 +113,7 @@ function markCell(state: CellState, width: number): TableCell {
 }
 
 function complianceText(round: FacilityRound, departmentName: string): string {
-  const { rate } = departmentCompliance(round, departmentName);
-  return rate === null ? '－' : `${Math.round(rate * 100)}%`;
+  return complianceRateText(departmentCompliance(round, departmentName));
 }
 
 /** Group name row: consecutive departments of the same group share one merged cell. */
