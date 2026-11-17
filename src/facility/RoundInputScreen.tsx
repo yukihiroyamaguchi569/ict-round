@@ -10,6 +10,7 @@ import OverallCard from './OverallCard';
 import OverallScreen from './OverallScreen';
 import UnsavedLeaveDialog from './UnsavedLeaveDialog';
 import AddPhotoScreen from './AddPhotoScreen';
+import type { Photo } from '../types';
 
 interface Props {
   roundId: string;
@@ -54,7 +55,8 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
   if (status !== 'ready' || !round) return <RoundNotReady loading={status === 'loading'} onBack={onBack} />;
 
   if (photoItem !== null && typeof view === 'object') {
-    return <AddPhotoScreen onAdd={(photo) => actions.addPhoto(view.department, photoItem, photo)} onDone={closePhoto} />;
+    const add = (photo: Photo) => actions.addPhoto(view.department, photoItem, photo);
+    return <AddPhotoScreen round={round} department={view.department} itemId={photoItem} onAdd={add} onDone={closePhoto} />;
   }
 
   const progress = roundProgress(round);
