@@ -23,8 +23,9 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 
   // Test the production build users actually receive, not the dev server.
+  // The build turns on the preview-only facility round flag, as the Cloudflare Pages preview does.
   webServer: {
-    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
+    command: `VITE_FACILITY_ROUND=1 npm run build && npm run preview -- --port ${PORT} --strictPort`,
     url: BASE_URL,
     // Always build and serve fresh; reusing a server could test a stale build.
     reuseExistingServer: false,
