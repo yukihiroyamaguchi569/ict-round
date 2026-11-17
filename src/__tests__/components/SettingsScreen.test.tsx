@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import FacilityApp from '../../facility/FacilityApp';
+import SettingsScreen from '../../facility/SettingsScreen';
 import type { FacilitySettings } from '../../facility/facilitySettings';
 import { loadFacilitySettings, saveFacilitySettings } from '../../facility/facilityStorage';
 import { readSettingsFile } from '../../facility/readSettingsFile';
@@ -57,7 +57,7 @@ function savedSettings(): FacilitySettings {
 }
 
 function setup() {
-  const { container } = render(<FacilityApp />);
+  const { container } = render(<SettingsScreen />);
   // The file input is visually hidden inside a label.
   const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]');
   if (!fileInput) throw new Error('file input not found');
@@ -68,7 +68,7 @@ function section(name: RegExp) {
   return screen.getByRole('region', { name });
 }
 
-describe('FacilityApp', () => {
+describe('SettingsScreen', () => {
   it('shows the page title, an empty state and the template link', () => {
     setup();
     expect(screen.getByRole('heading', { level: 1, name: '施設ラウンド' })).toBeInTheDocument();

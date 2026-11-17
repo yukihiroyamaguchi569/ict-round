@@ -182,14 +182,20 @@ src/
     storedFacilityRound.ts parseStoredRound: shape check of a round read back from storage (null when malformed)
     readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
     main.tsx               Entry point; mounts FacilityApp
-    FacilityApp.tsx        Facility page shell: header, file card, read errors, save failure, settings summary
+    FacilityApp.tsx        Facility page: without the preview flag only SettingsScreen; with it, the screen switch home / settings / round start (holds useFacilityRounds and re-reads the settings on the way home)
+    SettingsScreen.tsx     Settings screen: file card, read errors, save failure, settings summary; a back button home when the preview flag is on
+    ScreenHeader.tsx       Sticky header shared by the facility screens: page title, subtitle, optional back button
+    HomeScreen.tsx         Home (preview only): start button (disabled without settings, with a link to them), this device's rounds with date / theme / progress and an on-screen delete confirmation, entry to the settings
+    RoundStartScreen.tsx   Round start (preview only): date and time (now by default), one theme, the "select" groups to visit (always groups shown as text), members by role; shows "no department" and save failures
+    useFacilityRounds.ts   Hook: opens the IndexedDB, lists valid rounds newest first, start (createFacilityRound, putRound, persistent storage request) and delete; unavailable status and failure messages instead of throwing
+    dateTimeLocal.ts       datetime-local value from / to a device-local Date (rejecting dates that do not exist) and the list's start time format
     useFacilitySettings.ts Hook: settings saved on this device, reading a chosen file, saving it only when it has no errors, read errors, save failure, loading
     facilityStorage.ts     localStorage I/O of the facility settings (icn-round:facility-settings); reading back goes through parseStoredSettings, a failed write returns false
     roundDb.ts             IndexedDB (icn-round-facility) wrapper for round records and their photos; never throws, returns DbResult; records read back as unknown; requestPersistentStorage
     SettingsFileCard.tsx   File picker (.xlsx) and the template download link
     SettingsErrorList.tsx  Read errors as an alert, prefixed with the sheet and row when known
     SettingsSummary.tsx    Read-only view of the settings: departments per group, items per theme with targets, members per role
-    roundEnabled.ts        isRoundEnabled: build-time flag (VITE_FACILITY_ROUND=1) for the stage 2 round screens; set only on the Cloudflare Pages preview, never in production
+    roundEnabled.ts        ROUND_ENABLED: build-time constant flag (VITE_FACILITY_ROUND=1) for the stage 2 round screens; set only on the Cloudflare Pages preview, never in production, where the round screens and IndexedDB code drop out of the bundle
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
     MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
