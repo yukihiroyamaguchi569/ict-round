@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createFacilityRound, type CreateRoundInput, type FacilityRound } from './facilityRound';
 import { parseStoredRound } from './storedFacilityRound';
 import { openFacilityDb, requestPersistentStorage, type FacilityDb } from './roundDb';
+import { whenSaved } from './useFacilityRound';
 import { saveErrorMessage } from '../roundData';
 import { newLocalId } from '../localId';
 
@@ -27,6 +28,11 @@ export function toRoundList(records: unknown[]): FacilityRound[] {
     .map(parseStoredRound)
     .filter((round): round is FacilityRound => round !== null)
     .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+}
+
+/** The list with the round of the same id swapped for `round`; a round not in the list is not added. */
+function replaceRound(list: FacilityRound[], round: FacilityRound): FacilityRound[] {
+  return list.map((r) => (r.id === round.id ? round : r));
 }
 
 /** Opens the database and reads the rounds; null (with the database closed) when either fails. */
@@ -95,6 +101,8 @@ export function useFacilityRounds({ factory, newId = newLocalId, storage }: Faci
     async (id: string): Promise<boolean> => {
       if (!db) return false;
       setError(null);
+      // A save still queued by the input screen just left would otherwise write the round back.
+      await whenSaved();
       const deleted = await db.deleteRound(id);
       if (!deleted.ok) {
         setError(DELETE_ERROR_MESSAGE);
@@ -108,5 +116,8 @@ export function useFacilityRounds({ factory, newId = newLocalId, storage }: Faci
 
   const clearError = useCallback(() => setError(null), []);
 
-  return { status, rounds, error, start, remove, clearError };
+  /** Puts a round saved elsewhere (the input screen) into the list in place of its old copy. */
+  const replace = useCallback((round: FacilityRound) => setRounds((list) => replaceRound(list, round)), []);
+
+  return { status, rounds, error, start, remove, clearError, replace };
 }

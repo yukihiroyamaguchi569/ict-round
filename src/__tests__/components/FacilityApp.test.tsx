@@ -313,7 +313,7 @@ describe('FacilityApp round delete', () => {
     const user = userEvent.setup();
     render(
       <HomeScreen settings={settings()} status="ready" rounds={[round]} error={null}
-        onStart={vi.fn()} onOpenSettings={vi.fn()} onDelete={onDelete} />
+        onStart={vi.fn()} onOpenSettings={vi.fn()} onOpen={vi.fn()} onDelete={onDelete} />
     );
     await user.click(screen.getByRole('button', { name: /を削除$/ }));
     await user.click(screen.getByRole('button', { name: '削除する' }));

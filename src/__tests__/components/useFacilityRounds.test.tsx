@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { DELETE_ERROR_MESSAGE, toRoundList, useFacilityRounds, type FacilityRoundsOptions } from '../../facility/useFacilityRounds';
 import { openFacilityDb } from '../../facility/roundDb';
+import { useFacilityRound } from '../../facility/useFacilityRound';
 import type { FacilityRound } from '../../facility/facilityRound';
 import type { FacilitySettings } from '../../facility/facilitySettings';
 
@@ -50,7 +51,7 @@ const startInput = {
   startedAt: new Date('2026-11-18T01:30:00Z'),
 };
 
-async function seed(factory: IDBFactory, records: { id: string }[]) {
+async function seed<T extends { id: string }>(factory: IDBFactory, records: T[]) {
   const open = await openFacilityDb(factory);
   if (!open.ok) throw new Error('seed: open failed');
   for (const record of records) await open.value.putRound(record);
@@ -232,6 +233,23 @@ describe('useFacilityRounds', () => {
     expect(await act(() => result.current.remove('a'))).toBe(true);
     expect(result.current.rounds.map((r) => r.id)).toEqual(['b']);
     expect((await stored(factory)).map((r) => (r as { id: string }).id)).toEqual(['b']);
+  });
+
+  it('deletes a round only after the saves the input screen still has queued, so it is not written back', async () => {
+    const factory = new IDBFactory();
+    const items = [{ id: 'a', text: '消毒剤', targetGroups: [], excludedDepartments: [] }];
+    await seed(factory, [{ ...round('a', '2026-11-01T00:00:00.000Z'), items }]);
+    const { result } = await renderReady({ factory });
+    const input = renderHook(() => useFacilityRound('a', { factory }));
+    await waitFor(() => expect(input.result.current.status).toBe('ready'));
+    act(() => {
+      input.result.current.mark('3東', 'a', 'ok');
+      input.result.current.mark('3東', 'a', 'ng');
+    });
+    input.unmount();
+    expect(await act(() => result.current.remove('a'))).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(await stored(factory)).toEqual([]);
   });
 
   it('keeps the round and reports it when the delete fails', async () => {

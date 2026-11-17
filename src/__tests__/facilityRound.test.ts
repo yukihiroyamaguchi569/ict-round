@@ -4,8 +4,10 @@ import {
   applicableItems,
   createFacilityRound,
   departmentProgress,
+  departmentsByGroup,
   hasPhotos,
   isApplicable,
+  markOf,
   removePhotoRef,
   roundProgress,
   setDepartmentComment,
@@ -335,5 +337,36 @@ describe('進み具合', () => {
 
   it('ラウンドに無い部署は 0 / 0', () => {
     expect(departmentProgress(round(), '検査室')).toEqual({ marked: 0, total: 0 });
+  });
+});
+
+describe('departmentsByGroup', () => {
+  it('グループごとにまとめ、グループは最初に出た順、部署はラウンドの順', () => {
+    const r = round({ selectedGroups: ['外来', '検査'] });
+    expect(departmentsByGroup(r)).toEqual([
+      { group: '外来', departments: [{ name: '内科外来', group: '外来' }] },
+      {
+        group: '病棟',
+        departments: [
+          { name: '3階東', group: '病棟' },
+          { name: '3階西', group: '病棟' },
+        ],
+      },
+      { group: '検査', departments: [{ name: '検査室', group: '検査' }] },
+    ]);
+  });
+});
+
+describe('markOf', () => {
+  it('付けた印を返し、印の無いマス・ラウンドに無い部署は undefined', () => {
+    const r = setMark(round(), '3階東', 'h3', 'ng');
+    expect(markOf(r, '3階東', 'h3')).toBe('ng');
+    expect(markOf(r, '3階東', 'h1')).toBeUndefined();
+    expect(markOf(r, '検査室', 'h1')).toBeUndefined();
+  });
+
+  it('"__proto__" のような名前でも Object.prototype を読まない', () => {
+    expect(markOf(round(), '__proto__', 'toString')).toBeUndefined();
+    expect(markOf(round(), '3階東', 'constructor')).toBeUndefined();
   });
 });
