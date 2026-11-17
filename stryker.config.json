@@ -23,7 +23,8 @@
     "src/facility/facilityStorage.ts",
     "src/facility/facilityRound.ts",
     "src/facility/storedFacilityRound.ts",
-    "src/facility/facilityRoundExport.ts"
+    "src/facility/facilityRoundExport.ts",
+    "src/facility/mergeFacilityRounds.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
