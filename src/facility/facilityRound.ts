@@ -179,6 +179,29 @@ export function departmentProgress(round: FacilityRound, departmentName: string)
   return { marked, total: items.length };
 }
 
+/** What a cell shows: its mark, "not checked", or "not applicable" (even when a mark was left on it). */
+export type CellState = Mark | 'unchecked' | 'notApplicable';
+
+export function cellState(round: FacilityRound, department: FacilityDepartment, item: ThemeItem): CellState {
+  if (!isApplicable(item, department)) return 'notApplicable';
+  return markOf(round, department.name, item.id) ?? 'unchecked';
+}
+
+export interface Compliance {
+  ok: number;
+  ng: number;
+  /** ok / (ok + ng); null when neither is marked. */
+  rate: number | null;
+}
+
+/** ○ and × over the applicable items of one department; marks on not-applicable items are not counted. */
+export function departmentCompliance(round: FacilityRound, departmentName: string): Compliance {
+  const marks = applicableItems(round, departmentName).map((item) => markOf(round, departmentName, item.id));
+  const ok = marks.filter((m) => m === 'ok').length;
+  const ng = marks.filter((m) => m === 'ng').length;
+  return { ok, ng, rate: ok + ng === 0 ? null : ok / (ok + ng) };
+}
+
 /** Departments of the round by group, groups in the order they first appear. */
 export function departmentsByGroup(round: FacilityRound): { group: string; departments: FacilityDepartment[] }[] {
   const groups = new Map<string, FacilityDepartment[]>();
