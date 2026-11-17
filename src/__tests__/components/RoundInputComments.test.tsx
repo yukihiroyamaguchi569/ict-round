@@ -154,8 +154,12 @@ describe('RoundInputScreen overall', () => {
 
     await user.click(pharmacist);
     await waitFor(async () => expect((await stored()).members).toEqual([ROSTER[1]]));
-    // Still offered, so it can be chosen again.
-    expect(pharmacist).not.toBeChecked();
+
+    // Still offered while the screen is open, so it can be chosen again.
+    const again = within(screen.getByRole('group', { name: '薬剤師' })).getByRole('checkbox', { name: '薬剤 一郎' });
+    expect(again).not.toBeChecked();
+    await user.click(again);
+    await waitFor(async () => expect((await stored()).members).toEqual([ROSTER[1], gone]));
   });
 
   it('lists only the round members when no settings are saved', async () => {

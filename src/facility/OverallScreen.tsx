@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { memberChoices, type FacilityRound } from './facilityRound';
 import type { FacilityMember } from './facilitySettings';
 import MemberChecklist from './MemberChecklist';
@@ -15,7 +15,8 @@ interface Props {
 /** The whole round: the overall comment and the members taking part. */
 export default function OverallScreen({ round, roster, onOverallComment, onMembers }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
-  const choices = memberChoices(roster, round.members);
+  // Fixed while the screen is open, so a member missing from the roster stays offered after being unchecked.
+  const [choices] = useState(() => memberChoices(roster, round.members));
   const selected = new Set(round.members.map((m) => m.name));
 
   useEffect(() => {
