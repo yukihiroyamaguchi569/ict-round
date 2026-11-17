@@ -22,7 +22,7 @@ export function parseStoredSettings(value: unknown): FacilitySettings | null {
   return { version: 1, groups, departments, themes, members };
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -35,7 +35,7 @@ function isVisitMode(value: unknown): value is VisitMode {
 }
 
 /** Parses every element; null when the value is not an array or any element is invalid. */
-function parseList<T>(value: unknown, parseItem: (item: unknown) => T | null): T[] | null {
+export function parseList<T>(value: unknown, parseItem: (item: unknown) => T | null): T[] | null {
   if (!Array.isArray(value)) return null;
   const parsed: T[] = [];
   for (const item of value) {
@@ -51,7 +51,7 @@ function parseGroup(value: unknown): FacilityGroup | null {
   return { name: value.name, visit: value.visit };
 }
 
-function parseDepartment(value: unknown): FacilityDepartment | null {
+export function parseDepartment(value: unknown): FacilityDepartment | null {
   if (!isRecord(value) || typeof value.name !== 'string' || typeof value.group !== 'string') return null;
   return { name: value.name, group: value.group };
 }
@@ -62,14 +62,14 @@ function parseTheme(value: unknown): FacilityTheme | null {
   return items && { name: value.name, items };
 }
 
-function parseItem(value: unknown): ThemeItem | null {
+export function parseItem(value: unknown): ThemeItem | null {
   if (!isRecord(value) || typeof value.id !== 'string' || typeof value.text !== 'string') return null;
   const { targetGroups, excludedDepartments } = value;
   if (!isStringArray(targetGroups) || !isStringArray(excludedDepartments)) return null;
   return { id: value.id, text: value.text, targetGroups: [...targetGroups], excludedDepartments: [...excludedDepartments] };
 }
 
-function parseMember(value: unknown): FacilityMember | null {
+export function parseMember(value: unknown): FacilityMember | null {
   if (!isRecord(value) || typeof value.name !== 'string' || typeof value.role !== 'string') return null;
   return { name: value.name, role: value.role };
 }

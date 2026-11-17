@@ -20,7 +20,9 @@
     "src/facility/facilitySettings.ts",
     "src/facility/storedFacilitySettings.ts",
     "src/facility/readSettingsFile.ts",
-    "src/facility/facilityStorage.ts"
+    "src/facility/facilityStorage.ts",
+    "src/facility/facilityRound.ts",
+    "src/facility/storedFacilityRound.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
