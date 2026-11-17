@@ -175,10 +175,17 @@ src/
     ReportPreview.tsx      Report screen shell: back button, export button and notices, preview; composes the parts below
     ReportExport.tsx       Share / Word export button, the build-failure / share-failure notices, and the feedback link shown after an export
     ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
-  facility/                Facility settings for the weekly all-department round (sibling page); logic only so far, no screens
+  facility/                Facility settings page (facility.html) for the all-department round, in development (no entry from the start screen yet); settings are kept in localStorage
     facilitySettings.ts    Settings types, sheet names / headers, buildFacilitySettings: builds and validates settings from the four sheets' rows, collecting every error with sheet and Excel row
     storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed)
     readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
+    main.tsx               Entry point; mounts FacilityApp
+    FacilityApp.tsx        Facility page shell: header, file card, read errors, save failure, settings summary
+    useFacilitySettings.ts Hook: settings saved on this device, reading a chosen file, saving it only when it has no errors, read errors, save failure, loading
+    facilityStorage.ts     localStorage I/O of the facility settings (icn-round:facility-settings); reading back goes through parseStoredSettings, a failed write returns false
+    SettingsFileCard.tsx   File picker (.xlsx) and the template download link
+    SettingsErrorList.tsx  Read errors as an alert, prefixed with the sheet and row when known
+    SettingsSummary.tsx    Read-only view of the settings: departments per group, items per theme with targets, members per role
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
     MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
@@ -192,6 +199,7 @@ src/
     mergedTableWidths.ts   Column width constants of the merged table and the readable department limit (shared by mergedDocx and mergeRounds)
   __tests__/               Vitest tests: logic *.test.ts in node (setup.ts: in-memory localStorage), components/*.test.tsx in jsdom via Testing Library (setup.jsdom.ts; the App*.test.tsx files share components/appTestHelpers.tsx and stub the add-photo / report screens with components/appStubs.tsx, except AppSampleFeatured.test.tsx which keeps the real report screen); fixtures/ holds sample .xlsx, a tiny .jpg and roundDocx.ts (builds report .docx files with embedded round data)
 merge.html                 HTML entry of the merge page (second Vite input in vite.config.ts)
+facility.html              HTML entry of the facility settings page (third Vite input; noindex while in development)
 e2e/                       Playwright E2E tests against the production build (helpers.ts holds the shared fixture: suppresses the what's-new dialog / PWA banner, forces the download path, blocks external requests)
 playwright.config.ts       Playwright config: Chromium only, serves `npm run build && npm run preview` on port 4317
 stryker.config.json        Stryker mutation testing config (targets the core logic modules; report in reports/mutation/)

@@ -136,7 +136,7 @@ function readRows(
   }
   const rows = toDataRows(body, spec.headers.length);
   if (rows.length === 0) {
-    errors.push({ sheet: spec.name, message: `「${spec.name}」シートにデータの行がありません（2行目から書いてください）` });
+    errors.push({ sheet: spec.name, message: `「${spec.name}」シートにデータの行がありません（2 行目から書いてください）` });
     return null;
   }
   return rows.filter((r) => hasRequiredCells(r, spec, errors));
@@ -158,7 +158,7 @@ function headerMatches(header: string[], expected: readonly string[]): boolean {
 
 function headerMessage(expected: readonly string[]): string {
   const columns = expected.map((name) => `「${name}」`).join('');
-  return `1行目の見出しを左から${columns}の順にしてください`;
+  return `1 行目の見出しを左から${columns}の順にしてください`;
 }
 
 function hasRequiredCells(r: DataRow, spec: SheetSpec, errors: SettingsError[]): boolean {
@@ -181,7 +181,7 @@ function earlierRow(seen: Map<string, number>, key: string, row: number): number
 }
 
 function duplicateError(sheet: string, row: number, label: string, first: number): SettingsError {
-  return { sheet, row, message: `${label}が重複しています（${first}行目と同じです）` };
+  return { sheet, row, message: `${label}が重複しています（${first} 行目と同じです）` };
 }
 
 interface LocatedGroup {

@@ -19,7 +19,8 @@
     "src/localId.ts",
     "src/facility/facilitySettings.ts",
     "src/facility/storedFacilitySettings.ts",
-    "src/facility/readSettingsFile.ts"
+    "src/facility/readSettingsFile.ts",
+    "src/facility/facilityStorage.ts"
   ],
   "reporters": ["html", "clear-text", "progress"],
   "htmlReporter": {
