@@ -182,7 +182,7 @@ src/
     storedFacilityRound.ts parseStoredRound: shape check of a round read back from storage (null when malformed)
     readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
     main.tsx               Entry point; mounts FacilityApp
-    FacilityApp.tsx        Facility page: without the preview flag only SettingsScreen; with it, the screen switch home / settings / round start / round input (holds useFacilityRounds, re-reads the settings on the way home and puts each saved round into the home list)
+    FacilityApp.tsx        Facility page: without the preview flag only SettingsScreen; with it, the screen switch home / settings / round start / round input (holds useFacilityRounds, re-reads the settings on the way home, puts each saved round into the home list and focuses the home list on coming back from a round)
     SettingsScreen.tsx     Settings screen: file card, read errors, save failure, settings summary; a back button home when the preview flag is on
     ScreenHeader.tsx       Sticky header shared by the facility screens: page title, subtitle, optional back button
     HomeScreen.tsx         Home (preview only): start button (disabled without settings, with a link to them), this device's rounds with date / theme / progress, open and an on-screen delete confirmation, entry to the settings

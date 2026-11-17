@@ -24,6 +24,8 @@ function RoundApp() {
   const [settings, setSettings] = useState(loadFacilitySettings);
   const { status, rounds, error, start, remove, clearError, replace } = useFacilityRounds();
   const [openRoundId, setOpenRoundId] = useState<string | null>(null);
+  // Set when coming back from a round, so home puts focus on its list instead of leaving it on nothing.
+  const [focusList, setFocusList] = useState(false);
 
   const goHome = () => {
     setSettings(loadFacilitySettings());
@@ -32,12 +34,18 @@ function RoundApp() {
   };
   const goTo = (next: Screen) => {
     clearError();
+    setFocusList(false);
     setScreen(next);
+  };
+
+  const leaveRound = () => {
+    setFocusList(true);
+    goHome();
   };
 
   if (screen === 'settings') return <SettingsScreen onBack={goHome} />;
   if (screen === 'round' && openRoundId) {
-    return <RoundInputScreen key={openRoundId} roundId={openRoundId} onBack={goHome} onSaved={replace} />;
+    return <RoundInputScreen key={openRoundId} roundId={openRoundId} onBack={leaveRound} onSaved={replace} />;
   }
   if (screen === 'start' && settings) {
     return (
@@ -60,6 +68,7 @@ function RoundApp() {
       status={status}
       rounds={rounds}
       error={error}
+      focusList={focusList}
       onStart={() => goTo('start')}
       onOpenSettings={() => goTo('settings')}
       onOpen={(id) => {

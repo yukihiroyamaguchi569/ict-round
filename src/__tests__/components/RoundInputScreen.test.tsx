@@ -327,4 +327,30 @@ describe('FacilityApp round input', () => {
     await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
     expect(screen.getByRole('region', { name: 'この端末のラウンド' })).toHaveTextContent('記入済み 2 / 5');
   });
+
+  it('puts focus on the home list on coming back from a round', async () => {
+    await seed(round());
+    render(<FacilityApp />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }));
+    await screen.findByRole('heading', { name: '部署の一覧' });
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'この端末のラウンド' })).toHaveFocus());
+  });
+
+  it('puts focus on the home list also after leaving without saving', async () => {
+    await seed(round());
+    render(<FacilityApp />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }));
+    vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    await user.click(await screen.findByRole('button', { name: /透析室/ }));
+    await user.click(within(item('高頻度接触面が清拭されている')).getByRole('button', { name: '○' }));
+    await user.click(screen.getByRole('button', { name: '部署の一覧へ戻る' }));
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '保存せずに戻る' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'この端末のラウンド' })).toHaveFocus());
+  });
 });

@@ -1,4 +1,4 @@
-import { useRef, useState, type Ref } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import type { FacilitySettings } from './facilitySettings';
 import { roundProgress, type FacilityRound } from './facilityRound';
 import type { RoundsStatus } from './useFacilityRounds';
@@ -10,6 +10,8 @@ interface Props {
   status: RoundsStatus;
   rounds: FacilityRound[];
   error: string | null;
+  /** Puts focus on the list heading when shown, e.g. on coming back from a round. */
+  focusList?: boolean;
   onStart: () => void;
   onOpenSettings: () => void;
   onOpen: (id: string) => void;
@@ -18,13 +20,17 @@ interface Props {
 }
 
 /** Home of the facility page: start a round, the rounds on this device, and the way to the settings. */
-export default function HomeScreen({ settings, status, rounds, error, onStart, onOpenSettings, onOpen, onDelete }: Props) {
+export default function HomeScreen({ settings, status, rounds, error, focusList = false, onStart, onOpenSettings, onOpen, onDelete }: Props) {
   const [pendingDelete, setPendingDelete] = useState<FacilityRound | null>(null);
   const [deleting, setDeleting] = useState(false);
   // Where focus was when the dialog opened, so cancelling (or a failed delete) puts it back there.
   const opener = useRef<HTMLElement | null>(null);
   // Focus lands on the list heading once the deleted round's button is gone.
   const listHeading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    if (focusList) listHeading.current?.focus();
+  }, [focusList]);
 
   const askDelete = (round: FacilityRound) => {
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
