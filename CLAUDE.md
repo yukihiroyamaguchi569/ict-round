@@ -177,7 +177,9 @@ src/
     ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
   facility/                Facility settings page (facility.html) for the all-department round, in development (no entry from the start screen yet); settings are kept in localStorage
     facilitySettings.ts    Settings types, sheet names / headers, buildFacilitySettings: builds and validates settings from the four sheets' rows, collecting every error with sheet and Excel row
-    storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed)
+    storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed); its element parsers are shared with storedFacilityRound
+    facilityRound.ts       FacilityRound (a copy of the settings at the start, ○ / × marks per department and item, comments, photo references) and its pure updates: create (theme, always + selected groups), applicability, set mark (toggle; cells with photos are locked), photo refs on × cells only, progress
+    storedFacilityRound.ts parseStoredRound: shape check of a round read back from storage (null when malformed)
     readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
     main.tsx               Entry point; mounts FacilityApp
     FacilityApp.tsx        Facility page shell: header, file card, read errors, save failure, settings summary
@@ -187,6 +189,7 @@ src/
     SettingsFileCard.tsx   File picker (.xlsx) and the template download link
     SettingsErrorList.tsx  Read errors as an alert, prefixed with the sheet and row when known
     SettingsSummary.tsx    Read-only view of the settings: departments per group, items per theme with targets, members per role
+    roundEnabled.ts        isRoundEnabled: build-time flag (VITE_FACILITY_ROUND=1) for the stage 2 round screens; set only on the Cloudflare Pages preview, never in production
   merge/                   Merge page (merge.html) that combines reports from several departments; runs on a PC, no localStorage
     main.tsx               Entry point; mounts MergeApp
     MergeApp.tsx           Merge page shell: header, load errors, warnings; composes the parts below
@@ -207,6 +210,7 @@ stryker.config.json        Stryker mutation testing config (targets the core log
 scoria.config.json         scoria code-health config (profile app, report mode); .scoria/baseline.json is the recorded baseline
 scripts/build-docs.mjs     Converts the public docs (explicit list) to dist/docs/<slug>/index.html
 public/
+  _headers                 Cloudflare Pages response headers (X-Robots-Tag: noindex on the preview); GitHub Pages ignores it
   sw.js                    Service Worker (offline support; precaches the sample photos)
   sample/                  Photos of the sample round (item-1 / item-2 linked to checklist items, general-1 general)
   manifest.json            PWA manifest
