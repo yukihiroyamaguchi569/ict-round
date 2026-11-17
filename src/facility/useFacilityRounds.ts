@@ -11,6 +11,9 @@ export type RoundsStatus = 'loading' | 'ready' | 'unavailable';
 /** What start() reports: saved, no department to visit (nothing saved), or a failed save. */
 export type StartResult = 'started' | 'no-departments' | 'failed';
 
+/** start()'s result, with the id of the round when it was started. */
+export type StartOutcome = { result: 'started'; id: string } | { result: Exclude<StartResult, 'started'> };
+
 export type StartRoundInput = Omit<CreateRoundInput, 'id'>;
 
 export interface FacilityRoundsOptions {
@@ -79,20 +82,20 @@ export function useFacilityRounds({ factory, newId = newLocalId, storage }: Faci
   }, [factory]);
 
   const start = useCallback(
-    async (input: StartRoundInput): Promise<StartResult> => {
-      if (!db) return 'failed';
+    async (input: StartRoundInput): Promise<StartOutcome> => {
+      if (!db) return { result: 'failed' };
       const round = createFacilityRound({ ...input, id: newId() });
-      if (!round) return 'no-departments';
+      if (!round) return { result: 'no-departments' };
       setError(null);
       // The answer does not change what happens next; asking is enough.
       void requestPersistentStorage(storage);
       const saved = await db.putRound(round);
       if (!saved.ok) {
         setError(saveErrorMessage(saved.error));
-        return 'failed';
+        return { result: 'failed' };
       }
       setRounds((list) => toRoundList([round, ...list]));
-      return 'started';
+      return { result: 'started', id: round.id };
     },
     [db, newId, storage]
   );

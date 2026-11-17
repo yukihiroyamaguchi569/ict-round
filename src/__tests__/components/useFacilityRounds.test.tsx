@@ -1,7 +1,7 @@
 import { IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { DELETE_ERROR_MESSAGE, toRoundList, useFacilityRounds, type FacilityRoundsOptions } from '../../facility/useFacilityRounds';
+import { DELETE_ERROR_MESSAGE, toRoundList, useFacilityRounds, type FacilityRoundsOptions, type StartOutcome } from '../../facility/useFacilityRounds';
 import { openFacilityDb } from '../../facility/roundDb';
 import { useFacilityRound } from '../../facility/useFacilityRound';
 import type { FacilityRound } from '../../facility/facilityRound';
@@ -136,11 +136,11 @@ describe('useFacilityRounds', () => {
     });
     const storage = persistSpy();
     const { result } = await renderReady({ factory, storage });
-    let started: string | undefined;
+    let started: StartOutcome | undefined;
     await act(async () => {
       started = await result.current.start(startInput);
     });
-    expect(started).toBe('failed');
+    expect(started).toEqual({ result: 'failed' });
     expect(await act(() => result.current.remove('x'))).toBe(false);
     expect(storage.persist).not.toHaveBeenCalled();
   });
@@ -151,11 +151,11 @@ describe('useFacilityRounds', () => {
     const storage = persistSpy();
     const { result } = await renderReady({ factory, newId: () => 'new-id', storage });
 
-    let started: string | undefined;
+    let started: StartOutcome | undefined;
     await act(async () => {
       started = await result.current.start(startInput);
     });
-    expect(started).toBe('started');
+    expect(started).toEqual({ result: 'started', id: 'new-id' });
     expect(result.current.rounds.map((r) => r.id)).toEqual(['new-id', 'old']);
     const saved = result.current.rounds[0];
     expect(saved).toMatchObject({
@@ -184,11 +184,11 @@ describe('useFacilityRounds', () => {
     const storage = persistSpy();
     const { result } = await renderReady({ factory, storage });
     const onlySelect: FacilitySettings = { ...settings(), groups: [{ name: '外来', visit: 'select' }, { name: '病棟', visit: 'select' }] };
-    let started: string | undefined;
+    let started: StartOutcome | undefined;
     await act(async () => {
       started = await result.current.start({ ...startInput, settings: onlySelect, selectedGroups: [] });
     });
-    expect(started).toBe('no-departments');
+    expect(started).toEqual({ result: 'no-departments' });
     expect(result.current.rounds).toEqual([]);
     expect(result.current.error).toBeNull();
     expect(storage.persist).not.toHaveBeenCalled();
@@ -201,11 +201,11 @@ describe('useFacilityRounds', () => {
     vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementation(() => {
       throw new DOMException('full', 'QuotaExceededError');
     });
-    let started: string | undefined;
+    let started: StartOutcome | undefined;
     await act(async () => {
       started = await result.current.start(startInput);
     });
-    expect(started).toBe('failed');
+    expect(started).toEqual({ result: 'failed' });
     expect(result.current.error).toContain('保存容量の上限に達したため保存できませんでした');
     expect(result.current.rounds).toEqual([]);
     vi.restoreAllMocks();

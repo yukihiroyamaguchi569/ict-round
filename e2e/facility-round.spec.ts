@@ -2,7 +2,7 @@ import { test, expect, openFacilitySettings, pickGalleryPhoto } from './helpers'
 
 const TEMPLATE = 'public/facility-settings-template.xlsx';
 
-test('ひな形を読み込み、ラウンドを始めると一覧に出て、再読み込みしても残り、削除で消える', async ({ page }) => {
+test('ひな形を読み込み、ラウンドを始めるとそのまま入力の画面に入り、ホームの一覧に出て、再読み込みしても残り、削除で消える', async ({ page }) => {
   await page.goto('/facility.html');
   await expect(page.getByRole('button', { name: 'ラウンドを始める' })).toBeDisabled();
   await expect(page.getByText('先に施設設定を読み込んでください。')).toBeVisible();
@@ -18,6 +18,11 @@ test('ひな形を読み込み、ラウンドを始めると一覧に出て、�
   await page.getByRole('radio', { name: /手指衛生/ }).check();
   await page.getByRole('checkbox', { name: /外来A/ }).check();
   await page.getByRole('button', { name: '始める', exact: true }).click();
+
+  // Starting enters the round's department list at once.
+  await expect(page.getByRole('heading', { name: '部署の一覧' })).toBeFocused();
+  await expect(page.getByText(/^2026\/11\/20 14:30 手指衛生（記入済み 0 \/ \d+）$/)).toBeVisible();
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
 
   const list = page.getByRole('region', { name: 'この端末のラウンド' });
   await expect(list.getByText('2026/11/20 14:30')).toBeVisible();
@@ -47,7 +52,6 @@ test('開いたラウンドで部署ごとに ○× を付けると、再読み�
   await page.getByRole('radio', { name: /環境整備/ }).check();
   await page.getByRole('checkbox', { name: /外来B/ }).check();
   await page.getByRole('button', { name: '始める', exact: true }).click();
-  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
 
   // 汚物処理室の項目は 病棟・外来B が対象で、透析室 だけ対象外。
   const soiled = '汚物処理室の床やシンクに汚れがない';
@@ -91,7 +95,6 @@ test('部署のコメントと総評、参加者を入れると、ホームに�
   await page.getByLabel('日時').fill('2026-11-20T14:30');
   await page.getByRole('radio', { name: /環境整備/ }).check();
   await page.getByRole('button', { name: '始める', exact: true }).click();
-  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
 
   await page.getByRole('button', { name: /^3東/ }).click();
   await page.getByLabel('この部署のコメント').fill('床が汚れている\n清掃の手順を確認する');
@@ -130,7 +133,6 @@ test('× の項目に写真を付けると、再読み込みして開き直し�
   await page.getByLabel('日時').fill('2026-11-20T14:30');
   await page.getByRole('radio', { name: /環境整備/ }).check();
   await page.getByRole('button', { name: '始める', exact: true }).click();
-  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
   await page.getByRole('button', { name: /^3東/ }).click();
 
   const marks = page.getByRole('group', { name: /高頻度接触面/ });
