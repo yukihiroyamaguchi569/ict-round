@@ -47,6 +47,10 @@ function RoundApp() {
     setScreen(next);
   };
 
+  const openRound = (id: string) => {
+    setOpenRoundId(id);
+    goTo('round');
+  };
   const leaveRound = () => {
     setFocusList(true);
     goHome();
@@ -65,9 +69,10 @@ function RoundApp() {
         error={error}
         onBack={goHome}
         onStart={async (input) => {
-          const result = await start({ ...input, settings });
-          if (result === 'started') setScreen('home');
-          return result;
+          const outcome = await start({ ...input, settings });
+          // A started round is entered at once, as opening it from home does.
+          if (outcome.result === 'started') openRound(outcome.id);
+          return outcome.result;
         }}
       />
     );
@@ -81,10 +86,7 @@ function RoundApp() {
       focusList={focusList}
       onStart={() => goTo('start')}
       onOpenSettings={() => goTo('settings')}
-      onOpen={(id) => {
-        setOpenRoundId(id);
-        goTo('round');
-      }}
+      onOpen={openRound}
       onDelete={remove}
     />
   );
