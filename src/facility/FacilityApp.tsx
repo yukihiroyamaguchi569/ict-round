@@ -45,7 +45,8 @@ function RoundApp() {
 
   if (screen === 'settings') return <SettingsScreen onBack={goHome} />;
   if (screen === 'round' && openRoundId) {
-    return <RoundInputScreen key={openRoundId} roundId={openRoundId} onBack={leaveRound} onSaved={replace} />;
+    const roster = settings?.members ?? null;
+    return <RoundInputScreen key={openRoundId} roundId={openRoundId} roster={roster} onBack={leaveRound} onSaved={replace} />;
   }
   if (screen === 'start' && settings) {
     return (

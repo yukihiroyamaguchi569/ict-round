@@ -3,11 +3,13 @@ import {
   addPhotoRef,
   applicableItems,
   createFacilityRound,
+  departmentComment,
   departmentProgress,
   departmentsByGroup,
   hasPhotos,
   isApplicable,
   markOf,
+  memberChoices,
   removePhotoRef,
   roundProgress,
   setDepartmentComment,
@@ -314,6 +316,46 @@ describe('コメントと参加者', () => {
     const r = setMembers(round(), members);
     members[0].name = '変更';
     expect(r.members).toEqual([{ name: '佐藤', role: '医師' }]);
+  });
+});
+
+describe('departmentComment', () => {
+  it('部署ごとのコメントを返し、無ければ空文字', () => {
+    const r = setDepartmentComment(round(), '3階東', '良好');
+    expect(departmentComment(r, '3階東')).toBe('良好');
+    expect(departmentComment(r, '内科外来')).toBe('');
+    expect(departmentComment(r, '無い部署')).toBe('');
+  });
+
+  it('"__proto__" のような名前でも Object.prototype を読まない', () => {
+    expect(departmentComment(round(), '__proto__')).toBe('');
+    expect(departmentComment(round(), 'toString')).toBe('');
+  });
+});
+
+describe('memberChoices', () => {
+  const roster = [
+    { name: '佐藤', role: '医師' },
+    { name: '山田', role: '看護師' },
+  ];
+
+  it('名簿の順に並べ、ラウンドの参加者で名簿にいる人は重ねない', () => {
+    expect(memberChoices(roster, [{ name: '山田', role: '看護師' }])).toEqual(roster);
+  });
+
+  it('名簿にいないラウンドの参加者は、名簿のあとに足す', () => {
+    const gone = { name: '鈴木', role: '薬剤師' };
+    expect(memberChoices(roster, [gone, { name: '佐藤', role: '医師' }])).toEqual([...roster, gone]);
+  });
+
+  it('設定が無ければ、ラウンドの参加者だけ', () => {
+    const chosen = [{ name: '鈴木', role: '薬剤師' }];
+    expect(memberChoices(null, chosen)).toEqual(chosen);
+    expect(memberChoices(null, [])).toEqual([]);
+  });
+
+  it('名簿が空でもラウンドの参加者は残る', () => {
+    expect(memberChoices([], [{ name: '鈴木', role: '薬剤師' }])).toEqual([{ name: '鈴木', role: '薬剤師' }]);
   });
 });
 

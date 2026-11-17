@@ -1,31 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
 import { roundProgress, type FacilityRound } from './facilityRound';
-import { useFacilityRound } from './useFacilityRound';
+import type { FacilityMember } from './facilitySettings';
+import { useFacilityRound, type RoundActions } from './useFacilityRound';
 import { formatStartedAt } from './dateTimeLocal';
 import ScreenHeader from './ScreenHeader';
 import DepartmentList from './DepartmentList';
 import DepartmentScreen from './DepartmentScreen';
+import OverallCard from './OverallCard';
+import OverallScreen from './OverallScreen';
 import UnsavedLeaveDialog from './UnsavedLeaveDialog';
 
 interface Props {
   roundId: string;
+  /** Members of the settings on this device, offered on the overall screen; null when none are saved. */
+  roster: FacilityMember[] | null;
   onBack: () => void;
   /** Called with the round each time it has been saved. */
   onSaved?: (round: FacilityRound) => void;
 }
 
-/** Entering one round: the list of departments, and one department's ○ / × once it is opened. */
-export default function RoundInputScreen({ roundId, onBack, onSaved }: Props) {
-  const { status, round, saveError, mark, saveNow } = useFacilityRound(roundId, { onSaved });
-  const [department, setDepartment] = useState<string | null>(null);
+/** What the screen shows: the department list, the overall screen, or one department. */
+type View = 'list' | 'overall' | { department: string };
+
+/** Entering one round: the list of departments, one department's ○ / × and comment, or the overall comment and members. */
+export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: Props) {
+  const { status, round, saveError, saveNow, ...actions } = useFacilityRound(roundId, { onSaved });
+  const [view, setView] = useState<View>('list');
   const [leaving, setLeaving] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const listHeading = useRef<HTMLHeadingElement>(null);
 
-  // Entering the round, or coming back from a department, starts at the list (as moving between departments does).
+  // Entering the round, or coming back to the list, starts at the list (as moving between departments does).
   useEffect(() => {
-    if (status === 'ready' && department === null) listHeading.current?.focus();
-  }, [status, department]);
+    if (status === 'ready' && view === 'list') listHeading.current?.focus();
+  }, [status, view]);
 
   // Leaves only once the round on screen is stored; a save that failed (or fails now) is tried again first.
   const leave = async () => {
@@ -50,10 +58,10 @@ export default function RoundInputScreen({ roundId, onBack, onSaved }: Props) {
     <div className="min-h-screen bg-base">
       {/* While leaving or asking, keep the screen out of reach, so no input arrives after the last save */}
       <div inert={leaving || confirmLeave}>
-        {department === null ? (
+        {view === 'list' ? (
           <ScreenHeader subtitle={subtitle} onBack={() => void leave()} backDisabled={leaving} />
         ) : (
-          <ScreenHeader subtitle={subtitle} onBack={() => setDepartment(null)} backLabel="部署の一覧へ戻る" />
+          <ScreenHeader subtitle={subtitle} onBack={() => setView('list')} backLabel="部署の一覧へ戻る" />
         )}
 
         <div className="animate-page px-4 py-5 pb-16 max-w-3xl mx-auto space-y-5">
@@ -62,26 +70,48 @@ export default function RoundInputScreen({ roundId, onBack, onSaved }: Props) {
               {saveError}
             </p>
           )}
-          {department === null ? (
+          {view === 'list' ? (
             <>
               <h2 ref={listHeading} tabIndex={-1} className="sr-only">
                 部署の一覧
               </h2>
-              <DepartmentList round={round} onOpen={setDepartment} />
+              <OverallCard round={round} onOpen={() => setView('overall')} />
+              <DepartmentList round={round} onOpen={(department) => setView({ department })} />
             </>
           ) : (
-            <DepartmentScreen
-              round={round}
-              department={department}
-              onMark={(itemId, value) => mark(department, itemId, value)}
-              onOpen={setDepartment}
-            />
+            <OpenView view={view} round={round} roster={roster} actions={actions} onOpen={(department) => setView({ department })} />
           )}
         </div>
       </div>
 
       {confirmLeave && <UnsavedLeaveDialog onStay={stay} onLeave={onBack} />}
     </div>
+  );
+}
+
+interface OpenViewProps {
+  view: Exclude<View, 'list'>;
+  round: FacilityRound;
+  roster: FacilityMember[] | null;
+  actions: RoundActions;
+  onOpen: (department: string) => void;
+}
+
+/** The overall screen or one department, opened from the list. */
+function OpenView({ view, round, roster, actions, onOpen }: OpenViewProps) {
+  if (view === 'overall') {
+    return (
+      <OverallScreen round={round} roster={roster} onOverallComment={actions.writeOverallComment} onMembers={actions.chooseMembers} />
+    );
+  }
+  return (
+    <DepartmentScreen
+      round={round}
+      department={view.department}
+      onMark={(itemId, value) => actions.mark(view.department, itemId, value)}
+      onComment={(text) => actions.writeDepartmentComment(view.department, text)}
+      onOpen={onOpen}
+    />
   );
 }
 

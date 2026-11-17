@@ -64,7 +64,7 @@ async function storedMarks(): Promise<unknown> {
 
 async function renderInput(onBack = vi.fn()) {
   await seed(round());
-  render(<RoundInputScreen roundId="r1" onBack={onBack} />);
+  render(<RoundInputScreen roster={null} roundId="r1" onBack={onBack} />);
   await screen.findByRole('region', { name: '病棟' });
   return userEvent.setup();
 }
@@ -181,7 +181,7 @@ describe('RoundInputScreen department', () => {
   it('says so when the department has no applicable item', async () => {
     const noItems = { ...round(), items: [round().items[1]] };
     await seed(noItems);
-    render(<RoundInputScreen roundId="r1" onBack={vi.fn()} />);
+    render(<RoundInputScreen roster={null} roundId="r1" onBack={vi.fn()} />);
     const user = userEvent.setup();
     await user.click(await screen.findByRole('button', { name: /透析室/ }));
     expect(screen.getByText('この部署に当てはまる項目はありません。')).toBeInTheDocument();
@@ -302,14 +302,14 @@ describe('RoundInputScreen unreadable round', () => {
   it('says the round cannot be read and goes home', async () => {
     await seed({ id: 'r1', version: 1 });
     const onBack = vi.fn();
-    render(<RoundInputScreen roundId="r1" onBack={onBack} />);
+    render(<RoundInputScreen roster={null} roundId="r1" onBack={onBack} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('このラウンドを読み込めませんでした。');
     await userEvent.setup().click(within(screen.getByRole('alert')).getByRole('button', { name: 'ホームへ戻る' }));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
   it('says so for a round that is not stored', async () => {
-    render(<RoundInputScreen roundId="none" onBack={vi.fn()} />);
+    render(<RoundInputScreen roster={null} roundId="none" onBack={vi.fn()} />);
     expect(await screen.findByRole('alert')).toHaveTextContent('このラウンドを読み込めませんでした。');
   });
 });

@@ -3,6 +3,8 @@ import type { FacilityMember, FacilitySettings } from './facilitySettings';
 import type { StartResult, StartRoundInput } from './useFacilityRounds';
 import { fromDateTimeLocal, toDateTimeLocal } from './dateTimeLocal';
 import ScreenHeader from './ScreenHeader';
+import MemberChecklist from './MemberChecklist';
+import { INPUT_CLASS, OPTION_CLASS } from './optionStyles';
 
 interface Props {
   settings: FacilitySettings;
@@ -106,10 +108,6 @@ function FormCard({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-const OPTION_CLASS =
-  'flex items-start gap-3 px-3 py-3 rounded-t border-2 border-line has-[:checked]:border-primary has-[:checked]:bg-primary-light cursor-pointer';
-const INPUT_CLASS = 'mt-0.5 w-5 h-5 accent-[var(--t-primary)] shrink-0';
-
 function ThemeField({
   settings,
   value,
@@ -198,17 +196,6 @@ function GroupField({
   );
 }
 
-/** Members grouped by role, roles in order of first appearance. */
-function byRole(members: FacilityMember[]): [string, FacilityMember[]][] {
-  const groups = new Map<string, FacilityMember[]>();
-  for (const member of members) {
-    const list = groups.get(member.role);
-    if (list) list.push(member);
-    else groups.set(member.role, [member]);
-  }
-  return [...groups];
-}
-
 function MemberField({
   members,
   selected,
@@ -220,26 +207,7 @@ function MemberField({
 }) {
   return (
     <FormCard title="参加者">
-      <div className="space-y-4">
-        {byRole(members).map(([role, list]) => (
-          <div key={role} role="group" aria-label={role}>
-            <p className="text-xs font-bold text-text-muted mb-1.5">{role}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {list.map((member) => (
-                <label key={member.name} className={OPTION_CLASS}>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(member.name)}
-                    onChange={() => onToggle(member.name)}
-                    className={INPUT_CLASS}
-                  />
-                  <span className="text-sm text-text break-words">{member.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      <MemberChecklist members={members} selected={selected} onToggle={onToggle} />
     </FormCard>
   );
 }

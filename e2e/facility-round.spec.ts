@@ -79,3 +79,42 @@ test('開いたラウンドで部署ごとに ○× を付けると、再読み�
   await expect(page.getByRole('group', { name: /高頻度接触面/ }).getByRole('button', { name: '×' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByRole('group', { name: /ユーティリティ/ })).toContainText('確認なし');
 });
+
+test('部署のコメントと総評、参加者を入れると、ホームに戻って再読み込みしても残る', async ({ page }) => {
+  await page.goto('/facility.html');
+  await openFacilitySettings(page);
+  await page.locator('input[type="file"]').setInputFiles(TEMPLATE);
+  await expect(page.getByRole('heading', { name: '部署グループと部署（4 グループ・11 部署）' })).toBeVisible();
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
+
+  await page.getByRole('button', { name: 'ラウンドを始める' }).click();
+  await page.getByLabel('日時').fill('2026-11-20T14:30');
+  await page.getByRole('radio', { name: /環境整備/ }).check();
+  await page.getByRole('button', { name: '始める', exact: true }).click();
+  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
+
+  await page.getByRole('button', { name: /^3東/ }).click();
+  await page.getByLabel('この部署のコメント').fill('床が汚れている\n清掃の手順を確認する');
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+
+  await page.getByRole('button', { name: '全体（総評と参加者）' }).click();
+  await page.getByLabel('総評').fill('全体に良好');
+  const members = page.getByRole('group', { name: '参加者' }).getByRole('checkbox');
+  await members.first().check();
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await expect(page.getByRole('button', { name: '全体（総評と参加者）' })).toContainText('総評 記入済み・参加者 1 人');
+
+  // Going home saves the text still waiting for the typing pause.
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
+  await expect(page.getByRole('region', { name: 'この端末のラウンド' })).toBeVisible();
+  await page.reload();
+
+  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
+  await expect(page.getByRole('button', { name: '全体（総評と参加者）' })).toContainText('総評 記入済み・参加者 1 人');
+  await page.getByRole('button', { name: /^3東/ }).click();
+  await expect(page.getByLabel('この部署のコメント')).toHaveValue('床が汚れている\n清掃の手順を確認する');
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await page.getByRole('button', { name: '全体（総評と参加者）' }).click();
+  await expect(page.getByLabel('総評')).toHaveValue('全体に良好');
+  await expect(members.first()).toBeChecked();
+});
