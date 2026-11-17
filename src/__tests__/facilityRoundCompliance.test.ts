@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { cellState, departmentCompliance, type FacilityRound } from '../facility/facilityRound';
+import { cellState, complianceRateText, departmentCompliance, type FacilityRound } from '../facility/facilityRound';
 import type { FacilityDepartment, ThemeItem } from '../facility/facilitySettings';
 
 const EAST: FacilityDepartment = { name: '3階東', group: '病棟' };
@@ -87,5 +87,21 @@ describe('departmentCompliance', () => {
     const h4: ThemeItem = { ...H1, id: 'h4' };
     const r = round({ '3階東': { h1: 'ok', h3: 'ok', h4: 'ng' } }, [H1, H2, H3, h4]);
     expect(departmentCompliance(r, '3階東').rate).toBeCloseTo(2 / 3);
+  });
+});
+
+describe('complianceRateText', () => {
+  it('rounds the rate to a whole percent', () => {
+    expect(complianceRateText({ ok: 2, ng: 1, rate: 2 / 3 })).toBe('67%');
+    expect(complianceRateText({ ok: 1, ng: 2, rate: 1 / 3 })).toBe('33%');
+  });
+
+  it('shows 0% and 100% at the ends', () => {
+    expect(complianceRateText({ ok: 0, ng: 1, rate: 0 })).toBe('0%');
+    expect(complianceRateText({ ok: 1, ng: 0, rate: 1 })).toBe('100%');
+  });
+
+  it('shows "－" when nothing is marked', () => {
+    expect(complianceRateText({ ok: 0, ng: 0, rate: null })).toBe('－');
   });
 });

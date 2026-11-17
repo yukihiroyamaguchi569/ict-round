@@ -202,6 +202,11 @@ export function departmentCompliance(round: FacilityRound, departmentName: strin
   return { ok, ng, rate: ok + ng === 0 ? null : ok / (ok + ng) };
 }
 
+/** "67%", or "－" when neither ○ nor × is marked. */
+export function complianceRateText({ rate }: Compliance): string {
+  return rate === null ? '－' : `${Math.round(rate * 100)}%`;
+}
+
 /** Departments of the round by group, groups in the order they first appear. */
 export function departmentsByGroup(round: FacilityRound): { group: string; departments: FacilityDepartment[] }[] {
   const groups = new Map<string, FacilityDepartment[]>();
