@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import FacilityApp from '../../facility/FacilityApp';
 import RoundStartScreen from '../../facility/RoundStartScreen';
+import HomeScreen from '../../facility/HomeScreen';
 import type { FacilitySettings } from '../../facility/facilitySettings';
 import { saveFacilitySettings } from '../../facility/facilityStorage';
 import { openFacilityDb } from '../../facility/roundDb';
@@ -298,6 +299,31 @@ describe('FacilityApp round delete', () => {
     await user.click(screen.getByRole('button', { name: '削除する' }));
     expect(await screen.findByText('まだラウンドはありません。')).toBeInTheDocument();
     expect(await storedRounds()).toEqual([]);
+    // The deleted round's button is gone; focus lands on the list heading.
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'この端末のラウンド' })).toHaveFocus());
+  });
+
+  it('keeps the dialog buttons disabled while deleting, so the delete is sent once', async () => {
+    let finish: (deleted: boolean) => void = () => {};
+    const onDelete = vi.fn(() => new Promise<boolean>((resolve) => { finish = resolve; }));
+    const round: FacilityRound = {
+      version: 1, id: 'r1', startedAt: '2026-11-20T05:30:00.000Z', themeName: '手指衛生', items: [],
+      departments: [], members: [], marks: {}, departmentComments: {}, overallComment: '', photos: [],
+    };
+    const user = userEvent.setup();
+    render(
+      <HomeScreen settings={settings()} status="ready" rounds={[round]} error={null}
+        onStart={vi.fn()} onOpenSettings={vi.fn()} onDelete={onDelete} />
+    );
+    await user.click(screen.getByRole('button', { name: /を削除$/ }));
+    await user.click(screen.getByRole('button', { name: '削除する' }));
+    expect(screen.getByRole('button', { name: '削除する' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'キャンセル' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: '削除する' }));
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledWith('r1');
+    finish(true);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('shows a failed delete and keeps the round', async () => {
@@ -308,6 +334,9 @@ describe('FacilityApp round delete', () => {
     await user.click(screen.getByRole('button', { name: /を削除$/ }));
     await user.click(screen.getByRole('button', { name: '削除する' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('削除できませんでした。');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByText('2026/11/20 14:30')).toBeInTheDocument();
+    // Focus goes back to the round's delete button, which is still there.
+    await waitFor(() => expect(screen.getByRole('button', { name: /を削除$/ })).toHaveFocus());
   });
 });

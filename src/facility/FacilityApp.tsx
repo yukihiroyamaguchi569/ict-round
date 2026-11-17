@@ -57,7 +57,7 @@ function RoundApp() {
       error={error}
       onStart={() => goTo('start')}
       onOpenSettings={() => goTo('settings')}
-      onDelete={(id) => void remove(id)}
+      onDelete={remove}
     />
   );
 }

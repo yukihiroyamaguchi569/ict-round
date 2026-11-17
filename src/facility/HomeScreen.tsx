@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type Ref } from 'react';
 import type { FacilitySettings } from './facilitySettings';
 import { roundProgress, type FacilityRound } from './facilityRound';
 import type { RoundsStatus } from './useFacilityRounds';
@@ -12,23 +12,33 @@ interface Props {
   error: string | null;
   onStart: () => void;
   onOpenSettings: () => void;
-  onDelete: (id: string) => void;
+  /** Resolves to whether the round was deleted. */
+  onDelete: (id: string) => Promise<boolean>;
 }
 
 /** Home of the facility page: start a round, the rounds on this device, and the way to the settings. */
 export default function HomeScreen({ settings, status, rounds, error, onStart, onOpenSettings, onDelete }: Props) {
   const [pendingDelete, setPendingDelete] = useState<FacilityRound | null>(null);
-  // Where focus was when the dialog opened, so cancelling puts it back there.
+  const [deleting, setDeleting] = useState(false);
+  // Where focus was when the dialog opened, so cancelling (or a failed delete) puts it back there.
   const opener = useRef<HTMLElement | null>(null);
+  // Focus lands on the list heading once the deleted round's button is gone.
+  const listHeading = useRef<HTMLHeadingElement>(null);
 
   const askDelete = (round: FacilityRound) => {
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPendingDelete(round);
   };
-  const closeDialog = () => {
+  const closeDialog = (focusTarget: HTMLElement | null = opener.current) => {
     setPendingDelete(null);
     // After the background is no longer inert.
-    setTimeout(() => opener.current?.focus());
+    setTimeout(() => focusTarget?.focus());
+  };
+  const confirmDelete = async (id: string) => {
+    setDeleting(true);
+    const deleted = await onDelete(id);
+    setDeleting(false);
+    closeDialog(deleted ? listHeading.current : opener.current);
   };
 
   return (
@@ -46,7 +56,7 @@ export default function HomeScreen({ settings, status, rounds, error, onStart, o
             </div>
           )}
 
-          <RoundList status={status} rounds={rounds} onDelete={askDelete} />
+          <RoundList status={status} rounds={rounds} onDelete={askDelete} headingRef={listHeading} />
 
           <SettingsEntry settings={settings} onOpenSettings={onOpenSettings} />
         </div>
@@ -55,11 +65,9 @@ export default function HomeScreen({ settings, status, rounds, error, onStart, o
       {pendingDelete && (
         <DeleteDialog
           round={pendingDelete}
-          onConfirm={() => {
-            onDelete(pendingDelete.id);
-            setPendingDelete(null);
-          }}
-          onCancel={closeDialog}
+          busy={deleting}
+          onConfirm={() => void confirmDelete(pendingDelete.id)}
+          onCancel={() => closeDialog()}
         />
       )}
     </div>
@@ -105,14 +113,18 @@ function RoundList({
   status,
   rounds,
   onDelete,
+  headingRef,
 }: {
   status: RoundsStatus;
   rounds: FacilityRound[];
   onDelete: (round: FacilityRound) => void;
+  headingRef: Ref<HTMLHeadingElement>;
 }) {
   return (
     <section aria-label="この端末のラウンド" className="card p-5">
-      <h2 className="text-sm font-extrabold text-text mb-3">この端末のラウンド</h2>
+      <h2 ref={headingRef} tabIndex={-1} className="text-sm font-extrabold text-text mb-3 focus:outline-none">
+        この端末のラウンド
+      </h2>
       {status === 'loading' && <p className="text-xs text-text-muted">読み込み中...</p>}
       {status === 'ready' && rounds.length === 0 && (
         <p className="text-xs text-text-muted py-2">まだラウンドはありません。</p>
@@ -174,7 +186,15 @@ function SettingsEntry({ settings, onOpenSettings }: { settings: FacilitySetting
   );
 }
 
-function DeleteDialog({ round, onConfirm, onCancel }: { round: FacilityRound; onConfirm: () => void; onCancel: () => void }) {
+interface DeleteDialogProps {
+  round: FacilityRound;
+  /** While the delete runs, both buttons are disabled so it is not sent twice. */
+  busy: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function DeleteDialog({ round, busy, onConfirm, onCancel }: DeleteDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-text/40 backdrop-blur-sm">
       <div
@@ -197,13 +217,15 @@ function DeleteDialog({ round, onConfirm, onCancel }: { round: FacilityRound; on
           <button
             type="button"
             onClick={onConfirm}
-            className="w-full py-3 rounded-xl text-sm font-bold text-white bg-danger transition-colors"
+            disabled={busy}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white bg-danger transition-colors disabled:opacity-40"
           >
             削除する
           </button>
           <button
             type="button"
             onClick={onCancel}
+            disabled={busy}
             // Focus starts on the safe choice.
             autoFocus
             className="w-full py-3 rounded-xl text-sm font-bold text-text-muted border-2 border-line hover:border-primary hover:text-primary transition-colors"
