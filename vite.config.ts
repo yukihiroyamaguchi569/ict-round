@@ -29,6 +29,8 @@ export default defineConfig({
   test: {
     // Node's own global localStorage hides jsdom's; turn it off (flag exists since Node 22.4).
     execArgv: ['--no-experimental-webstorage'],
+    // Tests run with the preview-only facility round flag on (see src/facility/roundEnabled.ts).
+    env: { VITE_FACILITY_ROUND: '1' },
     // Coverage is collected once across both projects below. lcov.info is what scoria reads.
     coverage: {
       provider: 'v8',
