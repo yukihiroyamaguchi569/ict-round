@@ -197,7 +197,7 @@ describe('FacilityApp round start', () => {
     expect(screen.getByText('日時を入れてください。')).toBeInTheDocument();
   });
 
-  it('starts a round with the chosen inputs, goes home and lists it; it is still there after a remount', async () => {
+  it('starts a round with the chosen inputs and enters it at once; home lists it on the way back, also after a remount', async () => {
     const user = await openStart();
     fireEvent.change(screen.getByLabelText('日時'), { target: { value: '2026-11-20T14:30' } });
     await user.click(screen.getByRole('radio', { name: /手指衛生/ }));
@@ -205,16 +205,26 @@ describe('FacilityApp round start', () => {
     await user.click(screen.getByRole('checkbox', { name: '看護 次郎' }));
     await user.click(startSubmit());
 
-    const list = await screen.findByRole('region', { name: 'この端末のラウンド' });
-    expect(list).toHaveTextContent('2026/11/20 14:30');
-    expect(list).toHaveTextContent('手指衛生');
+    // The input screen of this round, with focus on its department list, as when opened from home.
+    await waitFor(() => expect(screen.getByRole('heading', { name: '部署の一覧' })).toHaveFocus());
     // 3東: item a; 内科外来: a and b; 透析室: a (b excludes it).
-    expect(list).toHaveTextContent('記入済み 0 / 4');
+    expect(screen.getByText('2026/11/20 14:30 手指衛生（記入済み 0 / 4）')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^3東/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^内科外来/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^透析室/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^検査室/ })).not.toBeInTheDocument();
 
     const [saved] = await storedRounds();
     expect(saved.startedAt).toBe('2026-11-20T05:30:00.000Z');
     expect(saved.departments.map((d) => d.name)).toEqual(['3東', '内科外来', '透析室']);
     expect(saved.members).toEqual([{ name: '看護 次郎', role: '看護師' }]);
+
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    const list = await screen.findByRole('region', { name: 'この端末のラウンド' });
+    expect(list).toHaveTextContent('2026/11/20 14:30');
+    expect(list).toHaveTextContent('手指衛生');
+    expect(list).toHaveTextContent('記入済み 0 / 4');
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'この端末のラウンド' })).toHaveFocus());
 
     // A fresh mount reads the round back from IndexedDB.
     render(<FacilityApp />);
@@ -225,7 +235,9 @@ describe('FacilityApp round start', () => {
     const user = await openStart();
     await user.click(screen.getByRole('radio', { name: /環境整備/ }));
     await user.click(startSubmit());
-    expect(await screen.findByText('記入済み 0 / 1')).toBeInTheDocument();
+    expect(await screen.findByText(/環境整備（記入済み 0 \/ 1）$/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^3東/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^内科外来/ })).not.toBeInTheDocument();
   });
 
   it('says there is no department to visit and saves nothing when none would be visited', async () => {
@@ -235,6 +247,7 @@ describe('FacilityApp round start', () => {
     await user.click(startSubmit());
     expect(await screen.findByRole('alert')).toHaveTextContent('回る部署がありません。');
     expect(startSubmit()).toBeEnabled();
+    expect(screen.queryByRole('heading', { name: '部署の一覧' })).not.toBeInTheDocument();
     expect(await storedRounds()).toEqual([]);
   });
 
@@ -247,6 +260,7 @@ describe('FacilityApp round start', () => {
     await user.click(startSubmit());
     expect(await screen.findByRole('alert')).toHaveTextContent('保存容量の上限に達したため保存できませんでした');
     expect(startSubmit()).toBeEnabled();
+    expect(screen.queryByRole('heading', { name: '部署の一覧' })).not.toBeInTheDocument();
     vi.restoreAllMocks();
     expect(await storedRounds()).toEqual([]);
 
@@ -289,6 +303,8 @@ describe('FacilityApp round delete', () => {
     fireEvent.change(screen.getByLabelText('日時'), { target: { value: '2026-11-20T14:30' } });
     await user.click(screen.getByRole('radio', { name: /手指衛生/ }));
     await user.click(startSubmit());
+    await screen.findByRole('heading', { name: '部署の一覧' });
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
     await screen.findByText('2026/11/20 14:30');
     return user;
   }
