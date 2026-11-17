@@ -50,8 +50,10 @@ export default function AddPhotoScreen({ round, department, itemId, onAdd, onDon
     const failure = await onAdd(photo);
     busy.current = false;
     setAdding(false);
-    if (failure) setError(failure);
-    else onDone();
+    if (!failure) return onDone();
+    setError(failure);
+    // Back on 追加する to try again, once the screen is no longer inert.
+    setTimeout(() => screen.current?.querySelector<HTMLButtonElement>('button[type="submit"]')?.focus());
   };
 
   return (

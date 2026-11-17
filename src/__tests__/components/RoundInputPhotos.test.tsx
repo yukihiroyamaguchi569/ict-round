@@ -209,6 +209,7 @@ describe('RoundInputScreen photos', () => {
     await user.click(await screen.findByRole('button', { name: '追加する' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(PHOTO_SAVE_ERROR_MESSAGE);
     expect(screen.getByAltText('撮影済み')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: '追加する' })).toHaveFocus());
     expect((await stored()).round.photos).toEqual([]);
 
     put.mockRestore();
