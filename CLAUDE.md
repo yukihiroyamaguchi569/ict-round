@@ -177,7 +177,9 @@ src/
     ReportDocument.tsx     On-screen report preview: title, meta, checklist table, photos, evaluation
   facility/                Facility settings page (facility.html) for the all-department round, in development (no entry from the start screen yet); settings are kept in localStorage
     facilitySettings.ts    Settings types, sheet names / headers, buildFacilitySettings: builds and validates settings from the four sheets' rows, collecting every error with sheet and Excel row
-    storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed)
+    storedFacilitySettings.ts  parseStoredSettings: shape check of settings read back from localStorage (null when malformed); its element parsers are shared with storedFacilityRound
+    facilityRound.ts       FacilityRound (a copy of the settings at the start, ○ / × marks per department and item, comments, photo references) and its pure updates: create (theme, always + selected groups), applicability, set mark (toggle; cells with photos are locked), photo refs on × cells only, progress
+    storedFacilityRound.ts parseStoredRound: shape check of a round read back from storage (null when malformed)
     readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
     main.tsx               Entry point; mounts FacilityApp
     FacilityApp.tsx        Facility page shell: header, file card, read errors, save failure, settings summary
