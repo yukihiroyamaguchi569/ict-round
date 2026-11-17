@@ -1,4 +1,4 @@
-import { test, expect, openFacilitySettings } from './helpers';
+import { test, expect, openFacilitySettings, pickGalleryPhoto } from './helpers';
 
 const TEMPLATE = 'public/facility-settings-template.xlsx';
 
@@ -117,4 +117,57 @@ test('部署のコメントと総評、参加者を入れると、ホームに�
   await page.getByRole('button', { name: '全体（総評と参加者）' }).click();
   await expect(page.getByLabel('総評')).toHaveValue('全体に良好');
   await expect(members.first()).toBeChecked();
+});
+
+test('× の項目に写真を付けると、再読み込みして開き直しても残り、削除で消える', async ({ page }) => {
+  await page.goto('/facility.html');
+  await openFacilitySettings(page);
+  await page.locator('input[type="file"]').setInputFiles(TEMPLATE);
+  await expect(page.getByRole('heading', { name: '部署グループと部署（4 グループ・11 部署）' })).toBeVisible();
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
+
+  await page.getByRole('button', { name: 'ラウンドを始める' }).click();
+  await page.getByLabel('日時').fill('2026-11-20T14:30');
+  await page.getByRole('radio', { name: /環境整備/ }).check();
+  await page.getByRole('button', { name: '始める', exact: true }).click();
+  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
+  await page.getByRole('button', { name: /^3東/ }).click();
+
+  const marks = page.getByRole('group', { name: /高頻度接触面/ });
+  await marks.getByRole('button', { name: '×' }).click();
+  await page.getByRole('button', { name: '写真を追加' }).click();
+  await expect(page.getByText(/^3東：高頻度接触面/)).toBeVisible();
+  await pickGalleryPhoto(page);
+  await page.getByLabel('コメント').fill('ドアノブに汚れ');
+  await page.getByRole('button', { name: '追加する' }).click();
+
+  const photos = page.getByRole('list', { name: /高頻度接触面.* の写真/ });
+  await expect(photos.getByText('ドアノブに汚れ')).toBeVisible();
+  await expect(photos.locator('img')).toHaveAttribute('src', /^data:image\//);
+  await expect(marks.getByRole('button', { name: '○' })).toBeDisabled();
+
+  // Home lists a round as it was last saved, so going there waits for the save before reloading.
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
+  await expect(page.getByRole('region', { name: 'この端末のラウンド' })).toBeVisible();
+  await page.reload();
+
+  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
+  await page.getByRole('button', { name: /^3東/ }).click();
+  await expect(photos.getByText('ドアノブに汚れ')).toBeVisible();
+  await expect(photos.locator('img')).toHaveAttribute('src', /^data:image\//);
+
+  await photos.getByRole('button', { name: '写真 1 を削除' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: '削除する' }).click();
+  await expect(photos).toHaveCount(0);
+  await expect(marks.getByRole('button', { name: '○' })).toBeEnabled();
+
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
+  await expect(page.getByRole('region', { name: 'この端末のラウンド' })).toBeVisible();
+  await page.reload();
+  await page.getByRole('button', { name: '2026/11/20 14:30 環境整備 を開く' }).click();
+  await page.getByRole('button', { name: /^3東/ }).click();
+  await expect(marks.getByRole('button', { name: '×' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(photos).toHaveCount(0);
 });
