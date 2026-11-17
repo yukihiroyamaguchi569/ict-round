@@ -14,7 +14,8 @@ jobs:
       install-command: "npm ci"
       lint-command: "npm run lint --if-present"
       test-command: "npm test --if-present"
-      build-command: "npm run build"
+      # The production build must not contain the preview-only round screens (src/facility/roundEnabled.ts).
+      build-command: "npm run build && node scripts/check-production-build.mjs"
 
   e2e:
     runs-on: ubuntu-latest
