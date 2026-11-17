@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useIcon } from '../IconContext';
 import type { ChecklistCategory, ChecklistItemResult, RoundData } from '../types';
 import { getTotalItems } from '../checklistData';
@@ -157,6 +157,13 @@ function HelpLink() {
 function SaveButton({ onSave }: { onSave: () => boolean }) {
   const [savedFeedback, setSavedFeedback] = useState(false);
 
+  // The timer is cleared on unmount so it never updates a header that is gone.
+  useEffect(() => {
+    if (!savedFeedback) return;
+    const timer = setTimeout(() => setSavedFeedback(false), 2000);
+    return () => clearTimeout(timer);
+  }, [savedFeedback]);
+
   return (
     <button
       type="button"
@@ -164,7 +171,6 @@ function SaveButton({ onSave }: { onSave: () => boolean }) {
         const ok = onSave();
         if (!ok) return;
         setSavedFeedback(true);
-        setTimeout(() => setSavedFeedback(false), 2000);
       }}
       className="flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full transition-colors"
       style={

@@ -74,7 +74,7 @@ function setup(overrides: Partial<Props> = {}) {
         </IconProvider>
       </ThemeProvider>,
     );
-  return { props, rerender, user: userEvent.setup() };
+  return { props, rerender, unmount: view.unmount, user: userEvent.setup() };
 }
 
 function inspectorButton() {
@@ -182,6 +182,16 @@ describe('MainScreen header: save feedback', () => {
     act(() => vi.advanceTimersByTime(1));
     expect(saveButton()).toHaveTextContent(/^保存$/);
     expect(saveButton()).toHaveStyle({ backgroundColor: 'var(--t-primary-light)' });
+  });
+
+  it('leaves no timer behind when the header is unmounted during the feedback', () => {
+    vi.useFakeTimers();
+    const { unmount } = setup();
+    fireEvent.click(saveButton());
+    expect(vi.getTimerCount()).toBe(1);
+
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('shows no feedback when the save fails', () => {
