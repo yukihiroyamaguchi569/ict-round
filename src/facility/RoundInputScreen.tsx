@@ -71,12 +71,13 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
     <div className="min-h-screen bg-base">
       {/* While leaving or asking, keep the screen out of reach, so no input arrives after the last save */}
       <div inert={leaving || confirmLeave || photoModal}>
-        {view === 'list' ? (
-          // An import in progress is not in the save queue yet, so leaving waits until it is done.
-          <ScreenHeader subtitle={subtitle} onBack={() => void leave()} backDisabled={leaving || actions.importing} />
-        ) : (
-          <ScreenHeader subtitle={subtitle} onBack={() => setView('list')} backLabel="部署の一覧へ戻る" />
-        )}
+        <RoundHeader
+          subtitle={subtitle}
+          inList={view === 'list'}
+          onLeave={() => void leave()}
+          leaveDisabled={leaving || actions.importing}
+          onList={() => setView('list')}
+        />
 
         <div className="animate-page px-4 py-5 pb-16 max-w-3xl mx-auto space-y-5">
           {saveError && (
@@ -94,6 +95,27 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
 
       {confirmLeave && <UnsavedLeaveDialog onStay={stay} onLeave={onBack} />}
     </div>
+  );
+}
+
+interface RoundHeaderProps {
+  subtitle: string;
+  /** On the list the back button leaves the round; elsewhere it goes back to the list. */
+  inList: boolean;
+  onLeave: () => void;
+  leaveDisabled: boolean;
+  onList: () => void;
+}
+
+/**
+ * The header of the round. Leaving is disabled while leaving, and while a file is being imported:
+ * the import is not in the save queue until the file is read, so the save before leaving could not wait for it.
+ */
+function RoundHeader({ subtitle, inList, onLeave, leaveDisabled, onList }: RoundHeaderProps) {
+  return inList ? (
+    <ScreenHeader subtitle={subtitle} onBack={onLeave} backDisabled={leaveDisabled} />
+  ) : (
+    <ScreenHeader subtitle={subtitle} onBack={onList} backLabel="部署の一覧へ戻る" />
   );
 }
 
