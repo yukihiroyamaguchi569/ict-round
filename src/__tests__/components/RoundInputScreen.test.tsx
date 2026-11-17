@@ -1,8 +1,9 @@
-import { IDBFactory } from 'fake-indexeddb';
+import { IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RoundInputScreen from '../../facility/RoundInputScreen';
+import { AUTOSAVE_ERROR_MESSAGE } from '../../facility/useFacilityRound';
 import FacilityApp from '../../facility/FacilityApp';
 import { openFacilityDb } from '../../facility/roundDb';
 import type { FacilityRound } from '../../facility/facilityRound';
@@ -136,6 +137,23 @@ describe('RoundInputScreen department', () => {
     expect(ok).toHaveAttribute('aria-pressed', 'false');
     expect(ng).toHaveAttribute('aria-pressed', 'true');
     await waitFor(async () => expect(await storedMarks()).toEqual({ '3東': { a: 'ok' }, 内視鏡室: { b: 'ng' } }));
+  });
+
+  it('shows a failed save as an alert with the mark kept, and clears it once the next change is saved', async () => {
+    const user = await renderInput();
+    await user.click(screen.getByRole('button', { name: /内視鏡室/ }));
+    const put = vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+    const first = within(item('高頻度接触面が清拭されている')).getByRole('button', { name: '×' });
+    await user.click(first);
+    expect(await screen.findByRole('alert')).toHaveTextContent(AUTOSAVE_ERROR_MESSAGE);
+    expect(first).toHaveAttribute('aria-pressed', 'true');
+
+    put.mockRestore();
+    await user.click(within(item('汚物処理室に汚れがない')).getByRole('button', { name: '○' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(await storedMarks()).toEqual({ '3東': { a: 'ok' }, 内視鏡室: { a: 'ng', b: 'ok' } });
   });
 
   it('moves to the previous and next departments in list order, with no step past either end', async () => {
