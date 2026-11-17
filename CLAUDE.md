@@ -126,7 +126,8 @@ src/
   localDate.ts             Device-local YYYY-MM-DD date for report file names and share text
   whatsNew.ts              Picks unseen releases from public/updates/releases.json and persists the last seen version
   docx.ts                  Builds the report .docx from per-section builders (cover, checklist table, photos, evaluation), the report title (marked for the sample) and shared docx helpers
-  roundExportDocx.ts       Embeds / extracts round data (RoundExport) as a customXml part of the report .docx
+  roundExportDocx.ts       Embeds / extracts round data (RoundExport) in the report .docx through customXmlPart under its own namespace
+  customXmlPart.ts         embedCustomXml / extractCustomXml: writes / reads a string as a customXml part of a .docx (itemProps, rels, content types, CDATA), told apart by namespace
   themes.ts                Theme definitions (warm / minimal / medical) and localStorage persistence
   ThemeContext.tsx         React context providing the current theme
   icons.ts                 App icon definitions (ran / meguru) and localStorage persistence

@@ -13,6 +13,7 @@
     "src/merge/mergedTableWidths.ts",
     "src/merge/useMergeFiles.ts",
     "src/roundExportDocx.ts",
+    "src/customXmlPart.ts",
     "src/docx.ts",
     "src/roundData.ts",
     "src/photoImage.ts",
