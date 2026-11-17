@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { FacilityRound, RoundPhotoRef } from '../facility/facilityRound';
+import { markOf, type FacilityRound, type RoundPhotoRef } from '../facility/facilityRound';
 import { mergeFacilityRounds, type MergeResult } from '../facility/mergeFacilityRounds';
 import { parseStoredRound } from '../facility/storedFacilityRound';
 
@@ -356,6 +356,14 @@ describe('mergeFacilityRounds', () => {
       { name: '佐藤', role: '医師' },
       { name: '鈴木', role: '検査技師' },
     ]);
+  });
+
+  it('keeps an item id "__proto__" here as an own key when a mark moves onto it', () => {
+    const base = baseRound({ items: [{ id: '__proto__', text: '消毒剤がある', targetGroups: [], excludedDepartments: [] }] });
+    const { round } = merged(mergeFacilityRounds(base, incomingRound({ marks: { '3階東': { b1: 'ng' } } })));
+    expect(Object.hasOwn(round.marks['3階東'], '__proto__')).toBe(true);
+    expect(markOf(round, '3階東', '__proto__')).toBe('ng');
+    expect(parseStoredRound(structuredClone(round))).toEqual(round);
   });
 
   it('keeps a department or item named "__proto__" as an own key', () => {
