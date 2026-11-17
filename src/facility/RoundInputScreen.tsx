@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { roundProgress, type FacilityRound } from './facilityRound';
 import type { FacilityMember } from './facilitySettings';
-import { useFacilityRound, type RoundActions } from './useFacilityRound';
+import { useFacilityRound } from './useFacilityRound';
 import { formatStartedAt } from './dateTimeLocal';
 import ScreenHeader from './ScreenHeader';
 import DepartmentList from './DepartmentList';
@@ -9,6 +9,8 @@ import DepartmentScreen from './DepartmentScreen';
 import OverallCard from './OverallCard';
 import OverallScreen from './OverallScreen';
 import UnsavedLeaveDialog from './UnsavedLeaveDialog';
+import AddPhotoScreen from './AddPhotoScreen';
+import type { Photo } from '../types';
 
 interface Props {
   roundId: string;
@@ -26,6 +28,7 @@ type View = 'list' | 'overall' | { department: string };
 export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: Props) {
   const { status, round, saveError, saveNow, ...actions } = useFacilityRound(roundId, { onSaved });
   const [view, setView] = useState<View>('list');
+  const { photoFor, openPhoto, closePhoto, photoModal, setPhotoModal } = usePhotoViews();
   const [leaving, setLeaving] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const listHeading = useRef<HTMLHeadingElement>(null);
@@ -51,13 +54,18 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
 
   if (status !== 'ready' || !round) return <RoundNotReady loading={status === 'loading'} onBack={onBack} />;
 
+  if (photoFor) {
+    const add = (photo: Photo) => actions.addPhoto(photoFor.department, photoFor.itemId, photo);
+    return <AddPhotoScreen round={round} {...photoFor} onAdd={add} onDone={closePhoto} />;
+  }
+
   const progress = roundProgress(round);
   const subtitle = `${formatStartedAt(round.startedAt)} ${round.themeName}（記入済み ${progress.marked} / ${progress.total}）`;
 
   return (
     <div className="min-h-screen bg-base">
       {/* While leaving or asking, keep the screen out of reach, so no input arrives after the last save */}
-      <div inert={leaving || confirmLeave}>
+      <div inert={leaving || confirmLeave || photoModal}>
         {view === 'list' ? (
           <ScreenHeader subtitle={subtitle} onBack={() => void leave()} backDisabled={leaving} />
         ) : (
@@ -79,7 +87,7 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
               <DepartmentList round={round} onOpen={(department) => setView({ department })} />
             </>
           ) : (
-            <OpenView view={view} round={round} roster={roster} actions={actions} onOpen={(department) => setView({ department })} />
+            <OpenView view={view} round={round} roster={roster} actions={actions} onAddPhoto={openPhoto} onModalChange={setPhotoModal} onOpen={(department) => setView({ department })} />
           )}
         </div>
       </div>
@@ -89,16 +97,48 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
   );
 }
 
+interface PhotoFor {
+  department: string;
+  itemId: string;
+}
+
+/**
+ * What the department's photos put over the screen: the add-photo screen (the item it is for, and the way back
+ * to where the department was scrolled), and whether the photo delete confirmation is open.
+ */
+function usePhotoViews() {
+  const [photoFor, setPhotoFor] = useState<PhotoFor | null>(null);
+  const [photoModal, setPhotoModal] = useState(false);
+  const scrollBack = useRef<number | null>(null);
+
+  // Runs after the department's own focus on its name, so the item the photo was for is in view again.
+  useEffect(() => {
+    if (photoFor !== null || scrollBack.current === null) return;
+    window.scrollTo(0, scrollBack.current);
+    scrollBack.current = null;
+  }, [photoFor]);
+
+  const openPhoto = (department: string, itemId: string) => {
+    scrollBack.current = window.scrollY;
+    setPhotoFor({ department, itemId });
+  };
+  return { photoFor, openPhoto, closePhoto: () => setPhotoFor(null), photoModal, setPhotoModal };
+}
+
+type RoundInputActions = Omit<ReturnType<typeof useFacilityRound>, 'status' | 'round' | 'saveError' | 'saveNow'>;
+
 interface OpenViewProps {
   view: Exclude<View, 'list'>;
   round: FacilityRound;
   roster: FacilityMember[] | null;
-  actions: RoundActions;
+  actions: RoundInputActions;
+  onAddPhoto: (department: string, itemId: string) => void;
+  onModalChange: (open: boolean) => void;
   onOpen: (department: string) => void;
 }
 
 /** The overall screen or one department, opened from the list. */
-function OpenView({ view, round, roster, actions, onOpen }: OpenViewProps) {
+function OpenView({ view, round, roster, actions, onAddPhoto, onModalChange, onOpen }: OpenViewProps) {
   if (view === 'overall') {
     return (
       <OverallScreen round={round} roster={roster} onOverallComment={actions.writeOverallComment} onMembers={actions.chooseMembers} />
@@ -111,6 +151,10 @@ function OpenView({ view, round, roster, actions, onOpen }: OpenViewProps) {
       onMark={(itemId, value) => actions.mark(view.department, itemId, value)}
       onComment={(text) => actions.writeDepartmentComment(view.department, text)}
       onOpen={onOpen}
+      photoData={actions.photoData}
+      onAddPhoto={(itemId) => onAddPhoto(view.department, itemId)}
+      onModalChange={onModalChange}
+      onDeletePhoto={(photoId) => void actions.removePhoto(photoId)}
     />
   );
 }

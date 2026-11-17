@@ -6,15 +6,24 @@ import SettingsScreen from './SettingsScreen';
 import HomeScreen from './HomeScreen';
 import RoundStartScreen from './RoundStartScreen';
 import RoundInputScreen from './RoundInputScreen';
+import { ThemeProvider } from '../ThemeContext';
 
 type Screen = 'home' | 'settings' | 'start' | 'round';
 
 /**
  * Facility page. Without the preview flag (production) it is the settings screen only,
  * and the round screens and the IndexedDB code drop out of that build (see roundEnabled.ts).
+ * Only the preview is themed (the add-photo screen needs the theme); ThemeProvider sets data-theme
+ * on the document, so production keeps its current look.
  */
 export default function FacilityApp() {
-  return ROUND_ENABLED ? <RoundApp /> : <SettingsScreen />;
+  return ROUND_ENABLED ? (
+    <ThemeProvider>
+      <RoundApp />
+    </ThemeProvider>
+  ) : (
+    <SettingsScreen />
+  );
 }
 
 /** Screen switch of the preview: home, settings, round start and round input. */

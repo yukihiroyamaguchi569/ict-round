@@ -101,6 +101,26 @@ describe('FacilityApp without the preview flag', () => {
     expect(screen.queryByRole('button', { name: 'ホームへ戻る' })).not.toBeInTheDocument();
     expect(open).not.toHaveBeenCalled();
   });
+
+  it('is not themed: no data-theme on the document, as before the round screens', async () => {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('icn-round-theme', 'warm');
+    vi.stubEnv('VITE_FACILITY_ROUND', undefined);
+    vi.resetModules();
+    const { default: ProductionApp } = await import('../../facility/FacilityApp');
+    render(<ProductionApp />);
+    expect(screen.getByText('全部署を回るラウンドの施設設定（開発中）')).toBeInTheDocument();
+    expect(document.documentElement).not.toHaveAttribute('data-theme');
+  });
+});
+
+describe('FacilityApp with the preview flag', () => {
+  it('is themed with the theme chosen in the main app, as the add-photo screen needs', async () => {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('icn-round-theme', 'warm');
+    await renderHome();
+    expect(document.documentElement).toHaveAttribute('data-theme', 'warm');
+  });
 });
 
 describe('FacilityApp home', () => {

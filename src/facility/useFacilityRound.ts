@@ -11,6 +11,7 @@ import type { FacilityMember } from './facilitySettings';
 import { parseStoredRound } from './storedFacilityRound';
 import { openFacilityDb, type DbResult, type FacilityDb } from './roundDb';
 import { saveErrorMessage } from '../roundData';
+import { useRoundPhotos } from './useRoundPhotos';
 
 /** loading, ready to enter, or missing: not stored, broken, or the database cannot be read. */
 export type RoundStatus = 'loading' | 'ready' | 'missing';
@@ -61,10 +62,14 @@ async function openRound(factory: IDBFactory | undefined, id: string): Promise<{
 }
 
 /** Queues a write behind every earlier one, of any mount. */
-function queueWrite(target: FacilityDb, next: FacilityRound): Promise<DbResult<void>> {
-  const done = pendingSaves.then(() => target.putRound(next));
+function enqueue<T>(write: () => Promise<DbResult<T>>): Promise<DbResult<T>> {
+  const done = pendingSaves.then(write);
   pendingSaves = done.then(() => undefined);
   return done;
+}
+
+function queueWrite(target: FacilityDb, next: FacilityRound): Promise<DbResult<void>> {
+  return enqueue(() => target.putRound(next));
 }
 
 /** Saving with the failure message: shown on a failed save, cleared by the next successful one. */
@@ -136,13 +141,16 @@ function useRoundChanges({ latestRef, dbRef, setRound, save, textSave, textSaveD
     return { target, next };
   }, [latestRef, dbRef, setRound]);
 
-  /** A change saved at once; it also carries any typed text still waiting. */
+  /**
+   * A change saved at once; it also carries any typed text still waiting.
+   * Resolves to whether it was written; undefined when nothing changed.
+   */
   const change = useCallback(
-    (apply: (current: FacilityRound) => FacilityRound) => {
+    (apply: (current: FacilityRound) => FacilityRound): Promise<boolean> | undefined => {
       const applied = applyChange(apply);
-      if (!applied) return;
+      if (!applied) return undefined;
       textSave.cancel();
-      void save(applied.target, applied.next);
+      return save(applied.target, applied.next);
     },
     [applyChange, textSave, save]
   );
@@ -167,7 +175,10 @@ type RoundChange = (apply: (current: FacilityRound) => FacilityRound) => void;
 /** The changes the screens make: marks and members saved at once, typed text saved once typing pauses. */
 function useRoundActions(change: RoundChange, changeText: RoundChange) {
   const mark = useCallback(
-    (department: string, itemId: string, value: Mark) => change((current) => setMark(current, department, itemId, value)),
+    // A block body: the save's promise is not handed to the screens.
+    (department: string, itemId: string, value: Mark) => {
+      void change((current) => setMark(current, department, itemId, value));
+    },
     [change]
   );
   const writeDepartmentComment = useCallback(
@@ -179,13 +190,13 @@ function useRoundActions(change: RoundChange, changeText: RoundChange) {
     [changeText]
   );
   const chooseMembers = useCallback(
-    (members: FacilityMember[]) => change((current) => setMembers(current, members)),
+    (members: FacilityMember[]) => {
+      void change((current) => setMembers(current, members));
+    },
     [change]
   );
   return { mark, writeDepartmentComment, writeOverallComment, chooseMembers };
 }
-
-export type RoundActions = ReturnType<typeof useRoundActions>;
 
 /**
  * One round being entered: reads it from IndexedDB and saves it after every change.
@@ -252,6 +263,7 @@ export function useFacilityRound(
   }, [save, lastSaved, textSave]);
 
   const actions = useRoundActions(change, changeText);
+  const photos = useRoundPhotos({ roundId: id, ready: status === 'ready', dbRef: db, latestRef: latest, change, enqueue });
 
-  return { status, round, saveError, ...actions, saveNow };
+  return { status, round, saveError, ...actions, ...photos, saveNow };
 }
