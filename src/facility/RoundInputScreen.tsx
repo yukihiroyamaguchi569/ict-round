@@ -16,7 +16,7 @@ interface Props {
 
 /** Entering one round: the list of departments, and one department's ○ / × once it is opened. */
 export default function RoundInputScreen({ roundId, onBack, onSaved }: Props) {
-  const { status, round, saveError, mark, retrySave } = useFacilityRound(roundId, { onSaved });
+  const { status, round, saveError, mark, saveNow } = useFacilityRound(roundId, { onSaved });
   const [department, setDepartment] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -27,11 +27,10 @@ export default function RoundInputScreen({ roundId, onBack, onSaved }: Props) {
     if (status === 'ready' && department === null) listHeading.current?.focus();
   }, [status, department]);
 
-  // Saves still waiting are written by the page-wide queue, so only a failed save holds the way home.
+  // Leaves only once the round on screen is stored; a save that failed (or fails now) is tried again first.
   const leave = async () => {
-    if (!saveError) return onBack();
     setLeaving(true);
-    const saved = await retrySave();
+    const saved = await saveNow();
     setLeaving(false);
     if (saved) onBack();
     else setConfirmLeave(true);
@@ -49,8 +48,8 @@ export default function RoundInputScreen({ roundId, onBack, onSaved }: Props) {
 
   return (
     <div className="min-h-screen bg-base">
-      {/* While the dialog is open, keep the screen behind it out of reach of Tab and screen readers */}
-      <div inert={confirmLeave}>
+      {/* While leaving or asking, keep the screen out of reach, so no input arrives after the last save */}
+      <div inert={leaving || confirmLeave}>
         {department === null ? (
           <ScreenHeader subtitle={subtitle} onBack={() => void leave()} backDisabled={leaving} />
         ) : (

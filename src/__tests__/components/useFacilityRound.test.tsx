@@ -167,7 +167,7 @@ describe('useFacilityRound', () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
-  it('saves the current round again with retrySave after a failure', async () => {
+  it('saves the current round again with saveNow after a failure', async () => {
     const factory = new IDBFactory();
     await seed(factory, round());
     const { result } = await renderLoaded({ factory });
@@ -179,7 +179,7 @@ describe('useFacilityRound', () => {
 
     let saved: boolean | undefined;
     await act(async () => {
-      saved = await result.current.retrySave();
+      saved = await result.current.saveNow();
     });
     expect(saved).toBe(false);
     expect(result.current.saveError).toBe(AUTOSAVE_ERROR_MESSAGE);
@@ -187,11 +187,37 @@ describe('useFacilityRound', () => {
 
     put.mockRestore();
     await act(async () => {
-      saved = await result.current.retrySave();
+      saved = await result.current.saveNow();
     });
     expect(saved).toBe(true);
     expect(result.current.saveError).toBeNull();
     expect(await stored(factory)).toMatchObject({ marks: { '3東': { a: 'ng' } } });
+  });
+
+  it('saveNow resolves true without writing when nothing changed', async () => {
+    const factory = new IDBFactory();
+    await seed(factory, round());
+    const { result } = await renderLoaded({ factory });
+    const put = vi.spyOn(FakeObjectStore.prototype, 'put');
+    expect(await act(() => result.current.saveNow())).toBe(true);
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it('saveNow waits for a queued save and reports its failure', async () => {
+    const factory = new IDBFactory();
+    await seed(factory, round());
+    const { result } = await renderLoaded({ factory });
+    vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    let saved: boolean | undefined;
+    await act(async () => {
+      result.current.mark('3東', 'a', 'ok');
+      // Called while the save of the mark is still queued.
+      saved = await result.current.saveNow();
+    });
+    expect(saved).toBe(false);
+    expect(result.current.saveError).toBe(AUTOSAVE_ERROR_MESSAGE);
   });
 
   it('shows the quota message when the storage is full', async () => {

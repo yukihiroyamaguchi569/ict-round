@@ -57,6 +57,8 @@ function queueWrite(target: FacilityDb, next: FacilityRound): Promise<DbResult<v
 /** Saving with the failure message: shown on a failed save, cleared by the next successful one. */
 function useAutosave(onSaved: ((round: FacilityRound) => void) | undefined) {
   const [saveError, setSaveError] = useState<string | null>(null);
+  // The round as it was last stored (read or written), to tell whether the one on screen still needs saving.
+  const lastSaved = useRef<FacilityRound | null>(null);
   const onSavedRef = useRef(onSaved);
   useEffect(() => {
     onSavedRef.current = onSaved;
@@ -69,12 +71,13 @@ function useAutosave(onSaved: ((round: FacilityRound) => void) | undefined) {
       setSaveError(autosaveErrorMessage(saved.error));
       return false;
     }
+    lastSaved.current = next;
     setSaveError(null);
     onSavedRef.current?.(next);
     return true;
   }, []);
 
-  return { saveError, save };
+  return { saveError, save, lastSaved };
 }
 
 /**
@@ -88,7 +91,7 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
   // Refs so that quick changes build on each other before a re-render.
   const latest = useRef<FacilityRound | null>(null);
   const db = useRef<FacilityDb | null>(null);
-  const { saveError, save } = useAutosave(onSaved);
+  const { saveError, save, lastSaved } = useAutosave(onSaved);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +105,7 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
       opened = loaded.db;
       db.current = loaded.db;
       latest.current = loaded.round;
+      lastSaved.current = loaded.round;
       setRound(loaded.round);
       setStatus('ready');
     });
@@ -112,7 +116,7 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
       // Close only after the saves already queued have been written.
       void pendingSaves.then(() => opened?.close());
     };
-  }, [factory, id]);
+  }, [factory, id, lastSaved]);
 
   const change = useCallback(
     (apply: (current: FacilityRound) => FacilityRound) => {
@@ -128,18 +132,23 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
     [save]
   );
 
-  /** Saves the round as it is on screen once more, e.g. before leaving after a failed save. */
-  const retrySave = useCallback(async (): Promise<boolean> => {
+  /**
+   * Before leaving: waits for the queued saves, then saves the round on screen again if it is still not
+   * stored (a save failed). Resolves to whether the round on screen is stored.
+   */
+  const saveNow = useCallback(async (): Promise<boolean> => {
+    await pendingSaves;
     const current = latest.current;
     const target = db.current;
     if (!current || !target) return false;
+    if (current === lastSaved.current) return true;
     return save(target, current);
-  }, [save]);
+  }, [save, lastSaved]);
 
   const mark = useCallback(
     (department: string, itemId: string, value: Mark) => change((current) => setMark(current, department, itemId, value)),
     [change]
   );
 
-  return { status, round, saveError, mark, retrySave };
+  return { status, round, saveError, mark, saveNow };
 }

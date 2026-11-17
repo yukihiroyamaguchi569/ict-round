@@ -1,6 +1,6 @@
 import { IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import RoundInputScreen from '../../facility/RoundInputScreen';
 import { AUTOSAVE_ERROR_MESSAGE } from '../../facility/useFacilityRound';
@@ -90,7 +90,7 @@ describe('RoundInputScreen department list', () => {
     const onBack = vi.fn();
     const user = await renderInput(onBack);
     await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
-    expect(onBack).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
   });
 });
 
@@ -256,8 +256,35 @@ describe('RoundInputScreen leaving with a failed save', () => {
     await user.click(within(item('高頻度接触面が清拭されている')).getByRole('button', { name: '○' }));
     await user.click(screen.getByRole('button', { name: '部署の一覧へ戻る' }));
     await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
-    expect(onBack).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await storedMarks()).toEqual({ '3東': { a: 'ok' }, 透析室: { a: 'ok' } });
+  });
+
+  it('waits on the way home for a save still queued, and asks when it fails', async () => {
+    const onBack = vi.fn();
+    const user = await renderInput(onBack);
+    vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    await user.click(screen.getByRole('button', { name: /透析室/ }));
+    fireEvent.click(within(item('高頻度接触面が清拭されている')).getByRole('button', { name: '○' }));
+    fireEvent.click(screen.getByRole('button', { name: '部署の一覧へ戻る' }));
+    // Pressed before the queued save has failed.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    expect(onBack).not.toHaveBeenCalled();
+    expect(await screen.findByRole('dialog')).toHaveTextContent('保存できていない入力があります。');
+    expect(onBack).not.toHaveBeenCalled();
+  });
+
+  it('keeps the screen out of reach while the save before leaving runs', async () => {
+    const onBack = vi.fn();
+    await renderInput(onBack);
+    fireEvent.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    expect(onBack).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /透析室/ }).closest('[inert]')).not.toBeNull();
+    await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
   });
 });
 
