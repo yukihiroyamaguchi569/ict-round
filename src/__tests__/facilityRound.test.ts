@@ -205,6 +205,19 @@ describe('setMark', () => {
     expect(departmentProgress(r, '__proto__')).toEqual({ marked: 0, total: 0 });
   });
 
+  it('項目の id が "__proto__" でも印を付けて消せる', () => {
+    const s = settings();
+    s.themes[0].items.push({ id: '__proto__', text: 'p', targetGroups: [], excludedDepartments: [] });
+    const r1 = setMark(round({ settings: s }), '3階東', '__proto__', 'ng');
+    expect(Object.hasOwn(r1.marks['3階東'], '__proto__')).toBe(true);
+    expect(Object.getPrototypeOf(r1.marks['3階東'])).toBe(Object.prototype);
+    expect(departmentProgress(r1, '3階東')).toEqual({ marked: 1, total: 3 });
+    const withPhoto = addPhotoRef(r1, photo({ itemId: '__proto__' }));
+    expect(withPhoto.photos).toHaveLength(1);
+    const r2 = setMark(r1, '3階東', '__proto__', 'ng');
+    expect(Object.hasOwn(r2.marks['3階東'], '__proto__')).toBe(false);
+  });
+
   it('写真のある × のマスは、消すことも ○ に変えることもできない', () => {
     const withPhoto = addPhotoRef(setMark(round(), '3階東', 'h1', 'ng'), photo());
     expect(setMark(withPhoto, '3階東', 'h1', 'ng')).toBe(withPhoto);

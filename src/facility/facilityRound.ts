@@ -123,9 +123,10 @@ export function hasPhotos(round: FacilityRound, departmentName: string, itemId: 
  */
 export function setMark(round: FacilityRound, departmentName: string, itemId: string, mark: Mark): FacilityRound {
   if (!isApplicableCell(round, departmentName, itemId) || hasPhotos(round, departmentName, itemId)) return round;
-  const departmentMarks = { ...ownValue(round.marks, departmentName) };
-  if (ownValue(departmentMarks, itemId) === mark) delete departmentMarks[itemId];
-  else departmentMarks[itemId] = mark;
+  const current = ownValue(round.marks, departmentName) ?? {};
+  // Built with entries / computed keys (never assignment), so an item id such as "__proto__" stays an own key.
+  const others = Object.fromEntries(Object.entries(current).filter(([id]) => id !== itemId));
+  const departmentMarks = ownValue(current, itemId) === mark ? others : { ...others, [itemId]: mark };
   return { ...round, marks: { ...round.marks, [departmentName]: departmentMarks } };
 }
 
