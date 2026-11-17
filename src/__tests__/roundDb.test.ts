@@ -1,4 +1,4 @@
-import { IDBDatabase as FakeDatabase, IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
+import { IDBCursor as FakeCursor, IDBDatabase as FakeDatabase, IDBFactory, IDBObjectStore as FakeObjectStore } from 'fake-indexeddb';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   FACILITY_DB_NAME,
@@ -261,6 +261,21 @@ describe('failures come back as results', () => {
     vi.restoreAllMocks();
     expect(unwrap(await db.getRound('r1'))).toEqual({ id: 'r1' });
     expect(unwrap(await db.getPhotos('r1'))).toEqual([photo('p1', 'r1')]);
+  });
+
+  it('deleteRound rolls back when walking the photos fails part way', async () => {
+    const db = await openFresh();
+    unwrap(await db.putRound({ id: 'r1' }));
+    unwrap(await db.putPhoto(photo('p1', 'r1')));
+    unwrap(await db.putPhoto(photo('p2', 'r1')));
+    vi.spyOn(FakeCursor.prototype, 'continue').mockImplementation(() => {
+      throw new DOMException('broken', 'InvalidStateError');
+    });
+    const result = await db.deleteRound('r1');
+    expect(result.ok).toBe(false);
+    vi.restoreAllMocks();
+    expect(unwrap(await db.getRound('r1'))).toEqual({ id: 'r1' });
+    expect(unwrap(await db.getPhotos('r1'))).toEqual([photo('p1', 'r1'), photo('p2', 'r1')]);
   });
 
   it('every operation fails without throwing after the database is closed', async () => {

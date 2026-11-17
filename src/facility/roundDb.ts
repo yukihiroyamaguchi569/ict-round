@@ -85,10 +85,15 @@ function read<T>(
 function deletePhotosOfRound(photos: IDBObjectStore, roundId: string): void {
   const cursorRequest = photos.index(PHOTO_ROUND_INDEX).openKeyCursor(roundId);
   cursorRequest.onsuccess = () => {
-    const cursor = cursorRequest.result;
-    if (!cursor) return;
-    photos.delete(cursor.primaryKey);
-    cursor.continue();
+    try {
+      const cursor = cursorRequest.result;
+      if (!cursor) return;
+      photos.delete(cursor.primaryKey);
+      cursor.continue();
+    } catch {
+      // Out of write()'s try: abort so the round is not deleted without its photos.
+      photos.transaction.abort();
+    }
   };
 }
 
