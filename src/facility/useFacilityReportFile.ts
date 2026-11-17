@@ -24,7 +24,9 @@ export function facilityReportFileName(startedAt: string, suffix: string, now: D
  * sheet otherwise). No analytics event is sent.
  */
 export function useFacilityReportFile(round: FacilityRound, photoData: Record<string, string> | null) {
-  const [shareFile, setShareFile] = useState<File | null>(null);
+  // Kept with what it was built from: after an import changes the round, the old file is not handed out.
+  const [built, setBuilt] = useState<{ round: FacilityRound; photoData: Record<string, string>; file: File } | null>(null);
+  const shareFile = built && built.round === round && built.photoData === photoData ? built.file : null;
   const [buildError, setBuildError] = useState<string | null>(null);
   const [shareFailed, setShareFailed] = useState(false);
   // A second tap while the share sheet is open would fail with InvalidStateError.
@@ -40,7 +42,7 @@ export function useFacilityReportFile(round: FacilityRound, photoData: Record<st
     buildFacilityDocxBlob(round, photoData)
       .then((blob) => embedFacilityRoundExport(blob, exportData))
       .then((blob) => {
-        if (!cancelled) setShareFile(new File([blob], facilityReportFileName(round.startedAt, suffix)));
+        if (!cancelled) setBuilt({ round, photoData, file: new File([blob], facilityReportFileName(round.startedAt, suffix)) });
       })
       .catch((err: unknown) => {
         console.error('DOCX生成エラー:', err);

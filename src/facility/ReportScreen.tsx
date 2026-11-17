@@ -2,15 +2,20 @@ import { useEffect, useRef } from 'react';
 import { complianceRateText, departmentCompliance, departmentsByGroup, type FacilityRound } from './facilityRound';
 import { useFacilityReportFile } from './useFacilityReportFile';
 import { ReportExportButton, ReportExportNotices } from '../components/ReportExport';
+import RoundImportCard from './RoundImportCard';
+import type { ImportOutcome } from './useRoundImport';
 
 interface Props {
   round: FacilityRound;
   /** Photo images by id; null while they are being read. */
   photoData: Record<string, string> | null;
+  importing: boolean;
+  importOutcome: ImportOutcome | null;
+  onImport: (file: File) => void;
 }
 
-/** The round's report: compliance per department, and the Word file to share or save. */
-export default function ReportScreen({ round, photoData }: Props) {
+/** The round's report: the Word file to share or save, importing another device's file, and compliance per department. */
+export default function ReportScreen({ round, photoData, importing, importOutcome, onImport }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
   const file = useFacilityReportFile(round, photoData);
 
@@ -30,6 +35,7 @@ export default function ReportScreen({ round, photoData }: Props) {
         <p className="text-sm text-text-muted">書き出した Word が、この端末の記録の控えになります。ほかの端末で取り込むこともできます。</p>
       </div>
       <ReportExportNotices buildError={file.buildError} shareFailed={file.shareFailed} />
+      <RoundImportCard importing={importing} outcome={importOutcome} onFile={onImport} />
 
       {departmentsByGroup(round).map(({ group, departments }) => (
         <section key={group} aria-label={group} className="card p-5">

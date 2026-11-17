@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type RefObject } from 'react';
 import { addPhotoRef, removePhotoRef, type FacilityRound } from './facilityRound';
 import type { DbResult, FacilityDb } from './roundDb';
 import { isRecord } from './storedFacilitySettings';
+import type { ExportedPhoto } from './facilityRoundExport';
 import type { Photo } from '../types';
 import { saveErrorMessage } from '../roundData';
 
@@ -26,6 +27,20 @@ export function photoDataUrls(records: unknown[]): Record<string, string> {
     return [[id, dataUrl]];
   });
   return Object.fromEntries(entries);
+}
+
+/** Stores the images one after another in the save queue; the error of the first that could not be stored. */
+async function storeImages(
+  target: FacilityDb,
+  roundId: string,
+  photos: ExportedPhoto[],
+  enqueue: RoundPhotosDeps['enqueue']
+): Promise<{ error: unknown } | null> {
+  for (const photo of photos) {
+    const stored = await enqueue(() => target.putPhoto({ id: photo.id, roundId, dataUrl: photo.dataUrl }));
+    if (!stored.ok) return { error: stored.error };
+  }
+  return null;
 }
 
 type Change = (apply: (current: FacilityRound) => FacilityRound) => Promise<boolean> | undefined;
@@ -98,10 +113,28 @@ export function useRoundPhotos({ roundId, ready, dbRef, latestRef, change, enque
       // While the round still holds the reference in storage, the image stays.
       if (!target || !saved || !(await saved)) return;
       // A failed delete leaves an unused image, removed with the round.
-      await enqueue(() => target.deletePhoto(photoId));
+      await enqueue(() => target.deletePhoto(roundId, photoId));
     },
-    [dbRef, change, enqueue]
+    [roundId, dbRef, change, enqueue]
   );
 
-  return { photoData, addPhoto, removePhoto };
+  /**
+   * Stores images of another device's photos, one after another, before the round that refers to them is saved.
+   * Resolves to null once every image is stored (and shown), or to the error of the first that could not be;
+   * images stored before it stay, unseen while no reference points to them.
+   */
+  const storePhotos = useCallback(
+    async (photos: ExportedPhoto[]): Promise<{ error: unknown } | null> => {
+      const target = dbRef.current;
+      const current = latestRef.current;
+      const failure = target && current ? await storeImages(target, current.id, photos, enqueue) : { error: null };
+      if (failure) return failure;
+      const added = Object.fromEntries(photos.map((p) => [p.id, p.dataUrl]));
+      setPhotoData((data) => ({ ...data, ...added }));
+      return null;
+    },
+    [dbRef, latestRef, enqueue]
+  );
+
+  return { photoData, addPhoto, removePhoto, storePhotos };
 }

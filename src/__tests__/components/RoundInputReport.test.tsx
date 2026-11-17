@@ -1,16 +1,20 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { saveAs } from 'file-saver';
 import RoundInputScreen from '../../facility/RoundInputScreen';
 import { openFacilityDb } from '../../facility/roundDb';
 import { buildFacilityDocxBlob } from '../../facility/facilityDocx';
+import { loadFacilityRoundFile } from '../../facility/facilityReportFile';
 import type { FacilityRound } from '../../facility/facilityRound';
 
 vi.mock('file-saver', () => ({ saveAs: vi.fn() }));
 vi.mock('../../facility/facilityDocx', () => ({ buildFacilityDocxBlob: vi.fn() }));
-vi.mock('../../facility/facilityReportFile', () => ({ embedFacilityRoundExport: vi.fn((blob: Blob) => Promise.resolve(blob)) }));
+vi.mock('../../facility/facilityReportFile', () => ({
+  embedFacilityRoundExport: vi.fn((blob: Blob) => Promise.resolve(blob)),
+  loadFacilityRoundFile: vi.fn(),
+}));
 
 let factory: IDBFactory;
 let finishBuild: (blob: Blob) => void;
@@ -133,5 +137,29 @@ describe('RoundInputScreen report', () => {
     failBuild(new Error('too big'));
     expect(await screen.findByRole('button', { name: '作成できません' })).toBeDisabled();
     expect(screen.getByText(/報告書ファイルを作成できませんでした（too big）/)).toBeInTheDocument();
+  });
+
+  it('keeps the round from being left while a file is being imported, until the import is done', async () => {
+    let finish: (result: Awaited<ReturnType<typeof loadFacilityRoundFile>>) => void = () => {};
+    vi.mocked(loadFacilityRoundFile).mockImplementation(() => new Promise((resolve) => { finish = resolve; }));
+    const onBack = vi.fn();
+    const open = await openFacilityDb(factory);
+    if (!open.ok) throw new Error('seed: open failed');
+    await open.value.putRound(round());
+    open.value.close();
+    render(<RoundInputScreen roster={null} roundId="r1" onBack={onBack} />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: '帳票（遵守率と Word 出力）' }));
+
+    await user.upload(screen.getByLabelText('Word のファイルを選ぶ'), new File(['x'], 'b.docx'));
+    expect(screen.getByLabelText('取り込み中...')).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: '部署の一覧へ戻る' }));
+    const home = screen.getByRole('button', { name: 'ホームへ戻る' });
+    expect(home).toBeDisabled();
+
+    finish({ ok: false, reason: 'not-docx' });
+    await waitFor(() => expect(home).toBeEnabled());
+    await user.click(home);
+    await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
   });
 });

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import JSZip from 'jszip';
-import { test, expect, openFacilitySettings, pickGalleryPhoto } from './helpers';
+import type { Download, Page } from '@playwright/test';
+import { test, expect, openFacilitySettings, pickGalleryPhoto, quietPage } from './helpers';
 
 const TEMPLATE = 'public/facility-settings-template.xlsx';
 
@@ -216,4 +217,84 @@ test('○× を付けて帳票の画面から Word 出力すると、遵守率�
 
   await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
   await expect(page.getByRole('heading', { name: '部署の一覧' })).toBeFocused();
+});
+
+/** Reads the template settings and starts a 環境整備 round at the same time on this device. */
+async function startEnvironmentRound(page: Page, selectGroup?: string) {
+  await openFacilitySettings(page);
+  await page.locator('input[type="file"]').setInputFiles(TEMPLATE);
+  await expect(page.getByRole('heading', { name: '部署グループと部署（4 グループ・11 部署）' })).toBeVisible();
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
+  await page.getByRole('button', { name: 'ラウンドを始める' }).click();
+  await page.getByLabel('日時').fill('2026-11-20T14:30');
+  await page.getByRole('radio', { name: /環境整備/ }).check();
+  if (selectGroup) await page.getByRole('checkbox', { name: new RegExp(selectGroup) }).check();
+  await page.getByRole('button', { name: '始める', exact: true }).click();
+}
+
+/** Exports the report from the report screen and returns the download. */
+async function exportReport(page: Page): Promise<Download> {
+  const exportButton = page.getByRole('button', { name: 'Word出力' });
+  await expect(exportButton).toBeEnabled();
+  const [download] = await Promise.all([page.waitForEvent('download'), exportButton.click()]);
+  return download;
+}
+
+async function countNgCells(download: Download): Promise<number> {
+  const zip = await JSZip.loadAsync(readFileSync(await download.path()));
+  const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+  return documentXml.split('>×<').length - 1;
+}
+
+test('ほかの端末で書き出した帳票を取り込むと、部署・食い違い・写真が合わさり、結果の一覧と帳票に出る', async ({ page, browser }) => {
+  const touch = /高頻度接触面/;
+  // Device B: visits 外来B too, marks 3東 the other way with a photo, and 透析室.
+  const contextB = await browser.newContext({ serviceWorkers: 'block' });
+  const pageB = await contextB.newPage();
+  await quietPage(pageB);
+  await startEnvironmentRound(pageB, '外来B');
+  await pageB.getByRole('button', { name: /^3東/ }).click();
+  await pageB.getByRole('group', { name: touch }).getByRole('button', { name: '×' }).click();
+  await pageB.getByRole('button', { name: '写真を追加' }).click();
+  await pickGalleryPhoto(pageB);
+  await pageB.getByLabel('コメント').fill('ドアノブに汚れ');
+  await pageB.getByRole('button', { name: '追加する' }).click();
+  await expect(pageB.getByText('ドアノブに汚れ')).toBeVisible();
+  await pageB.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await pageB.getByRole('button', { name: /^透析室/ }).click();
+  await pageB.getByRole('group', { name: touch }).getByRole('button', { name: '○' }).click();
+  await pageB.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await pageB.getByRole('button', { name: '帳票（遵守率と Word 出力）' }).click();
+  // Copied out first: a download's file goes away with its context.
+  const fromB = test.info().outputPath('from-b.docx');
+  await (await exportReport(pageB)).saveAs(fromB);
+  await contextB.close();
+
+  // Device A: the ward only, 3東 marked ○.
+  await startEnvironmentRound(page);
+  await page.getByRole('button', { name: /^3東/ }).click();
+  await page.getByRole('group', { name: touch }).getByRole('button', { name: '○' }).click();
+  await page.getByRole('group', { name: '汚物処理室の床やシンクに汚れがない' }).getByRole('button', { name: '○' }).click();
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await page.getByRole('button', { name: '帳票（遵守率と Word 出力）' }).click();
+  const before = await countNgCells(await exportReport(page));
+
+  await page.getByLabel('Word のファイルを選ぶ').setInputFiles(fromB);
+  const result = page.getByRole('status', { name: '取り込みの結果' });
+  await expect(result).toContainText('取り込みました');
+  await expect(result).toContainText('足した部署: 透析室、内視鏡室');
+  await expect(result).toContainText('食い違ったため × にしたマス: 3東：高頻度接触面');
+  await expect(result).toContainText('足した写真: 1 枚');
+  await expect(result.getByRole('listitem')).toHaveCount(3);
+  await expect(page.getByRole('region', { name: '外来B' }).getByRole('listitem').filter({ hasText: '透析室' })).toContainText('遵守率 100%');
+
+  const after = await countNgCells(await exportReport(page));
+  expect(after).toBe(before + 1);
+
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await page.getByRole('button', { name: /^3東/ }).click();
+  await expect(page.getByRole('group', { name: touch }).getByRole('button', { name: '×' })).toHaveAttribute('aria-pressed', 'true');
+  const photos = page.getByRole('list', { name: /高頻度接触面.* の写真/ });
+  await expect(photos.getByText('ドアノブに汚れ')).toBeVisible();
+  await expect(photos.locator('img')).toHaveAttribute('src', /^data:image\//);
 });

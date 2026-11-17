@@ -102,6 +102,24 @@ describe('useFacilityReportFile building', () => {
     expect(result.current.buildError).toBeNull();
   });
 
+  it('hands out no file built from the round before it changed (an import), until the new one is built', async () => {
+    const first = round();
+    const { result, rerender } = renderHook(({ r }) => useFacilityReportFile(r, PHOTOS), { initialProps: { r: first } });
+    await waitFor(() => expect(result.current.shareFile).not.toBeNull());
+
+    let finish: (blob: Blob) => void = () => {};
+    vi.mocked(buildFacilityDocxBlob).mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const second = { ...first, overallComment: '取り込んだ総評' };
+    rerender({ r: second });
+    expect(result.current.shareFile).toBeNull();
+    act(() => result.current.handleDownload());
+    expect(saveAs).not.toHaveBeenCalled();
+
+    await act(async () => finish(new Blob(['docx'])));
+    await waitFor(() => expect(result.current.shareFile).not.toBeNull());
+    expect(vi.mocked(embedFacilityRoundExport).mock.calls.at(-1)?.[1].round).toBe(second);
+  });
+
   it('reports a build failure and leaves no file to share', async () => {
     vi.mocked(buildFacilityDocxBlob).mockRejectedValueOnce(new Error('too big'));
     const r = round();

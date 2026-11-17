@@ -12,15 +12,20 @@ const appVersion = (
 // - external font / analytics requests are aborted so tests never depend on the network.
 export const test = base.extend({
   page: async ({ page }, use) => {
-    await page.route(/fonts\.(googleapis|gstatic)\.com|googletagmanager\.com/, (route) => route.abort());
-    await page.addInitScript((version) => {
-      localStorage.setItem('icn-round:last-seen-version', version);
-      localStorage.setItem('pwa_banner_dismissed', '1');
-      navigator.canShare = () => false;
-    }, appVersion);
+    await quietPage(page);
     await use(page);
   },
 });
+
+/** Puts a page into the quiet state above; for a page of a second browser context opened in a test. */
+export async function quietPage(page: Page) {
+  await page.route(/fonts\.(googleapis|gstatic)\.com|googletagmanager\.com/, (route) => route.abort());
+  await page.addInitScript((version) => {
+    localStorage.setItem('icn-round:last-seen-version', version);
+    localStorage.setItem('pwa_banner_dismissed', '1');
+    navigator.canShare = () => false;
+  }, appVersion);
+}
 
 export { expect };
 

@@ -96,7 +96,7 @@ describe('useFacilityRound photos', () => {
     await act(() => whenSaved());
 
     expect(putKinds(put)).toEqual(['photo', 'round']);
-    expect(put.mock.calls[0][0]).toEqual({ id: 'p1', roundId: 'r1', dataUrl: IMAGE });
+    expect(put.mock.calls[0][0]).toEqual({ id: 'r1:p1', photoId: 'p1', roundId: 'r1', dataUrl: IMAGE });
     expect(result.current.round?.photos).toEqual([
       expect.objectContaining({ id: 'p1', department: '3東', itemId: 'a', comment: '床の汚れ', width: 640, height: 480 }),
     ]);

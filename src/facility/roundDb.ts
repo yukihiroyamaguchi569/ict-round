@@ -19,9 +19,11 @@ export interface FacilityDb {
   listRounds(): Promise<DbResult<unknown[]>>;
   /** Deletes the round and every photo of it in one transaction. */
   deleteRound(id: string): Promise<DbResult<void>>;
+  /** Stored under the round and photo id together, so one photo imported into two rounds stays in both. */
   putPhoto<T extends { id: string; roundId: string; dataUrl: string }>(photo: T): Promise<DbResult<void>>;
+  /** The photos of a round, each with its photo id as `id` (also those stored before the key held the round). */
   getPhotos(roundId: string): Promise<DbResult<unknown[]>>;
-  deletePhoto(id: string): Promise<DbResult<void>>;
+  deletePhoto(roundId: string, photoId: string): Promise<DbResult<void>>;
   close(): void;
 }
 
@@ -97,6 +99,43 @@ function deletePhotosOfRound(photos: IDBObjectStore, roundId: string): void {
   };
 }
 
+/** The key of a photo record. Records stored before had the photo id alone as their key, and no photoId. */
+function photoKey(roundId: string, photoId: string): string {
+  return `${roundId}:${photoId}`;
+}
+
+function putPhotoRecord(photos: IDBObjectStore, photo: { id: string; roundId: string }): void {
+  // The key is built from the id, so a missing id would otherwise be stored as "undefined".
+  if (typeof photo.id !== 'string') throw new TypeError('photo without an id');
+  photos.put({ ...photo, id: photoKey(photo.roundId, photo.id), photoId: photo.id });
+}
+
+/** A record as the caller stored it: the photo id back as `id`. Records of the earlier form are returned as they are. */
+function fromPhotoRecord(record: unknown): unknown {
+  if (typeof record !== 'object' || record === null || !('photoId' in record) || typeof record.photoId !== 'string') {
+    return record;
+  }
+  const { photoId, ...rest } = record;
+  return { ...rest, id: photoId };
+}
+
+/** Deletes the photo, and the record of the earlier form under the photo id alone when it belongs to this round. */
+function deletePhotoRecords(photos: IDBObjectStore, roundId: string, photoId: string): void {
+  photos.delete(photoKey(roundId, photoId));
+  const legacy = photos.get(photoId);
+  legacy.onsuccess = () => {
+    try {
+      const record: unknown = legacy.result;
+      if (typeof record === 'object' && record !== null && 'roundId' in record && record.roundId === roundId) {
+        photos.delete(photoId);
+      }
+    } catch {
+      // Out of write()'s try: abort so a failure is reported.
+      photos.transaction.abort();
+    }
+  };
+}
+
 function wrap(db: IDBDatabase): FacilityDb {
   return {
     putRound: (record) => write(db, [ROUNDS], (tx) => tx.objectStore(ROUNDS).put(record)),
@@ -107,9 +146,12 @@ function wrap(db: IDBDatabase): FacilityDb {
         tx.objectStore(ROUNDS).delete(id);
         deletePhotosOfRound(tx.objectStore(PHOTOS), id);
       }),
-    putPhoto: (photo) => write(db, [PHOTOS], (tx) => tx.objectStore(PHOTOS).put(photo)),
-    getPhotos: (roundId) => read(db, PHOTOS, (store) => store.index(PHOTO_ROUND_INDEX).getAll(roundId)),
-    deletePhoto: (id) => write(db, [PHOTOS], (tx) => tx.objectStore(PHOTOS).delete(id)),
+    putPhoto: (photo) => write(db, [PHOTOS], (tx) => putPhotoRecord(tx.objectStore(PHOTOS), photo)),
+    getPhotos: async (roundId) => {
+      const records = await read(db, PHOTOS, (store) => store.index(PHOTO_ROUND_INDEX).getAll(roundId));
+      return records.ok ? ok(records.value.map(fromPhotoRecord)) : records;
+    },
+    deletePhoto: (roundId, photoId) => write(db, [PHOTOS], (tx) => deletePhotoRecords(tx.objectStore(PHOTOS), roundId, photoId)),
     close: () => db.close(),
   };
 }
