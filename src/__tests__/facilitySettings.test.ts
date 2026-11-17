@@ -371,6 +371,25 @@ describe('buildFacilitySettings: 行の誤り', () => {
     expect(errorsOf(sheets)).toEqual([{ sheet: '参加者', row: 6, message: '「職種」が空欄です' }]);
   });
 
+  it('回り方が空欄のグループを参照する部署・項目は、参照の誤りを重ねて出さない', () => {
+    const sheets = validSheets();
+    sheets['グループ'][1] = ['病棟', ''];
+    expect(errorsOf(sheets)).toEqual([{ sheet: 'グループ', row: 2, message: '「回り方」が空欄です' }]);
+  });
+
+  it('グループが空欄の部署を対象外に書いた項目は、参照の誤りを重ねて出さない', () => {
+    const sheets = validSheets();
+    sheets['部署'][2] = ['3階西', ''];
+    expect(errorsOf(sheets)).toEqual([{ sheet: '部署', row: 3, message: '「グループ」が空欄です' }]);
+  });
+
+  it('部署名が空欄の行だけが属するグループを「部署が無い」とは言わない', () => {
+    const sheets = validSheets();
+    sheets['グループ'].push(['救急', '選ぶ']);
+    sheets['部署'].push(['', '救急']);
+    expect(errorsOf(sheets)).toEqual([{ sheet: '部署', row: 5, message: '「部署名」が空欄です' }]);
+  });
+
   it('必須セルが空の行は重複や参照の判定から外す', () => {
     const sheets = validSheets();
     sheets['部署'].push(['3階東', '']);

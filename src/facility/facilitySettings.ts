@@ -104,13 +104,13 @@ export function buildFacilitySettings(
   const itemRows = readRows(sheets, ITEM_SHEET, errors);
   const memberRows = readRows(sheets, MEMBER_SHEET, errors);
 
-  const groups = buildGroups(groupRows ?? [], errors);
-  const groupNames = knownNames(groupRows, groups.map(({ group }) => group.name));
-  const departments = buildDepartments(departmentRows ?? [], groupNames, errors);
+  const groups = buildGroups(completeRows(groupRows, GROUP_SHEET, errors), errors);
+  const groupNames = knownNames(groupRows);
+  const departments = buildDepartments(completeRows(departmentRows, DEPARTMENT_SHEET, errors), groupNames, errors);
   if (departmentRows) checkGroupsHaveDepartments(groups, new Set(departmentRows.map((r) => r.cells[1])), errors);
-  const departmentNames = knownNames(departmentRows, departments.map((d) => d.name));
-  const themes = buildThemes(itemRows ?? [], { groupNames, departmentNames, newId }, errors);
-  const members = buildMembers(memberRows ?? [], errors);
+  const departmentNames = knownNames(departmentRows);
+  const themes = buildThemes(completeRows(itemRows, ITEM_SHEET, errors), { groupNames, departmentNames, newId }, errors);
+  const members = buildMembers(completeRows(memberRows, MEMBER_SHEET, errors), errors);
 
   if (errors.length > 0) return { ok: false, errors: sortErrors(errors) };
   return {
@@ -119,7 +119,7 @@ export function buildFacilitySettings(
   };
 }
 
-/** Reads a sheet's data rows: checks presence, header and that data exists; drops blank rows and rows missing a required cell. */
+/** Reads a sheet's data rows: checks presence, header and that data exists; drops blank rows (rows missing a required cell are kept). */
 function readRows(
   sheets: Record<string, string[][]>,
   spec: SheetSpec,
@@ -139,7 +139,12 @@ function readRows(
     errors.push({ sheet: spec.name, message: `「${spec.name}」シートにデータの行がありません（2 行目から書いてください）` });
     return null;
   }
-  return rows.filter((r) => hasRequiredCells(r, spec, errors));
+  return rows;
+}
+
+/** Rows with every required cell filled, reporting each blank one; the others are left out of the settings. */
+function completeRows(rows: DataRow[] | null, spec: SheetSpec, errors: SettingsError[]): DataRow[] {
+  return (rows ?? []).filter((r) => hasRequiredCells(r, spec, errors));
 }
 
 /** Rows below the header with at least one non-blank cell (in any column); row numbers stay Excel's. */
@@ -169,8 +174,13 @@ function hasRequiredCells(r: DataRow, spec: SheetSpec, errors: SettingsError[]):
   return blank.length === 0;
 }
 
-function knownNames(rows: DataRow[] | null, names: string[]): KnownNames {
-  return rows ? new Set(names) : null;
+/**
+ * Names in the first column of every row, including rows left out for a blank required cell,
+ * so a reference to such a row is not reported a second time on another sheet.
+ * A blank name may end up in the set; references never contain one (splitNames drops them).
+ */
+function knownNames(rows: DataRow[] | null): KnownNames {
+  return rows ? new Set(rows.map((r) => r.cells[0])) : null;
 }
 
 /** Records the first row of each key; returns the earlier row when the key was already seen. */
