@@ -31,7 +31,7 @@ function buildRoundExport(roundData: RoundData, categories: ChecklistCategory[],
 }
 
 /** この端末の Web Share API でファイルを共有できるか */
-function canShareFiles(): boolean {
+export function canShareFiles(): boolean {
   if (typeof navigator === 'undefined' || !('share' in navigator)) return false;
   // Variant A: type を省略（DOCX_MIME を渡すと iOS メール共有が即閉じる問題の検証）
   const testFile = new File([''], 'test.docx');
