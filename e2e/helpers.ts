@@ -69,3 +69,10 @@ export function firstItemRating(page: Page, rating: 'A' | 'B' | 'C') {
 export function bottomTab(page: Page, label: '写真' | '総評') {
   return page.getByRole('button', { name: new RegExp(`${label}$`) });
 }
+
+/** Opens facility.html and goes from its home (the preview build has one) to the settings screen. */
+export async function openFacilitySettings(page: Page) {
+  await page.goto('/facility.html');
+  // The entry card's name starts with 施設設定 followed by a summary; 施設設定へ is the hint link.
+  await page.getByRole('button', { name: /^施設設定(?!へ)/ }).click();
+}

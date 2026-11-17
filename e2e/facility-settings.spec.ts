@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import JSZip from 'jszip';
 import type { Page } from '@playwright/test';
-import { test, expect } from './helpers';
+import { test, expect, openFacilitySettings } from './helpers';
 
 const TEMPLATE = readFileSync(new URL('../public/facility-settings-template.xlsx', import.meta.url));
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -30,7 +30,7 @@ async function expectTemplateSummary(page: Page) {
 }
 
 test('ひな形を読み込むと確認表が出て、再読み込みしても残る', async ({ page }) => {
-  await page.goto('/facility.html');
+  await openFacilitySettings(page);
   await expect(page.getByRole('heading', { name: '施設ラウンド' })).toBeVisible();
   // In development: kept out of search results until it gets an entry on the start screen.
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
@@ -40,11 +40,12 @@ test('ひな形を読み込むと確認表が出て、再読み込みしても�
   await expectTemplateSummary(page);
 
   await page.reload();
+  await openFacilitySettings(page);
   await expectTemplateSummary(page);
 });
 
 test('誤りのあるファイルは行番号つきの誤りを出し、保存済みの設定を変えない', async ({ page }) => {
-  await page.goto('/facility.html');
+  await openFacilitySettings(page);
   await pickFile(page, 'facility-settings-template.xlsx', TEMPLATE);
   await expectTemplateSummary(page);
 
@@ -55,12 +56,13 @@ test('誤りのあるファイルは行番号つきの誤りを出し、保存�
   await expectTemplateSummary(page);
 
   await page.reload();
+  await openFacilitySettings(page);
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expectTemplateSummary(page);
 });
 
 test('ひな形のダウンロードのリンクから配布しているひな形を取得できる', async ({ page }) => {
-  await page.goto('/facility.html');
+  await openFacilitySettings(page);
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('link', { name: 'ひな形をダウンロード' }).click(),
@@ -70,7 +72,7 @@ test('ひな形のダウンロードのリンクから配布しているひな�
 });
 
 test('キーボードだけでファイルの選択を開ける', async ({ page }) => {
-  await page.goto('/facility.html');
+  await openFacilitySettings(page);
   const input = page.getByLabel('ファイルを選ぶ');
   // Tab from the top of the page until the file input has focus.
   for (let i = 0; i < 5 && !(await input.evaluate((el) => el === document.activeElement)); i++) {
