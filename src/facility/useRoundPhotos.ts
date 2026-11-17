@@ -113,9 +113,9 @@ export function useRoundPhotos({ roundId, ready, dbRef, latestRef, change, enque
       // While the round still holds the reference in storage, the image stays.
       if (!target || !saved || !(await saved)) return;
       // A failed delete leaves an unused image, removed with the round.
-      await enqueue(() => target.deletePhoto(photoId));
+      await enqueue(() => target.deletePhoto(roundId, photoId));
     },
-    [dbRef, change, enqueue]
+    [roundId, dbRef, change, enqueue]
   );
 
   /**

@@ -32,6 +32,37 @@ function photo(id: string, roundId: string) {
   return { id, roundId, dataUrl: `data:image/jpeg;base64,${id}` };
 }
 
+/** Opens the database without the wrapper, to write or read photo records exactly as stored. */
+function rawDb(factory: IDBFactory): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open(FACILITY_DB_NAME, 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function putRawPhoto(factory: IDBFactory, record: object): Promise<void> {
+  const db = await rawDb(factory);
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(record);
+    tx.oncomplete = () => resolve();
+    tx.onabort = () => reject(tx.error);
+  });
+  db.close();
+}
+
+async function rawPhotos(factory: IDBFactory): Promise<unknown[]> {
+  const db = await rawDb(factory);
+  const records = await new Promise<unknown[]>((resolve, reject) => {
+    const request = db.transaction('photos', 'readonly').objectStore('photos').getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  db.close();
+  return records;
+}
+
 describe('openFacilityDb', () => {
   it('opens the icn-round-facility database at version 1 with the rounds and photos stores', async () => {
     const factory = new IDBFactory();
@@ -173,20 +204,69 @@ describe('photos', () => {
     expect(unwrap(await db.getPhotos('none'))).toEqual([]);
   });
 
-  it('replaces a photo with the same id, also when it moves to another round', async () => {
+  it('replaces a photo stored again in the same round', async () => {
     const db = await openFresh();
     unwrap(await db.putPhoto(photo('p1', 'r1')));
-    unwrap(await db.putPhoto(photo('p1', 'r2')));
+    unwrap(await db.putPhoto({ ...photo('p1', 'r1'), dataUrl: 'data:image/png;base64,new' }));
+    expect(unwrap(await db.getPhotos('r1'))).toEqual([{ id: 'p1', roundId: 'r1', dataUrl: 'data:image/png;base64,new' }]);
+  });
+
+  it('keeps one photo id in two rounds apart (the same report imported into both)', async () => {
+    const db = await openFresh();
+    unwrap(await db.putPhoto(photo('p1', 'r1')));
+    unwrap(await db.putPhoto({ ...photo('p1', 'r2'), dataUrl: 'data:image/png;base64,r2' }));
+    expect(unwrap(await db.getPhotos('r1'))).toEqual([photo('p1', 'r1')]);
+    expect(unwrap(await db.getPhotos('r2'))).toEqual([{ id: 'p1', roundId: 'r2', dataUrl: 'data:image/png;base64,r2' }]);
+
+    unwrap(await db.deletePhoto('r1', 'p1'));
     expect(unwrap(await db.getPhotos('r1'))).toEqual([]);
-    expect(unwrap(await db.getPhotos('r2'))).toEqual([photo('p1', 'r2')]);
+    expect(unwrap(await db.getPhotos('r2'))).toHaveLength(1);
+  });
+
+  it('stores a photo under the round and photo id, with the photo id kept apart', async () => {
+    const factory = new IDBFactory();
+    const db = await openFresh(factory);
+    unwrap(await db.putPhoto(photo('p1', 'r1')));
+    expect(await rawPhotos(factory)).toEqual([{ id: 'r1:p1', photoId: 'p1', roundId: 'r1', dataUrl: photo('p1', 'r1').dataUrl }]);
   });
 
   it('deletes one photo and keeps the others', async () => {
     const db = await openFresh();
     unwrap(await db.putPhoto(photo('p1', 'r1')));
     unwrap(await db.putPhoto(photo('p2', 'r1')));
-    expect(await db.deletePhoto('p1')).toEqual({ ok: true, value: undefined });
+    expect(await db.deletePhoto('r1', 'p1')).toEqual({ ok: true, value: undefined });
     expect(unwrap(await db.getPhotos('r1'))).toEqual([photo('p2', 'r1')]);
+  });
+});
+
+describe('photos stored before the key held the round (id alone)', () => {
+  it('reads them back as they are, next to photos of the current form', async () => {
+    const factory = new IDBFactory();
+    const db = await openFresh(factory);
+    await putRawPhoto(factory, photo('old', 'r1'));
+    unwrap(await db.putPhoto(photo('new', 'r1')));
+    expect(unwrap(await db.getPhotos('r1'))).toEqual([photo('old', 'r1'), photo('new', 'r1')]);
+  });
+
+  it('deletes one of this round, but not one of another round under the same id', async () => {
+    const factory = new IDBFactory();
+    const db = await openFresh(factory);
+    await putRawPhoto(factory, photo('p1', 'r2'));
+    unwrap(await db.deletePhoto('r1', 'p1'));
+    expect(unwrap(await db.getPhotos('r2'))).toEqual([photo('p1', 'r2')]);
+
+    unwrap(await db.deletePhoto('r2', 'p1'));
+    expect(unwrap(await db.getPhotos('r2'))).toEqual([]);
+  });
+
+  it('deletes them with their round', async () => {
+    const factory = new IDBFactory();
+    const db = await openFresh(factory);
+    unwrap(await db.putRound({ id: 'r1' }));
+    await putRawPhoto(factory, photo('old', 'r1'));
+    unwrap(await db.putPhoto(photo('new', 'r1')));
+    unwrap(await db.deleteRound('r1'));
+    expect(await rawPhotos(factory)).toEqual([]);
   });
 });
 
@@ -288,7 +368,7 @@ describe('failures come back as results', () => {
       db.deleteRound('r1'),
       db.putPhoto(photo('p1', 'r1')),
       db.getPhotos('r1'),
-      db.deletePhoto('p1'),
+      db.deletePhoto('r1', 'p1'),
     ]);
     expect(results.map((r) => r.ok)).toEqual([false, false, false, false, false, false, false]);
   });
