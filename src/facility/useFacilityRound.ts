@@ -23,6 +23,12 @@ export function autosaveErrorMessage(error: unknown): string {
   return message === saveErrorMessage(null) ? AUTOSAVE_ERROR_MESSAGE : message;
 }
 
+/**
+ * Saves of every mount, one after another. Shared so that a round opened again right after leaving it
+ * is read only once the saves of the screen just left have been written, and its own saves come after them.
+ */
+let pendingSaves: Promise<void> = Promise.resolve();
+
 /** Opens the database and reads one round; null (with the database closed) when the round cannot be used. */
 async function openRound(factory: IDBFactory | undefined, id: string): Promise<{ db: FacilityDb; round: FacilityRound } | null> {
   const open = await openFacilityDb(factory);
@@ -38,17 +44,16 @@ async function openRound(factory: IDBFactory | undefined, id: string): Promise<{
 
 /**
  * One round being entered: reads it from IndexedDB and saves it after every change.
- * Saves run one after another in the order of the changes, so the last change is what stays stored.
+ * Saves run one after another in the order of the changes (across mounts too), so the last change is what stays stored.
  * A failed save leaves the change on screen, shows `saveError`, and the next change saves everything again.
  */
 export function useFacilityRound(id: string, { factory, onSaved }: FacilityRoundOptions = {}) {
   const [status, setStatus] = useState<RoundStatus>('loading');
   const [round, setRound] = useState<FacilityRound | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  // Refs so that quick changes build on each other before a re-render, and saves chain in order.
+  // Refs so that quick changes build on each other before a re-render.
   const latest = useRef<FacilityRound | null>(null);
   const db = useRef<FacilityDb | null>(null);
-  const saves = useRef<Promise<void>>(Promise.resolve());
   const onSavedRef = useRef(onSaved);
   useEffect(() => {
     onSavedRef.current = onSaved;
@@ -57,7 +62,7 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
   useEffect(() => {
     let cancelled = false;
     let opened: FacilityDb | null = null;
-    void openRound(factory, id).then((loaded) => {
+    void pendingSaves.then(() => openRound(factory, id)).then((loaded) => {
       if (cancelled) {
         loaded?.db.close();
         return;
@@ -74,7 +79,7 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
       db.current = null;
       latest.current = null;
       // Close only after the saves already queued have been written.
-      void saves.current.then(() => opened?.close());
+      void pendingSaves.then(() => opened?.close());
     };
   }, [factory, id]);
 
@@ -86,7 +91,7 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
     if (next === current) return;
     latest.current = next;
     setRound(next);
-    saves.current = saves.current.then(async () => {
+    pendingSaves = pendingSaves.then(async () => {
       const saved = await target.putRound(next);
       if (!saved.ok) return setSaveError(autosaveErrorMessage(saved.error));
       setSaveError(null);

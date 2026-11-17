@@ -178,6 +178,24 @@ describe('useFacilityRound', () => {
     await waitFor(() => expect(result.current.saveError).toContain('保存容量の上限に達した'));
   });
 
+  it('reads a round opened again only after the saves of the screen just left, so no change is lost', async () => {
+    const factory = new IDBFactory();
+    await seed(factory, round());
+    const first = await renderLoaded({ factory });
+    act(() => {
+      first.result.current.mark('3東', 'a', 'ok');
+      first.result.current.mark('3東', 'b', 'ng');
+    });
+    first.unmount();
+
+    const second = await renderLoaded({ factory });
+    expect(second.result.current.round?.marks).toEqual({ '3東': { a: 'ok', b: 'ng' } });
+    act(() => second.result.current.mark('透析室', 'a', 'ok'));
+    await expectStoredMarks(factory, { '3東': { a: 'ok', b: 'ng' }, 透析室: { a: 'ok' } });
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(await stored(factory)).toMatchObject({ marks: { '3東': { a: 'ok', b: 'ng' }, 透析室: { a: 'ok' } } });
+  });
+
   it('writes the queued saves before closing the database on unmount', async () => {
     const factory = new IDBFactory();
     await seed(factory, round());
