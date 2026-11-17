@@ -167,6 +167,33 @@ describe('useFacilityRound', () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
+  it('saves the current round again with retrySave after a failure', async () => {
+    const factory = new IDBFactory();
+    await seed(factory, round());
+    const { result } = await renderLoaded({ factory });
+    const put = vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementation(() => {
+      throw new Error('boom');
+    });
+    act(() => result.current.mark('3東', 'a', 'ng'));
+    await waitFor(() => expect(result.current.saveError).not.toBeNull());
+
+    let saved: boolean | undefined;
+    await act(async () => {
+      saved = await result.current.retrySave();
+    });
+    expect(saved).toBe(false);
+    expect(result.current.saveError).toBe(AUTOSAVE_ERROR_MESSAGE);
+    expect(await stored(factory)).toMatchObject({ marks: {} });
+
+    put.mockRestore();
+    await act(async () => {
+      saved = await result.current.retrySave();
+    });
+    expect(saved).toBe(true);
+    expect(result.current.saveError).toBeNull();
+    expect(await stored(factory)).toMatchObject({ marks: { '3東': { a: 'ng' } } });
+  });
+
   it('shows the quota message when the storage is full', async () => {
     const factory = new IDBFactory();
     await seed(factory, round());

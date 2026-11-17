@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { setMark, type FacilityRound, type Mark } from './facilityRound';
 import { parseStoredRound } from './storedFacilityRound';
-import { openFacilityDb, type FacilityDb } from './roundDb';
+import { openFacilityDb, type DbResult, type FacilityDb } from './roundDb';
 import { saveErrorMessage } from '../roundData';
 
 /** loading, ready to enter, or missing: not stored, broken, or the database cannot be read. */
@@ -47,6 +47,36 @@ async function openRound(factory: IDBFactory | undefined, id: string): Promise<{
   return { db: open.value, round };
 }
 
+/** Queues a write behind every earlier one, of any mount. */
+function queueWrite(target: FacilityDb, next: FacilityRound): Promise<DbResult<void>> {
+  const done = pendingSaves.then(() => target.putRound(next));
+  pendingSaves = done.then(() => undefined);
+  return done;
+}
+
+/** Saving with the failure message: shown on a failed save, cleared by the next successful one. */
+function useAutosave(onSaved: ((round: FacilityRound) => void) | undefined) {
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const onSavedRef = useRef(onSaved);
+  useEffect(() => {
+    onSavedRef.current = onSaved;
+  });
+
+  /** Resolves to whether `next` was written. */
+  const save = useCallback(async (target: FacilityDb, next: FacilityRound): Promise<boolean> => {
+    const saved = await queueWrite(target, next);
+    if (!saved.ok) {
+      setSaveError(autosaveErrorMessage(saved.error));
+      return false;
+    }
+    setSaveError(null);
+    onSavedRef.current?.(next);
+    return true;
+  }, []);
+
+  return { saveError, save };
+}
+
 /**
  * One round being entered: reads it from IndexedDB and saves it after every change.
  * Saves run one after another in the order of the changes (across mounts too), so the last change is what stays stored.
@@ -55,14 +85,10 @@ async function openRound(factory: IDBFactory | undefined, id: string): Promise<{
 export function useFacilityRound(id: string, { factory, onSaved }: FacilityRoundOptions = {}) {
   const [status, setStatus] = useState<RoundStatus>('loading');
   const [round, setRound] = useState<FacilityRound | null>(null);
-  const [saveError, setSaveError] = useState<string | null>(null);
   // Refs so that quick changes build on each other before a re-render.
   const latest = useRef<FacilityRound | null>(null);
   const db = useRef<FacilityDb | null>(null);
-  const onSavedRef = useRef(onSaved);
-  useEffect(() => {
-    onSavedRef.current = onSaved;
-  });
+  const { saveError, save } = useAutosave(onSaved);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,26 +114,32 @@ export function useFacilityRound(id: string, { factory, onSaved }: FacilityRound
     };
   }, [factory, id]);
 
-  const change = useCallback((apply: (current: FacilityRound) => FacilityRound) => {
+  const change = useCallback(
+    (apply: (current: FacilityRound) => FacilityRound) => {
+      const current = latest.current;
+      const target = db.current;
+      if (!current || !target) return;
+      const next = apply(current);
+      if (next === current) return;
+      latest.current = next;
+      setRound(next);
+      void save(target, next);
+    },
+    [save]
+  );
+
+  /** Saves the round as it is on screen once more, e.g. before leaving after a failed save. */
+  const retrySave = useCallback(async (): Promise<boolean> => {
     const current = latest.current;
     const target = db.current;
-    if (!current || !target) return;
-    const next = apply(current);
-    if (next === current) return;
-    latest.current = next;
-    setRound(next);
-    pendingSaves = pendingSaves.then(async () => {
-      const saved = await target.putRound(next);
-      if (!saved.ok) return setSaveError(autosaveErrorMessage(saved.error));
-      setSaveError(null);
-      onSavedRef.current?.(next);
-    });
-  }, []);
+    if (!current || !target) return false;
+    return save(target, current);
+  }, [save]);
 
   const mark = useCallback(
     (department: string, itemId: string, value: Mark) => change((current) => setMark(current, department, itemId, value)),
     [change]
   );
 
-  return { status, round, saveError, mark };
+  return { status, round, saveError, mark, retrySave };
 }

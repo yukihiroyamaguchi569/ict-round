@@ -11,7 +11,7 @@ export default function DepartmentList({ round, onOpen }: Props) {
     <div className="space-y-5">
       {departmentsByGroup(round).map(({ group, departments }) => (
         <section key={group} aria-label={group} className="card p-5">
-          <h2 className="text-sm font-extrabold text-text mb-3">{group}</h2>
+          <h3 className="text-sm font-extrabold text-text mb-3">{group}</h3>
           <ul className="space-y-2">
             {departments.map((department) => {
               const progress = departmentProgress(round, department.name);

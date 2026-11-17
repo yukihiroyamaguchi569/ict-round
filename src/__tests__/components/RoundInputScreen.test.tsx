@@ -189,6 +189,88 @@ describe('RoundInputScreen department', () => {
   });
 });
 
+describe('RoundInputScreen leaving with a failed save', () => {
+  async function failOnce() {
+    return vi.spyOn(FakeObjectStore.prototype, 'put').mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+  }
+
+  async function markWithFailedSave(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: /透析室/ }));
+    await user.click(within(item('高頻度接触面が清拭されている')).getByRole('button', { name: '×' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(AUTOSAVE_ERROR_MESSAGE);
+    await user.click(screen.getByRole('button', { name: '部署の一覧へ戻る' }));
+  }
+
+  it('saves again on the way home and leaves once that save works', async () => {
+    const onBack = vi.fn();
+    const user = await renderInput(onBack);
+    const put = await failOnce();
+    await markWithFailedSave(user);
+    put.mockRestore();
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(await storedMarks()).toEqual({ '3東': { a: 'ok' }, 透析室: { a: 'ng' } });
+  });
+
+  it('asks before leaving when the save fails again; staying keeps the input', async () => {
+    const onBack = vi.fn();
+    const user = await renderInput(onBack);
+    const put = await failOnce();
+    await markWithFailedSave(user);
+    put.mockImplementation(() => {
+      throw new Error('still broken');
+    });
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('保存できていない入力があります。戻るとこの入力は失われます。');
+    expect(within(dialog).getByRole('button', { name: 'この画面に残る' })).toHaveFocus();
+    expect(onBack).not.toHaveBeenCalled();
+
+    await user.click(within(dialog).getByRole('button', { name: 'この画面に残る' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(onBack).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /透析室/ })).toHaveTextContent('記入済み 1 / 1');
+    await waitFor(() => expect(screen.getByRole('heading', { name: '部署の一覧' })).toHaveFocus());
+  });
+
+  it('leaves without saving when chosen in the dialog', async () => {
+    const onBack = vi.fn();
+    const user = await renderInput(onBack);
+    const put = await failOnce();
+    await markWithFailedSave(user);
+    put.mockImplementation(() => {
+      throw new Error('still broken');
+    });
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '保存せずに戻る' }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves at once when no save has failed', async () => {
+    const onBack = vi.fn();
+    const user = await renderInput(onBack);
+    await user.click(screen.getByRole('button', { name: /透析室/ }));
+    await user.click(within(item('高頻度接触面が清拭されている')).getByRole('button', { name: '○' }));
+    await user.click(screen.getByRole('button', { name: '部署の一覧へ戻る' }));
+    await user.click(screen.getByRole('button', { name: 'ホームへ戻る' }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+});
+
+describe('RoundInputScreen focus', () => {
+  it('moves focus to the department list heading on entering, and back to it from a department', async () => {
+    const user = await renderInput();
+    await waitFor(() => expect(screen.getByRole('heading', { name: '部署の一覧' })).toHaveFocus());
+    await user.click(screen.getByRole('button', { name: /3東/ }));
+    await user.click(screen.getByRole('button', { name: '部署の一覧へ戻る' }));
+    expect(screen.getByRole('heading', { name: '部署の一覧' })).toHaveFocus();
+  });
+});
+
 describe('RoundInputScreen unreadable round', () => {
   it('says the round cannot be read and goes home', async () => {
     await seed({ id: 'r1', version: 1 });
