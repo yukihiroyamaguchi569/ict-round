@@ -183,6 +183,7 @@ src/
     FacilityApp.tsx        Facility page shell: header, file card, read errors, save failure, settings summary
     useFacilitySettings.ts Hook: settings saved on this device, reading a chosen file, saving it only when it has no errors, read errors, save failure, loading
     facilityStorage.ts     localStorage I/O of the facility settings (icn-round:facility-settings); reading back goes through parseStoredSettings, a failed write returns false
+    roundDb.ts             IndexedDB (icn-round-facility) wrapper for round records and their photos; never throws, returns DbResult; records read back as unknown; requestPersistentStorage
     SettingsFileCard.tsx   File picker (.xlsx) and the template download link
     SettingsErrorList.tsx  Read errors as an alert, prefixed with the sheet and row when known
     SettingsSummary.tsx    Read-only view of the settings: departments per group, items per theme with targets, members per role
