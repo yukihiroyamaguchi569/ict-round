@@ -25,7 +25,8 @@ export default defineConfig({
   // Test the production build users actually receive, not the dev server.
   // The build turns on the preview-only facility round flag, as the Cloudflare Pages preview does.
   webServer: {
-    command: `VITE_FACILITY_ROUND=1 npm run build && npm run preview -- --port ${PORT} --strictPort`,
+    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
+    env: { VITE_FACILITY_ROUND: '1' },
     url: BASE_URL,
     // Always build and serve fresh; reusing a server could test a stale build.
     reuseExistingServer: false,
