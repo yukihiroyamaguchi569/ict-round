@@ -175,7 +175,10 @@ type RoundChange = (apply: (current: FacilityRound) => FacilityRound) => void;
 /** The changes the screens make: marks and members saved at once, typed text saved once typing pauses. */
 function useRoundActions(change: RoundChange, changeText: RoundChange) {
   const mark = useCallback(
-    (department: string, itemId: string, value: Mark) => change((current) => setMark(current, department, itemId, value)),
+    // A block body: the save's promise is not handed to the screens.
+    (department: string, itemId: string, value: Mark) => {
+      void change((current) => setMark(current, department, itemId, value));
+    },
     [change]
   );
   const writeDepartmentComment = useCallback(
@@ -187,7 +190,9 @@ function useRoundActions(change: RoundChange, changeText: RoundChange) {
     [changeText]
   );
   const chooseMembers = useCallback(
-    (members: FacilityMember[]) => change((current) => setMembers(current, members)),
+    (members: FacilityMember[]) => {
+      void change((current) => setMembers(current, members));
+    },
     [change]
   );
   return { mark, writeDepartmentComment, writeOverallComment, chooseMembers };

@@ -182,7 +182,7 @@ src/
     storedFacilityRound.ts parseStoredRound: shape check of a round read back from storage (null when malformed)
     readSettingsFile.ts    readSettingsFile: reads a settings .xlsx (extension, size limit, ZIP signature check, all sheets as strings) into buildFacilitySettings; file errors come back as an error without a sheet, never thrown
     main.tsx               Entry point; mounts FacilityApp
-    FacilityApp.tsx        Facility page: without the preview flag only SettingsScreen; with it, the screen switch home / settings / round start / round input (holds useFacilityRounds, re-reads the settings on the way home, puts each saved round into the home list and focuses the home list on coming back from a round)
+    FacilityApp.tsx        Facility page: without the preview flag only SettingsScreen (not themed); with it, wrapped in ThemeProvider for the add-photo screen, the screen switch home / settings / round start / round input (holds useFacilityRounds, re-reads the settings on the way home, puts each saved round into the home list and focuses the home list on coming back from a round)
     SettingsScreen.tsx     Settings screen: file card, read errors, save failure, settings summary; a back button home when the preview flag is on
     ScreenHeader.tsx       Sticky header shared by the facility screens: page title, subtitle, optional back button
     HomeScreen.tsx         Home (preview only): start button (disabled without settings, with a link to them), this device's rounds with date / theme / progress, open and an on-screen delete confirmation, entry to the settings
@@ -190,14 +190,17 @@ src/
     MemberChecklist.tsx    Member checkboxes grouped by role, shared by the round start and the overall screen
     optionStyles.ts        Shared classes of the facility forms: option rows, their inputs, multi-line text boxes
     useFacilityRounds.ts   Hook: opens the IndexedDB, lists valid rounds newest first, start (createFacilityRound, putRound, persistent storage request), delete and replacing a round saved by the input screen; unavailable status and failure messages instead of throwing
-    useFacilityRound.ts    Hook for one round being entered: reads it (missing when absent / broken), mark and member updates saved at once in order, department / overall comments saved once typing pauses (800 ms, injectable; also flushed by the next immediate save, saveNow and unmount), save failure message (quota via saveErrorMessage) kept until the next successful save, saveNow before leaving (waits for queued saves, saves again if the round on screen is not stored)
-    RoundInputScreen.tsx   Round input (preview only): department list (with the overall card above it), one department, or the overall screen; roster from the settings on this device, focus on the list heading on entry, save failure alert, leaving only once the round is stored (screen inert meanwhile), otherwise UnsavedLeaveDialog, "cannot read this round" with the way home
+    useFacilityRound.ts    Hook for one round being entered: reads it (missing when absent / broken), mark and member updates saved at once in order, department / overall comments saved once typing pauses (800 ms, injectable; also flushed by the next immediate save, saveNow and unmount), save failure message (quota via saveErrorMessage) kept until the next successful save, saveNow before leaving (waits for queued saves, saves again if the round on screen is not stored); photos via useRoundPhotos
+    useRoundPhotos.ts      Hook for the photos of × items: reads the images (photoDataUrls) on open, add (image first, then the reference and the round save; an image that cannot be stored adds nothing), remove (reference, round save, then the image)
+    RoundInputScreen.tsx   Round input (preview only): department list (with the overall card above it), one department, the overall screen, or the add-photo screen (back to where the department was scrolled); roster from the settings on this device, focus on the list heading on entry, save failure alert, leaving only once the round is stored (screen inert meanwhile), otherwise UnsavedLeaveDialog, "cannot read this round" with the way home
     UnsavedLeaveDialog.tsx On-screen confirmation before leaving a round with input that could not be saved (stay / leave without saving)
     DepartmentList.tsx     Departments of the round by group with "記入済み n / m" per department
-    DepartmentScreen.tsx   One department: its applicable items with ○ / ×, progress, the department's comment, previous / next department
+    DepartmentScreen.tsx   One department: its applicable items with ○ / × (locked while the item has photos), the photos of × items with an on-screen delete confirmation, progress, the department's comment, previous / next department
+    ItemPhotos.tsx         Photos of one item (image or "写真を読めませんでした", comment, time, delete) and its "写真を追加" button on ×; PhotoDeleteDialog
+    AddPhotoScreen.tsx     Add-photo screen of an × item: the main app's PhotoForm with the department and item as the linked-item card; stays with an alert when the image cannot be stored
     OverallCard.tsx        Entry card to the overall screen: whether the overall comment is written, member count
     OverallScreen.tsx      Overall screen: the overall comment and choosing the members again (roster plus members missing from it)
-    MarkButtons.tsx        ○ / × buttons of one item (aria-pressed, pressing the same again clears, "確認なし" when unmarked)
+    MarkButtons.tsx        ○ / × buttons of one item (aria-pressed, pressing the same again clears, "確認なし" when unmarked; disabled with "写真を消すと変えられます" when locked)
     dateTimeLocal.ts       datetime-local value from / to a device-local Date (rejecting dates that do not exist) and the list's start time format
     useFacilitySettings.ts Hook: settings saved on this device, reading a chosen file, saving it only when it has no errors, read errors, save failure, loading
     facilityStorage.ts     localStorage I/O of the facility settings (icn-round:facility-settings); reading back goes through parseStoredSettings, a failed write returns false
