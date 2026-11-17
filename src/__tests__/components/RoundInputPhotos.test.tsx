@@ -149,6 +149,21 @@ describe('RoundInputScreen photos', () => {
     expect(confirm).not.toHaveBeenCalled();
   });
 
+  it('keeps the whole screen, header included, inert while asking, and closes with Escape', async () => {
+    const { user } = await openDepartment([ref('p1')], [{ id: 'p1', dataUrl: IMAGE }]);
+    const back = screen.getByRole('button', { name: '部署の一覧へ戻る' });
+    expect(back.closest('[inert]')).toBeNull();
+    await user.click(screen.getByRole('button', { name: '写真 1 を削除' }));
+    const dialog = screen.getByRole('dialog', { name: 'この写真を削除しますか？' });
+    expect(back.closest('[inert]')).not.toBeNull();
+    expect(dialog.closest('[inert]')).toBeNull();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(back.closest('[inert]')).toBeNull();
+    expect((await stored()).round.photos).toHaveLength(1);
+  });
+
   it('deletes the photo once confirmed, and the marks can be changed again', async () => {
     const { user } = await openDepartment([ref('p1')], [{ id: 'p1', dataUrl: IMAGE }]);
     await user.click(screen.getByRole('button', { name: '写真 1 を削除' }));

@@ -74,6 +74,9 @@ export function PhotoDeleteDialog({ onConfirm, onCancel }: DeleteDialogProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-photo-title"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onCancel();
+        }}
         className="bg-surface w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 space-y-4"
       >
         <div>

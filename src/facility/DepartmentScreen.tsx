@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   applicableItems,
   departmentComment,
@@ -24,11 +25,13 @@ interface Props {
   /** Opens the add-photo screen for an item marked ×. */
   onAddPhoto: (itemId: string) => void;
   onDeletePhoto: (photoId: string) => void;
+  /** Told when the delete confirmation opens and closes, so the whole screen behind it can be made inert. */
+  onModalChange: (open: boolean) => void;
 }
 
 /** One department: its applicable items with ○ / × and the photos of × items, and the way to the previous and next departments. */
 // eslint-disable-next-line max-lines-per-function -- mostly JSX markup of the department's cards; the logic is in facilityRound and the hooks
-export default function DepartmentScreen({ round, department, onMark, onComment, onOpen, photoData, onAddPhoto, onDeletePhoto }: Props) {
+export default function DepartmentScreen({ round, department, onMark, onComment, onOpen, photoData, onAddPhoto, onDeletePhoto, onModalChange }: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
   const [pendingDelete, setPendingDelete] = useState<RoundPhotoRef | null>(null);
   const items = applicableItems(round, department);
@@ -47,22 +50,25 @@ export default function DepartmentScreen({ round, department, onMark, onComment,
   const askDelete = (photo: RoundPhotoRef) => {
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setPendingDelete(photo);
+    onModalChange(true);
   };
   // Focus moves once the screen behind the dialog is no longer inert.
   const confirmDelete = (photoId: string) => {
     setPendingDelete(null);
+    onModalChange(false);
     onDeletePhoto(photoId);
     // The pressed button is gone with its photo; the department name stays, without scrolling to it.
     setTimeout(() => heading.current?.focus({ preventScroll: true }));
   };
   const cancelDelete = () => {
     setPendingDelete(null);
+    onModalChange(false);
     setTimeout(() => opener.current?.focus());
   };
 
   return (
     <>
-      <div className="space-y-5" inert={pendingDelete !== null}>
+      <div className="space-y-5">
         <div className="card p-5">
           <h2 ref={heading} tabIndex={-1} className="text-xl font-extrabold text-text break-words focus:outline-none">
             {department}
@@ -118,7 +124,9 @@ export default function DepartmentScreen({ round, department, onMark, onComment,
           {next && <StepButton label="次の部署" name={next} onClick={() => onOpen(next)} alignEnd />}
         </nav>
       </div>
-      {pendingDelete && <PhotoDeleteDialog onConfirm={() => confirmDelete(pendingDelete.id)} onCancel={cancelDelete} />}
+      {/* Outside the screen, which is inert while the dialog is open. */}
+      {pendingDelete &&
+        createPortal(<PhotoDeleteDialog onConfirm={() => confirmDelete(pendingDelete.id)} onCancel={cancelDelete} />, document.body)}
     </>
   );
 }
