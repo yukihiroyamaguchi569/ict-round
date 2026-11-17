@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SettingsScreen from '../../facility/SettingsScreen';
 import type { FacilitySettings } from '../../facility/facilitySettings';
@@ -174,6 +174,30 @@ describe('SettingsScreen', () => {
     expect(alert).toHaveTextContent('読み込んだ設定をこの端末に保存できませんでした');
     expect(alert).not.toHaveTextContent('保存している設定は変わっていません。');
     expect(screen.getByText('まだ施設設定が保存されていません。')).toBeInTheDocument();
+  });
+
+  it('shows no back button without onBack, and disables it while reading a file', async () => {
+    expect(render(<SettingsScreen />).queryByRole('button', { name: 'ホームへ戻る' })).toBeNull();
+    cleanup();
+    let resolve: () => void = () => {};
+    vi.mocked(readSettingsFile).mockImplementationOnce(
+      () => new Promise((r) => { resolve = () => r({ ok: false, errors: [{ message: '読めません' }] }); })
+    );
+    const onBack = vi.fn();
+    const { container } = render(<SettingsScreen onBack={onBack} />);
+    const fileInput = container.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!fileInput) throw new Error('file input not found');
+    const user = userEvent.setup({ applyAccept: false });
+    const back = screen.getByRole('button', { name: 'ホームへ戻る' });
+    await user.upload(fileInput, templateFile());
+    expect(back).toBeDisabled();
+    await user.click(back);
+    expect(onBack).not.toHaveBeenCalled();
+    resolve();
+    await screen.findByRole('alert');
+    expect(back).toBeEnabled();
+    await user.click(back);
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 
   it('disables the file input while reading and lets the same file be picked again', async () => {

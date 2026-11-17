@@ -10,7 +10,8 @@ export default function SettingsScreen({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="min-h-screen bg-base">
-      <ScreenHeader subtitle="全部署を回るラウンドの施設設定（開発中）" onBack={onBack} />
+      {/* No way back while reading: home would keep the settings from before the file is saved. */}
+      <ScreenHeader subtitle="全部署を回るラウンドの施設設定（開発中）" onBack={onBack} backDisabled={loading} />
 
       <div className="animate-page px-4 py-5 pb-16 max-w-3xl mx-auto space-y-5">
         <SettingsFileCard loading={loading} onFile={(file) => void loadFile(file)} />
