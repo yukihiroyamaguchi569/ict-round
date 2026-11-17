@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import JSZip from 'jszip';
 import { test, expect, openFacilitySettings, pickGalleryPhoto } from './helpers';
 
 const TEMPLATE = 'public/facility-settings-template.xlsx';
@@ -172,4 +174,46 @@ test('× の項目に写真を付けると、再読み込みして開き直し�
   await page.getByRole('button', { name: /^3東/ }).click();
   await expect(marks.getByRole('button', { name: '×' })).toHaveAttribute('aria-pressed', 'true');
   await expect(photos).toHaveCount(0);
+});
+
+test('○× を付けて帳票の画面から Word 出力すると、遵守率とラウンドの記録が入ったファイルが保存される', async ({ page }) => {
+  await page.goto('/facility.html');
+  await openFacilitySettings(page);
+  await page.locator('input[type="file"]').setInputFiles(TEMPLATE);
+  await expect(page.getByRole('heading', { name: '部署グループと部署（4 グループ・11 部署）' })).toBeVisible();
+  await page.getByRole('button', { name: 'ホームへ戻る' }).click();
+
+  await page.getByRole('button', { name: 'ラウンドを始める' }).click();
+  await page.getByLabel('日時').fill('2026-11-20T14:30');
+  await page.getByRole('radio', { name: /環境整備/ }).check();
+  await page.getByRole('button', { name: '始める', exact: true }).click();
+
+  await page.getByRole('button', { name: /^3東/ }).click();
+  await page.getByRole('group', { name: '汚物処理室の床やシンクに汚れがない' }).getByRole('button', { name: '○' }).click();
+  await page.getByRole('group', { name: /ユーティリティ/ }).getByRole('button', { name: '○' }).click();
+  await page.getByRole('group', { name: /高頻度接触面/ }).getByRole('button', { name: '×' }).click();
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+
+  await page.getByRole('button', { name: '帳票（遵守率と Word 出力）' }).click();
+  await expect(page.getByRole('heading', { name: '帳票' })).toBeFocused();
+  const ward = page.getByRole('region', { name: '病棟' });
+  await expect(ward.getByRole('listitem').filter({ hasText: '3東' })).toContainText('遵守率 67%');
+  await expect(ward.getByRole('listitem').filter({ hasText: '3西' })).toContainText('遵守率 －');
+
+  const exportButton = page.getByRole('button', { name: 'Word出力' });
+  await expect(exportButton).toBeEnabled();
+  const [download] = await Promise.all([page.waitForEvent('download'), exportButton.click()]);
+  expect(download.suggestedFilename()).toMatch(/^ICTround_facility_2026-11-20_[a-z0-9]{4}\.docx$/);
+
+  const zip = await JSZip.loadAsync(readFileSync(await download.path()));
+  const documentXml = await zip.file('word/document.xml')?.async('string');
+  expect(documentXml).toContain('環境整備');
+  expect(documentXml).toContain('67%');
+  const customXml = await Promise.all(
+    Object.keys(zip.files).filter((p) => /^customXml\/item\d+\.xml$/.test(p)).map((p) => zip.file(p)?.async('string'))
+  );
+  expect(customXml.some((text) => text?.includes('meguru-facility-round'))).toBe(true);
+
+  await page.getByRole('button', { name: '部署の一覧へ戻る' }).click();
+  await expect(page.getByRole('heading', { name: '部署の一覧' })).toBeFocused();
 });

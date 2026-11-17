@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ASSETS_DIR = 'dist/assets';
-const PREVIEW_ONLY_MARKERS = ['icn-round-facility', 'ラウンドを始める'];
+const PREVIEW_ONLY_MARKERS = ['icn-round-facility', 'ラウンドを始める', '記録の控え'];
 
 if (process.env.VITE_FACILITY_ROUND === '1') {
   console.log('check-production-build: skipped (preview build)');

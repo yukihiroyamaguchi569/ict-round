@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { roundProgress, type FacilityRound } from './facilityRound';
 import type { FacilityMember } from './facilitySettings';
 import { useFacilityRound } from './useFacilityRound';
@@ -8,6 +8,8 @@ import DepartmentList from './DepartmentList';
 import DepartmentScreen from './DepartmentScreen';
 import OverallCard from './OverallCard';
 import OverallScreen from './OverallScreen';
+import ReportCard from './ReportCard';
+import ReportScreen from './ReportScreen';
 import UnsavedLeaveDialog from './UnsavedLeaveDialog';
 import AddPhotoScreen from './AddPhotoScreen';
 import type { Photo } from '../types';
@@ -21,10 +23,13 @@ interface Props {
   onSaved?: (round: FacilityRound) => void;
 }
 
-/** What the screen shows: the department list, the overall screen, or one department. */
-type View = 'list' | 'overall' | { department: string };
+/** What the screen shows: the department list, the overall screen, the report, or one department. */
+type View = 'list' | 'overall' | 'report' | { department: string };
 
-/** Entering one round: the list of departments, one department's ○ / × and comment, or the overall comment and members. */
+/**
+ * Entering one round: the list of departments, one department's ○ / × and comment, the overall comment and members,
+ * or the report.
+ */
 export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: Props) {
   const { status, round, saveError, saveNow, ...actions } = useFacilityRound(roundId, { onSaved });
   const [view, setView] = useState<View>('list');
@@ -79,13 +84,7 @@ export default function RoundInputScreen({ roundId, roster, onBack, onSaved }: P
             </p>
           )}
           {view === 'list' ? (
-            <>
-              <h2 ref={listHeading} tabIndex={-1} className="sr-only">
-                部署の一覧
-              </h2>
-              <OverallCard round={round} onOpen={() => setView('overall')} />
-              <DepartmentList round={round} onOpen={(department) => setView({ department })} />
-            </>
+            <ListView round={round} heading={listHeading} onOpen={setView} />
           ) : (
             <OpenView view={view} round={round} roster={roster} actions={actions} onAddPhoto={openPhoto} onModalChange={setPhotoModal} onOpen={(department) => setView({ department })} />
           )}
@@ -125,6 +124,26 @@ function usePhotoViews() {
   return { photoFor, openPhoto, closePhoto: () => setPhotoFor(null), photoModal, setPhotoModal };
 }
 
+interface ListViewProps {
+  round: FacilityRound;
+  heading: RefObject<HTMLHeadingElement | null>;
+  onOpen: (view: Exclude<View, 'list'>) => void;
+}
+
+/** The list: the overall and report cards, then the departments. */
+function ListView({ round, heading, onOpen }: ListViewProps) {
+  return (
+    <>
+      <h2 ref={heading} tabIndex={-1} className="sr-only">
+        部署の一覧
+      </h2>
+      <OverallCard round={round} onOpen={() => onOpen('overall')} />
+      <ReportCard onOpen={() => onOpen('report')} />
+      <DepartmentList round={round} onOpen={(department) => onOpen({ department })} />
+    </>
+  );
+}
+
 type RoundInputActions = Omit<ReturnType<typeof useFacilityRound>, 'status' | 'round' | 'saveError' | 'saveNow'>;
 
 interface OpenViewProps {
@@ -137,8 +156,9 @@ interface OpenViewProps {
   onOpen: (department: string) => void;
 }
 
-/** The overall screen or one department, opened from the list. */
+/** The overall screen, the report or one department, opened from the list. */
 function OpenView({ view, round, roster, actions, onAddPhoto, onModalChange, onOpen }: OpenViewProps) {
+  if (view === 'report') return <ReportScreen round={round} photoData={actions.photoData} />;
   if (view === 'overall') {
     return (
       <OverallScreen round={round} roster={roster} onOverallComment={actions.writeOverallComment} onMembers={actions.chooseMembers} />
