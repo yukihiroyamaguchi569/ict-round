@@ -84,8 +84,15 @@ export function collectPhotoEntries(roundData: RoundData, categories: ChecklistC
   return entries;
 }
 
-/** 写真表の列幅（合計が本文幅 9026） */
-const PHOTO_COL_WIDTHS = [3009, 3009, 3008];
+/** 縦向き A4 の本文幅。写真表の既定の幅 */
+const PORTRAIT_CONTENT_W = 9026;
+
+/** 写真表の3列の幅。端数は左の列から1ずつ足して合計を tableWidth に揃える */
+function photoColumnWidths(tableWidth: number): number[] {
+  const base = Math.floor(tableWidth / 3);
+  const rest = tableWidth - base * 3;
+  return [0, 1, 2].map((i) => base + (i < rest ? 1 : 0));
+}
 
 /** 写真表の1セル。写真が無いセルは3列に揃えるための空セル */
 function photoCell(entry: PhotoEntry | undefined, width: number, clr: DocxColors): TableCell {
@@ -113,18 +120,19 @@ function photoCell(entry: PhotoEntry | undefined, width: number, clr: DocxColors
   });
 }
 
-/** 写真を3列のテーブルに並べる */
-export function buildPhotoTables(entries: PhotoEntry[], clr: DocxColors): (Paragraph | Table)[] {
+/** 写真を3列のテーブルに並べる。tableWidth は表全体の幅（既定は縦向き A4 の本文幅） */
+export function buildPhotoTables(entries: PhotoEntry[], clr: DocxColors, tableWidth = PORTRAIT_CONTENT_W): (Paragraph | Table)[] {
   const children: (Paragraph | Table)[] = [];
+  const colWidths = photoColumnWidths(tableWidth);
 
   for (let i = 0; i < entries.length; i += 3) {
     children.push(new Table({
-      width: { size: 9026, type: WidthType.DXA },
-      columnWidths: PHOTO_COL_WIDTHS,
+      width: { size: tableWidth, type: WidthType.DXA },
+      columnWidths: colWidths,
       layout: TableLayoutType.FIXED,
       rows: [
         new TableRow({
-          children: PHOTO_COL_WIDTHS.map((width, idx) => photoCell(entries[i + idx], width, clr)),
+          children: colWidths.map((width, idx) => photoCell(entries[i + idx], width, clr)),
         }),
       ],
     }));
