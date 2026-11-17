@@ -29,6 +29,11 @@ export function autosaveErrorMessage(error: unknown): string {
  */
 let pendingSaves: Promise<void> = Promise.resolve();
 
+/** Resolves once every save queued so far has been written (or has failed). */
+export function whenSaved(): Promise<void> {
+  return pendingSaves;
+}
+
 /** Opens the database and reads one round; null (with the database closed) when the round cannot be used. */
 async function openRound(factory: IDBFactory | undefined, id: string): Promise<{ db: FacilityDb; round: FacilityRound } | null> {
   const open = await openFacilityDb(factory);
