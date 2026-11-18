@@ -165,6 +165,8 @@ function buildMarkTable(round: FacilityRound, departments: FacilityDepartment[],
 function sectionHeading(text: string, clr: DocxColors): Paragraph {
   return new Paragraph({
     heading: HeadingLevel.HEADING_2,
+    // Keep the heading on the page of what follows it (e.g. 写真 alone at the bottom of a page).
+    keepNext: true,
     spacing: { before: 240, after: 120 },
     children: [new TextRun({ text, bold: true, size: 24, color: clr.text })],
   });
