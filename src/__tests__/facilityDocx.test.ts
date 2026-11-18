@@ -181,6 +181,15 @@ describe('buildFacilityDocxBlob', () => {
     expect(ps).not.toContain('B病棟：消毒剤がある');
   });
 
+  it('節の見出しは次の段落と同じページに置く（写真の見出しだけがページの末尾に残らない）', async () => {
+    const xml = await documentXml(await buildFacilityDocxBlob(round(), { p1: PIXEL }));
+    const headings = [...xml.matchAll(/<w:p>(?:(?!<\/w:p>).)*?<\/w:p>/g)]
+      .map(([p]) => p)
+      .filter((p) => ['部署ごとのコメント', '総評', '写真'].some((t) => p.includes(`<w:t xml:space="preserve">${t}</w:t>`) || p.includes(`<w:t>${t}</w:t>`)));
+    expect(headings).toHaveLength(3);
+    for (const p of headings) expect(p).toContain('<w:keepNext/>');
+  });
+
   it('写真が 1 枚も無ければ写真の見出しを出さない', async () => {
     const ps = paragraphs(await documentXml(await buildFacilityDocxBlob(round(), {})));
     expect(ps).not.toContain('写真');
