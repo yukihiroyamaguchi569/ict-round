@@ -212,9 +212,9 @@ describe('ChecklistEditor', () => {
     expect(onSave).not.toHaveBeenCalled();
   });
 
-  it('records the open event once with its source', async () => {
+  it('records the open event once, with where it was opened from as `from` (never `source`)', async () => {
     const { user } = setup(draftFromChecklist(SOURCE, 'コピー'), 'copy');
-    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { source: 'copy' }]]);
+    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { from: 'copy' }]]);
     // Editing re-renders but must not record the open event again
     await user.type(textbox('チェックリストの名前'), 'x');
     expect(trackEvent).toHaveBeenCalledTimes(1);
@@ -222,7 +222,7 @@ describe('ChecklistEditor', () => {
 
   it('records the open event for a new checklist', () => {
     setup();
-    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { source: 'new' }]]);
+    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { from: 'new' }]]);
   });
 
   it('records the save event only when the checklist is saved', async () => {
@@ -243,7 +243,7 @@ describe('ChecklistEditor', () => {
     const { onCancel, user } = setup();
     await user.click(button('キャンセル'));
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { source: 'new' }]]);
+    expect(vi.mocked(trackEvent).mock.calls).toEqual([['checklist_editor_open', { from: 'new' }]]);
   });
 
   it('cancels without asking when edits were reverted to the initial content', async () => {

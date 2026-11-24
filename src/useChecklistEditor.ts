@@ -16,7 +16,9 @@ export function useChecklistEditor(
   const [addedCategoryKey, setAddedCategoryKey] = useState<string | null>(null);
 
   useEffect(() => {
-    trackEvent('checklist_editor_open', { source });
+    // Sent as `from`, not `source`: GA4 reads an event parameter named `source` as the
+    // traffic source, which relabelled these devices' visits as coming from "copy" / "new".
+    trackEvent('checklist_editor_open', { from: source });
   }, [source]);
 
   const setCategories = (categories: DraftCategory[]) => setDraft((d) => ({ ...d, categories }));
