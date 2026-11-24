@@ -3,8 +3,8 @@
 **文書番号:** ICT-TS-001  
 **対象者:** 情報システム部門・委員会担当者  
 **作成日:** 2026年4月18日  
-**最終更新日:** 2026年11月6日  
-**対象バージョン:** 1.19.4
+**最終更新日:** 2026年11月24日  
+**対象バージョン:** 1.19.5
 
 ---
 
@@ -549,7 +549,7 @@ interface RoundExport {
 | `checklist_import_open` | チェックリスト取り込みダイアログを開いた時 | なし |
 | `checklist_import_error` | 取り込むファイルの読み込みに失敗した時 | `file_type`（`csv` / `xlsx`） |
 | `checklist_import_success` | 取り込んだチェックリストを保存した時 | `file_type`（`csv` / `xlsx`） |
-| `checklist_editor_open` | チェックリストのエディタを開いた時 | `source`（`new` / `copy`） |
+| `checklist_editor_open` | チェックリストのエディタを開いた時 | `from`（新規作成 `new` / 既存のチェックリストの複製 `copy`） |
 | `checklist_editor_save` | エディタで作成したチェックリストを保存した時 | なし |
 | `round_start` | ラウンドを新しく開始した時（サンプルを含む。保存済みラウンドを開いた時は送信しない） | `sample`（サンプルなら `true`、通常のラウンドなら `false`） |
 | `report_open` | 報告書の画面を開いた時（画面を開くたびに 1 回） | `sample`（サンプルなら `true`、通常のラウンドなら `false`） |
